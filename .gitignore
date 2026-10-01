@@ -1,0 +1,7 @@
+/quickshell/
+/ii/
+/toolchain/
+/build/
+/dist/
+*.png
+*.ppm
