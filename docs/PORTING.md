@@ -25,7 +25,21 @@ after splatting: it adds the header spellings C++/WinRT needs), Qt 6.11.2 `msvc2
 aqtinstall (git master; 3.3.0 doesn't understand the 6.11 repository layout). CMake links with lld-link
 directly (`tools/clang-cl-rules.cmake`) so no rc.exe/mt.exe is needed.
 
-Testing: VM `win11` only (never `win11-gpu`). `tools/vm.sh up|push|run|shot|log|ipc`.
+Testing: the Windows VM connects to the host, never the other way around. Its agent
+(`tools/vm-agent.ps1`, installed once with `iex (ssh <linux user>@192.168.122.1 iiw-vm bootstrap | Out-String)`)
+starts with the Windows logon, logs in with a key pinned to `tools/vm-gateway.sh` (forced command) and
+runs PowerShell jobs queued by `tools/vm.sh push|run|kill|log|ipc|shot|job`. It works in both `win11`
+and `win11-gpu` (same disk); `vm.sh` never starts `win11-gpu` itself. Screenshots are taken inside
+Windows, so they show the real RTX output.
+
+## Rules learned on the target
+
+- **C++/WinRT runs on its own MTA thread.** Qt initializes COM as STA on the GUI thread, so
+  `winrt::init_apartment(multi_threaded)` there fails with RPC_E_CHANGED_MODE, and C++/WinRT forbids
+  blocking `.get()` on STA threads. Every WinRT-backed service (GSMTC, Bluetooth, notifications, OCR)
+  owns a worker thread that calls `init_apartment(multi_threaded)` and posts results back to Qt.
+  Verified: GSMTC works unpackaged this way.
+- Qt Quick picks Direct3D 11 (`GraphicsInfo.api == 4`); translucent frameless windows work as-is.
 
 ## Module mapping
 
