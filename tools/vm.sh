@@ -135,7 +135,7 @@ ii)
 $dir = "$env:IIW_ROOT\ii-windows"
 Get-Process qsw -ErrorAction SilentlyContinue | Stop-Process -Force
 robocopy "$dir\config\ii" "$env:LOCALAPPDATA\quickshell\ii" /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
-$colors = "$env:LOCALAPPDATA\quickshell\user\generated\colors.json"
+$colors = "$env:LOCALAPPDATA\quickshell\State\user\generated\colors.json"
 if (-not (Test-Path $colors)) {
 	New-Item -Force -ItemType Directory (Split-Path $colors) | Out-Null
 	Copy-Item "$dir\config\ii\defaults\windows\colors.json" $colors
