@@ -20,7 +20,7 @@ while ($true) {
 	if ($resp.Count -eq 0 -or -not $resp[0]) { continue }
 
 	$id = $resp[0].Trim()
-	if ($id -eq 'reload-agent') { return }  # boot.ps1 fetches the new agent body
+	if ($id -eq 'reload-agent') { break }  # back to boot.ps1, which fetches the new agent body
 
 	$file = "$d\jobs\$id.ps1"
 	$outFile = "$d\jobs\$id.out"
