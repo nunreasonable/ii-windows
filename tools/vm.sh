@@ -67,6 +67,9 @@ push)
 	[ -d "$IIW/dist/$name" ] || { echo "no dist/$name" >&2; exit 1; }
 	job 600 <<EOF
 New-Item -Force -ItemType Directory "\$env:IIW_ROOT\\$name" | Out-Null
+# Running programs lock their exe and DLLs; stop whatever runs from the target dir first.
+Get-Process | Where-Object { \$_.Path -like "\$env:IIW_ROOT\\$name\\*" } | Stop-Process -Force
+Start-Sleep -Milliseconds 500
 cmd /c "%IIW_GW% fetch $name | tar -xf - -C %IIW_ROOT%\\$name"
 if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }
 "pushed $name: " + (Get-ChildItem -Recurse "\$env:IIW_ROOT\\$name" | Measure-Object -Sum Length).Sum + " bytes"
