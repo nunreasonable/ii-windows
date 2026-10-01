@@ -128,9 +128,19 @@ EOF
 reload-agent)
 	: > "$Q/pending/reload-agent"
 	echo "agent will reload on its next poll" ;;
+restart-agent)
+	# For an agent too old to understand reload-agent: start a fresh boot.ps1, then kill the
+	# old one. The job's own result is lost with the old agent, so don't wait for it.
+	cat > "$Q/pending/$(date +%s%N)-restart" <<'EOF'
+$old = Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
+	Where-Object { $_.CommandLine -like '*iiw-agent\boot.ps1*' }
+Start-Process powershell.exe "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$env:LOCALAPPDATA\iiw-agent\boot.ps1`""
+$old | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+EOF
+	echo "restart queued" ;;
 *)
 	cat >&2 <<EOF
-usage: vm.sh up|down|status|push <dist>|run <exe> [args]|kill [names]|log [name] [lines]|ipc <args>|shot [out.png]|job [timeout] < script.ps1|reload-agent
+usage: vm.sh up|down|status|push <dist>|run <exe> [args]|kill [names]|log [name] [lines]|ipc <args>|shot [out.png]|job [timeout] < script.ps1|reload-agent|restart-agent
 EOF
 	exit 1 ;;
 esac
