@@ -45,8 +45,14 @@ Windows, so they show the real RTX output.
 
 - Phase 0 (toolchain, VM channel) and Phase 1 (core + window backend) done and verified on the
   RTX VM: AppBar reservation (also released on hide/exit), transparency, layers, input masks, IPC.
-- Phase 2 done: ii boots (`vm.sh ii start`), bar + right sidebar render; services are QML shims
-  (`quickshell/shims/`) until their native backends land.
+- Phase 2 done: ii boots (`vm.sh ii start`), bar + right sidebar render.
+- Phase 3 merged (native backends, see the table): window tracker + virtual desktops + native
+  Quickshell.Hyprland/ToplevelManager, hotkeys (RegisterHotKey + LL hook, lone Super), focus grabs,
+  Core Audio, GSMTC, UPower/power modes, Start-menu apps + shell icons, system helpers
+  (Quickshell.Windows: session, stats, brightness, keyboard, clipboard, credentials, input, night
+  light). Still shims: Notifications, SystemTray, Polkit, Pam, Bluetooth.
+- On Windows ii doesn't talk DDC/CI at startup: a boot-time query plus the monitor's OSD froze the
+  ASUS VG259Q5A firmware. Brightness DDC only runs when the user changes it.
 - Fixed upstream bugs that only show on named pipes: chunked IPC commands left a QDataStream
   transaction open, the client ignored responses buffered with a closed pipe, and deleting the
   server connection aborted replies in flight.
@@ -56,34 +62,34 @@ Windows, so they show the real RTX output.
 | Linux (Quickshell / ii)                 | Windows                                                              | Status |
 |-----------------------------------------|----------------------------------------------------------------------|--------|
 | PanelWindow + WlrLayershell             | `WinPanelWindow`: AppBar, z-bands, DWM attrs, input mask via hook     | done   |
-| HyprlandFocusGrab                       | outside-click / foreground-change dismissal                          | todo   |
+| HyprlandFocusGrab                       | outside-click / foreground-change dismissal                          | done   |
 | GlobalShortcut + Hyprland keybinds      | RegisterHotKey + WH_KEYBOARD_LL (lone Super), `defaults/windows/keybinds.json` | todo |
 | Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor) | todo |
-| HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | todo   |
-| ToplevelManager                         | same window tracker                                                  | todo   |
+| HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done   |
+| ToplevelManager                         | same window tracker                                                  | done   |
 | ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | todo   |
 | IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done   |
-| Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | todo   |
-| Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | todo   |
-| Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | todo   |
+| Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done   |
+| Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done   |
+| Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | done   |
 | Services.Notifications                  | internal server (+ UserNotificationListener mirror later)            | todo   |
 | Services.SystemTray                     | empty stub (tray stays on the native taskbar)                        | todo   |
 | Services.Polkit / Pam / WlSessionLock   | inert stubs; lock = LockWorkStation                                  | todo   |
 | Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | todo   |
-| DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | todo   |
-| org.kde.kirigami (Icon only)            | QML shim                                                             | todo   |
-| org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | todo   |
+| DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | done   |
+| org.kde.kirigami (Icon only)            | QML shim                                                             | done   |
+| org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | done   |
 | nmcli (Network.qml)                     | WlanAPI + INetworkListManager                                        | todo   |
-| ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2)                                                 | todo   |
-| cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | todo   |
-| ydotool                                 | SendInput                                                            | todo   |
+| ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2)                                                 | done   |
+| cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | done   |
+| ydotool                                 | SendInput                                                            | done   |
 | grim/slurp/magick/tesseract             | WGC capture, C++ crop, Windows.Media.Ocr                             | todo   |
 | wf-recorder                             | ffmpeg ddagrab                                                       | todo   |
 | matugen + switchwall.sh                 | matugen.exe + IDesktopWallpaper + system dark mode                   | todo   |
-| systemctl/loginctl (Session.qml)        | LockWorkStation, ExitWindowsEx, InitiateShutdownW, SetSuspendState   | todo   |
-| secret-tool                             | CredRead/CredWrite                                                   | todo   |
-| hyprsunset                              | gamma ramp                                                           | todo   |
-| /proc (ResourceUsage)                   | GetSystemTimes, GlobalMemoryStatusEx, PDH                            | todo   |
+| systemctl/loginctl (Session.qml)        | LockWorkStation, ExitWindowsEx, InitiateShutdownW, SetSuspendState   | done   |
+| secret-tool                             | CredRead/CredWrite                                                   | done   |
+| hyprsunset                              | gamma ramp                                                           | done   |
+| /proc (ResourceUsage)                   | GetSystemTimes, GlobalMemoryStatusEx, PDH                            | done   |
 
 ## ii files changed from upstream
 
