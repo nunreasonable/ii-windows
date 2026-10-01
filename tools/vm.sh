@@ -21,7 +21,7 @@ agent_age() {
 job() {
 	local timeout="${1:-120}" id
 	id="$(date +%s%N)-$RANDOM"
-	cat > "$Q/pending/.$id"
+	{ echo "#timeout=$((timeout - 5))"; cat; } > "$Q/pending/.$id"
 	mv "$Q/pending/.$id" "$Q/pending/$id"
 	for _ in $(seq $((timeout * 2))); do
 		if [ -f "$Q/done/$id.rc" ]; then

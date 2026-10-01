@@ -27,11 +27,22 @@ while ($true) {
 	$body = "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding `$false`r`n" +
 		(($resp | Select-Object -Skip 1) -join "`r`n")
 	[IO.File]::WriteAllText($file, $body, $utf8)
+	$timeout = 120
+	if ($resp.Count -gt 1 -and $resp[1] -match '^#timeout=(\d+)') { $timeout = [int]$Matches[1] }
 	# Output goes to a file through cmd.exe, not to a pipe: programs a job starts in the
 	# background inherit the job's handles, and a pipe would stay open until they exit.
-	cmd /c "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$file`" > `"$outFile`" 2>&1"
-	$rc = $LASTEXITCODE
-	if ($null -eq $rc) { $rc = 0 }
+	$psi = New-Object System.Diagnostics.ProcessStartInfo 'cmd.exe',
+		"/c powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$file`" > `"$outFile`" 2>&1"
+	$psi.UseShellExecute = $false
+	$psi.CreateNoWindow = $true
+	$proc = [System.Diagnostics.Process]::Start($psi)
+	if ($proc.WaitForExit($timeout * 1000)) {
+		$rc = $proc.ExitCode
+	} else {
+		taskkill.exe /T /F /PID $proc.Id | Out-Null
+		Add-Content $outFile "`r`n[agent] job killed after ${timeout}s"
+		$rc = 124
+	}
 	cmd /c "type `"$outFile`" | $env:IIW_GW result $id $rc" 2>$null
 	Remove-Item $file, $outFile -ErrorAction SilentlyContinue
 }
