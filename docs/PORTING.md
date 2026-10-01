@@ -41,18 +41,28 @@ Windows, so they show the real RTX output.
   Verified: GSMTC works unpackaged this way.
 - Qt Quick picks Direct3D 11 (`GraphicsInfo.api == 4`); translucent frameless windows work as-is.
 
+## Status
+
+- Phase 0 (toolchain, VM channel) and Phase 1 (core + window backend) done and verified on the
+  RTX VM: AppBar reservation (also released on hide/exit), transparency, layers, input masks, IPC.
+- Phase 2 done: ii boots (`vm.sh ii start`), bar + right sidebar render; services are QML shims
+  (`quickshell/shims/`) until their native backends land.
+- Fixed upstream bugs that only show on named pipes: chunked IPC commands left a QDataStream
+  transaction open, the client ignored responses buffered with a closed pipe, and deleting the
+  server connection aborted replies in flight.
+
 ## Module mapping
 
 | Linux (Quickshell / ii)                 | Windows                                                              | Status |
 |-----------------------------------------|----------------------------------------------------------------------|--------|
-| PanelWindow + WlrLayershell             | `WinPanelWindow`: AppBar, z-bands, DWM attrs, input mask via hook     | todo   |
+| PanelWindow + WlrLayershell             | `WinPanelWindow`: AppBar, z-bands, DWM attrs, input mask via hook     | done   |
 | HyprlandFocusGrab                       | outside-click / foreground-change dismissal                          | todo   |
 | GlobalShortcut + Hyprland keybinds      | RegisterHotKey + WH_KEYBOARD_LL (lone Super), `defaults/windows/keybinds.json` | todo |
 | Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor) | todo |
 | HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | todo   |
 | ToplevelManager                         | same window tracker                                                  | todo   |
 | ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | todo   |
-| IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | todo   |
+| IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done   |
 | Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | todo   |
 | Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | todo   |
 | Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | todo   |
