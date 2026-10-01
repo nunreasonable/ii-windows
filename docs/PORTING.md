@@ -78,3 +78,31 @@ Windows, so they show the real RTX output.
 ## ii files changed from upstream
 
 (keep this list current — these are the merge-conflict hot spots)
+
+- `modules/common/Platform.qml` — new file: `isWindows` singleton so Linux-only startup code can be guarded with one check instead of scattered `Qt.platform.os`
+- `modules/common/Directories.qml` — Windows-safe config/state/cache/temp roots (GenericConfigLocation, TempLocation), Windows account-picture lookup, skip the Linux mkdir/rm cleanup block on Windows (FileView creates parent dirs on write)
+- `modules/waffle/looks/WUserAvatar.qml` — use the Windows account-picture path instead of /var/lib/AccountsService on Windows
+- `modules/common/functions/Session.qml` — Windows branches for lock/suspend/logout/poweroff/reboot/hibernate/rebootToFirmware (rundll32/shutdown)
+- `modules/common/panels/lock/LockContext.qml` — skip the fprintd fingerprint-check process on Windows
+- `services/Notifications.qml` — added `sendDesktop()` helper (console.info on Windows, notify-send on Linux) as the single place to later wire to a real Windows notifier
+- `services/MaterialThemeLoader.qml` — quiet (no printed error) fallback to Appearance's built-in palette when colors.json is missing on Windows
+- `services/Hyprsunset.qml` — no-op hyprctl/hyprsunset calls on Windows (gamma ramp backend is a later phase)
+- `services/FirstRunExperience.qml` — skip the switchwall.sh/qs-welcome launch on Windows
+- `services/ConflictKiller.qml` — skip the kded6/mako/dunst pidof check on Windows
+- `services/Cliphist.qml` — `refresh()` no-ops on Windows (no cliphist binary yet)
+- `services/Updates.qml` — disable the checkupdates Timer/Process on Windows
+- `services/HyprlandData.qml` — `updateAll()` no-ops on Windows, leaving window/workspace data empty
+- `services/HyprlandXkb.qml` — skip hyprctl/xkb base.lst polling on Windows
+- `services/HyprlandKeybinds.qml` — skip hyprctl binds polling on Windows
+- `services/ResourceUsage.qml` — disable the /proc polling Timer/Process on Windows (stays at zeroed defaults)
+- `services/SystemInfo.qml` — set distro/username/desktop info directly from Windows env vars instead of /etc/os-release + whoami
+- `services/Network.qml` — disable all nmcli Processes on Windows (neutral/disconnected defaults), `openPublicWifiPortal()` uses `Qt.openUrlExternally` on Windows
+- `services/Brightness.qml` — skip the ddcutil detect pass on Windows
+- `services/SessionWarnings.qml` — `refresh()` no-ops on Windows (no pidof)
+- `services/Weather.qml` — `getData()` no-ops on Windows (curl|jq pipeline needs bash+jq)
+- `services/Translation.qml` — skip the `find`-based language scan on Windows, keep the en_US default
+- `services/DateTime.qml` — disable the /proc/uptime polling Timer on Windows
+- `services/Ai.qml` — disable the four eager `ls`/`bash` lookups (ollama models, prompts, saved chats) on Windows; this singleton is created at boot because the left sidebar's AiChat tab is always instantiated
+- `services/Battery.qml` — route notify-send calls through `Notifications.sendDesktop()`, use `Session.suspend()` instead of a raw systemctl/loginctl call
+- `services/TimerService.qml`, `services/LauncherSearch.qml`, `welcome.qml`, `modules/ii/bar/weather/WeatherBar.qml`, `modules/ii/sidebarLeft/aiChat/MessageCodeBlock.qml`, `modules/common/models/quickToggles/CloudflareWarpToggle.qml`, `modules/ii/sidebarRight/quickToggles/classicStyle/CloudflareWarp.qml` — route notify-send calls through `Notifications.sendDesktop()`
+- `defaults/windows/colors.json` — new file: seed Material palette (copied from a live Linux colors.json; contains no personal data) so MaterialThemeLoader has something to load before matugen exists on Windows

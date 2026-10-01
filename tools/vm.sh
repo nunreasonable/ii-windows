@@ -127,6 +127,32 @@ $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
 [Convert]::ToBase64String($ms.ToArray())
 EOF
 	echo "$out" ;;
+ii)
+	# ii start|stop: install dist/ii-windows/config/ii as %LOCALAPPDATA%\quickshell\ii, seed the
+	# colors on first run, and run it like `qs -c ii` on Linux.
+	case "${1:-start}" in
+	start) job 60 <<'EOF'
+$dir = "$env:IIW_ROOT\ii-windows"
+Get-Process qsw -ErrorAction SilentlyContinue | Stop-Process -Force
+robocopy "$dir\config\ii" "$env:LOCALAPPDATA\quickshell\ii" /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
+$colors = "$env:LOCALAPPDATA\quickshell\user\generated\colors.json"
+if (-not (Test-Path $colors)) {
+	New-Item -Force -ItemType Directory (Split-Path $colors) | Out-Null
+	Copy-Item "$dir\config\ii\defaults\windows\colors.json" $colors
+}
+$p = Start-Process -PassThru -FilePath "$dir\qsw.exe" -ArgumentList '-c', 'ii' -WorkingDirectory $dir `
+	-RedirectStandardError "$env:IIW_ROOT\logs\ii.err" -RedirectStandardOutput "$env:IIW_ROOT\logs\ii.out"
+Start-Sleep 8
+"alive: " + (-not $p.HasExited)
+Get-Content "$env:IIW_ROOT\logs\ii.out", "$env:IIW_ROOT\logs\ii.err" -Tail 60
+EOF
+	;;
+	stop) job 30 <<'EOF'
+Get-Process qsw -ErrorAction SilentlyContinue | Stop-Process -Force
+"stopped"
+EOF
+	;;
+	esac ;;
 reload-agent)
 	: > "$Q/pending/reload-agent"
 	echo "agent will reload on its next poll" ;;
@@ -142,7 +168,7 @@ EOF
 	echo "restart queued" ;;
 *)
 	cat >&2 <<EOF
-usage: vm.sh up|down|status|push <dist>|run <exe> [args]|kill [names]|log [name] [lines]|ipc <args>|shot [out.png]|job [timeout] < script.ps1|reload-agent|restart-agent
+usage: vm.sh up|down|status|push <dist>|run <exe> [args]|kill [names]|log [name] [lines]|ipc <args>|shot [out.png]|job [timeout] < script.ps1|ii start|stop|reload-agent|restart-agent
 EOF
 	exit 1 ;;
 esac
