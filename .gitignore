@@ -6,3 +6,4 @@
 *.png
 *.ppm
 /quickshell-shims/
+/wt-*/
