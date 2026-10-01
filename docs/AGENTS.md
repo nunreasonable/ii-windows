@@ -1,0 +1,41 @@
+# Working on ii-windows (read this first)
+
+Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local git repos:
+- `quickshell/` — Quickshell fork (C++20/Qt 6.11.2), branch `windows`. Windows code lives in
+  `src/windows/` (WindowsPlugin, WinPanelWindow, input masks, Quickshell.Wayland stand-ins incl. C++
+  IdleInhibitor). Linux-only modules are compiled out; `shims/` holds pure-QML stand-ins with the same
+  URIs (Quickshell.Hyprland, Quickshell.Services.*, Quickshell.Bluetooth, org.kde.*), deployed to
+  `<dist>/qml`. A native C++ module with the same URI replaces its shim: delete the shim dir in the same
+  change.
+- `ii/` — the ii QML config fork, branch `windows`. `modules/common/Platform.qml` has `isWindows`.
+  Keep each service's public API identical; change implementations only.
+
+## Rules
+- Work in your OWN git worktree + branch (others work in parallel):
+  `git -C $IIW/quickshell worktree add $IIW/wt-<name> -b <name> windows`
+  (and the same for `ii/` if you touch QML: `wt-ii-<name>`). Never edit the main checkouts.
+- Build your worktree in its own dir:
+  ```
+  cd $IIW && . tools/env.sh
+  cmake -S wt-<name> -B build/wt-<name> -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_TOOLCHAIN_FILE=$IIW/tools/clang-cl-xwin.cmake -DCLI11_INCLUDE_DIR=$IIW/toolchain/cli11/include
+  cmake --build build/wt-<name>
+  ```
+  Toolchain: clang-cl + lld-link + xwin (MSVC CRT/SDK incl. C++/WinRT headers) + Qt 6.11.2 msvc2022_64.
+- Commit often (every compiling milestone), short plain messages, NEVER a Co-Authored-By trailer, never
+  push or add remotes. Sessions can end abruptly; uncommitted work is lost.
+- Code style: match the surrounding code (tabs, `this->`, Q_OBJECT_BINDABLE_PROPERTY patterns, comments
+  explain why). Don't copy code from GPL/AGPL projects (Seelen, Lively, quickshell-macos); Apache/MIT
+  references (PowerToys, ManagedShell, EarTrumpet, Twinkle Tray, VirtualDesktopAccessor) are fine to
+  consult.
+- **C++/WinRT must run on its own MTA thread** (`winrt::init_apartment(multi_threaded)` on a worker
+  thread; post results back to the Qt thread). Qt's GUI thread is STA; init_apartment there fails and
+  blocking `.get()` is forbidden on STA. Verified on the target.
+- Testing on the real target: a Windows 11 VM (25H2, build 26200, RTX 5060 Ti passthrough, 1920x1080)
+  is reachable through `tools/vm.sh job [timeout] < script.ps1` (runs a PowerShell script in the
+  logged-on user's session and prints its output). You may push a small console test program
+  (build it in your build dir, stage it under `dist/<name>-probe/` with `tools/deploy.sh dist/<name>-probe
+  <exe>`, `tools/vm.sh push <name>-probe`, then run it from a job) to probe Windows APIs. Do NOT start
+  GUI programs or the shell (`vm.sh ii start`, `vm.sh run qsw ...`) — the integrator does GUI tests, and
+  the VM desktop is shared with the user.
+- Report at the end: branch + commits, files, API mapping, what's verified on the VM, TODOs/risks.
