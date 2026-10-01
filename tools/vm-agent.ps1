@@ -23,9 +23,15 @@ while ($true) {
 	if ($id -eq 'reload-agent') { return }  # boot.ps1 fetches the new agent body
 
 	$file = "$d\jobs\$id.ps1"
-	[IO.File]::WriteAllText($file, (($resp | Select-Object -Skip 1) -join "`r`n"), $utf8)
-	$out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $file 2>&1 | Out-String
+	$outFile = "$d\jobs\$id.out"
+	$body = "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding `$false`r`n" +
+		(($resp | Select-Object -Skip 1) -join "`r`n")
+	[IO.File]::WriteAllText($file, $body, $utf8)
+	# Output goes to a file through cmd.exe, not to a pipe: programs a job starts in the
+	# background inherit the job's handles, and a pipe would stay open until they exit.
+	cmd /c "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$file`" > `"$outFile`" 2>&1"
 	$rc = $LASTEXITCODE
 	if ($null -eq $rc) { $rc = 0 }
-	$out | & ssh.exe @sshArgs $gwHost "result $id $rc" 2>$null
+	cmd /c "type `"$outFile`" | $env:IIW_GW result $id $rc" 2>$null
+	Remove-Item $file, $outFile -ErrorAction SilentlyContinue
 }
