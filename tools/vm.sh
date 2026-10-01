@@ -1,67 +1,136 @@
 #!/usr/bin/env bash
-# Drive the win11 test VM: start, push builds, run GUI programs in the interactive session,
-# take screenshots, read logs. Never touches the win11-gpu domain.
+# Drive the Windows test VM through its agent. The VM connects to the host (tools/vm-gateway.sh,
+# installed in the VM once with tools/vm-bootstrap.ps1); this script queues PowerShell jobs for
+# the agent and waits for their output. Works with whichever of win11 / win11-gpu is running
+# (they share one disk), and never starts win11-gpu itself.
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
 
+Q="$IIW/build/vmq"
+mkdir -p "$Q/pending" "$Q/running" "$Q/done"
 virsh_() { virsh -c "$VM_URI" "$@"; }
+running() { virsh_ list --state-running --name 2>/dev/null | grep -qx "$1"; }
 
-vm_ip() {
-	local mac
-	mac=$(virsh_ domiflist "$VM_NAME" | awk '$2 == "network" { print $5 }')
-	virsh_ net-dhcp-leases default | awk -v mac="$mac" '$0 ~ mac { split($5, a, "/"); print a[1] }' | tail -1
+agent_age() {
+	local seen
+	seen=$(cat "$Q/agent.seen" 2>/dev/null || echo 0)
+	echo $(($(date +%s) - seen))
 }
 
-ssh_() {
-	[ -n "$VM_USER" ] || { echo "set VM_USER in tools/vm.local.sh" >&2; exit 1; }
-	ssh -i "$VM_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes \
-		"$VM_USER@$(vm_ip)" "$@"
+# job [timeout]: PowerShell script on stdin -> output on stdout, exit code of the job
+job() {
+	local timeout="${1:-120}" id
+	id="$(date +%s%N)-$RANDOM"
+	cat > "$Q/pending/.$id"
+	mv "$Q/pending/.$id" "$Q/pending/$id"
+	for _ in $(seq $((timeout * 2))); do
+		if [ -f "$Q/done/$id.rc" ]; then
+			cat "$Q/done/$id.out"
+			local rc
+			rc=$(cat "$Q/done/$id.rc")
+			rm -f "$Q/done/$id.out" "$Q/done/$id.rc"
+			return "$rc"
+		fi
+		sleep 0.5
+	done
+	rm -f "$Q/pending/$id"
+	echo "vm.sh: job $id timed out (agent last seen $(agent_age)s ago)" >&2
+	return 124
 }
 
-# Windows paths for cmd.exe
-win() { echo "${1//\//\\}"; }
+ps_quote() { printf "'%s'" "${1//\'/\'\'}"; }
 
 cmd="${1:-}"; shift || true
 case "$cmd" in
 up)
-	[ "$VM_NAME" = win11 ] || { echo "refusing to start $VM_NAME" >&2; exit 1; }
-	if [ "$(virsh_ domstate "$VM_NAME")" != running ]; then virsh_ start "$VM_NAME"; fi
-	echo "waiting for ssh..."
-	for _ in $(seq 90); do
-		if [ -n "$(vm_ip)" ] && ssh_ "echo ok" >/dev/null 2>&1; then echo "up: $(vm_ip)"; exit 0; fi
+	if running win11-gpu || running win11; then
+		:
+	else
+		virsh_ start win11 >/dev/null
+		echo "started win11"
+	fi
+	echo "waiting for the agent..."
+	for _ in $(seq 120); do
+		[ "$(agent_age)" -lt 30 ] && { echo "agent up"; exit 0; }
 		sleep 2
 	done
-	echo "ssh not reachable" >&2; exit 1 ;;
-down) virsh_ shutdown "$VM_NAME" ;;
-ip) vm_ip ;;
-ssh) ssh_ "$@" ;;
+	echo "agent not seen; is it installed? (tools/vm-bootstrap.ps1)" >&2; exit 1 ;;
+down)
+	running win11 && virsh_ shutdown win11 || echo "win11 is not running (win11-gpu is never stopped from here)" ;;
+status)
+	for d in win11 win11-gpu; do printf '%-10s %s\n' "$d" "$(virsh_ domstate $d)"; done
+	echo "agent last seen $(agent_age)s ago" ;;
+job) job "${1:-120}" ;;
 push)
-	# push <local dir> [remote subdir]: mirror a dist folder into $VM_DIR/<subdir>
-	src="$1"; dst="$VM_DIR/${2:-$(basename "$src")}"
-	ssh_ "if not exist \"$(win "$dst")\" mkdir \"$(win "$dst")\""
-	tar -C "$src" -cf - . | ssh_ "tar -xf - -C \"$dst\""
-	echo "pushed $src -> $dst" ;;
+	# push <dist name>: mirror dist/<name> to C:\ii-windows\<name>
+	name="$1"
+	[ -d "$IIW/dist/$name" ] || { echo "no dist/$name" >&2; exit 1; }
+	job 600 <<EOF
+New-Item -Force -ItemType Directory "\$env:IIW_ROOT\\$name" | Out-Null
+cmd /c "%IIW_GW% fetch $name | tar -xf - -C %IIW_ROOT%\\$name"
+if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }
+"pushed $name: " + (Get-ChildItem -Recurse "\$env:IIW_ROOT\\$name" | Measure-Object -Sum Length).Sum + " bytes"
+EOF
+	;;
 run)
-	# run <command line...>: start a program in the logged-on (interactive) session.
-	# Output goes to $VM_DIR/logs/run.log.
-	line="$*"
-	ssh_ "if not exist \"$(win "$VM_DIR")\\logs\" mkdir \"$(win "$VM_DIR")\\logs\""
-	printf '@echo off\r\ncd /d %s\r\n%s > %s\\logs\\run.log 2>&1\r\n' \
-		"$(win "$VM_DIR")" "$line" "$(win "$VM_DIR")" | ssh_ "more > \"$(win "$VM_DIR")\\run.cmd\""
-	ssh_ "schtasks /create /f /tn iiw-run /sc once /st 00:00 /it /tr \"$(win "$VM_DIR")\\run.cmd\" >nul && schtasks /run /tn iiw-run >nul"
-	echo "started: $line" ;;
+	# run <exe under C:\ii-windows> [args...]: start detached in the user session, logs in logs\
+	exe="$1"; shift
+	base=$(basename "${exe//\\//}" .exe)
+	argl=""
+	for a in "$@"; do argl+="$(ps_quote "$a"),"; done
+	job <<EOF
+\$exe = Join-Path \$env:IIW_ROOT $(ps_quote "$exe")
+\$p = @{ FilePath = \$exe; WorkingDirectory = (Split-Path \$exe); PassThru = \$true
+	RedirectStandardOutput = "\$env:IIW_ROOT\\logs\\$base.out"; RedirectStandardError = "\$env:IIW_ROOT\\logs\\$base.err" }
+\$argv = @(${argl%,})
+if (\$argv.Count) { \$p.ArgumentList = \$argv }
+\$proc = Start-Process @p
+"started \$(\$proc.Id) \$exe"
+EOF
+	;;
 kill)
-	for exe in "${@:-qsw.exe qs.exe iiw_hello.exe}"; do ssh_ "taskkill /f /im $exe" 2>/dev/null || true; done ;;
-log) ssh_ "type \"$(win "$VM_DIR")\\logs\\${1:-run.log}\"" ;;
+	names="${*:-qsw qs iiw_hello}"
+	job <<EOF
+foreach (\$n in '${names// /','}') { Stop-Process -Name \$n -Force -ErrorAction SilentlyContinue }
+"killed: $names"
+EOF
+	;;
+log)
+	f="${1:-qsw}"
+	job <<EOF
+Get-Content -Tail ${2:-200} "\$env:IIW_ROOT\\logs\\$f.out", "\$env:IIW_ROOT\\logs\\$f.err" -ErrorAction SilentlyContinue
+EOF
+	;;
+ipc)
+	argl=""
+	for a in "$@"; do argl+="$(ps_quote "$a"),"; done
+	job <<EOF
+& "\$env:IIW_ROOT\\ii-windows\\qs.exe" ipc call @(${argl%,}) 2>&1
+EOF
+	;;
 shot)
+	# Captured inside Windows, so it also works with the RTX passed through (win11-gpu).
 	out="${1:-$IIW/build/shots/$(date +%H%M%S).png}"
 	mkdir -p "$(dirname "$out")"
-	tmp=$(mktemp --suffix=.ppm)
-	virsh_ screenshot "$VM_NAME" "$tmp" >/dev/null
-	magick "$tmp" "$out"; rm -f "$tmp"
+	job <<'EOF' | tr -d '\r\n' | base64 -d > "$out"
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public static class Dpi { [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(System.IntPtr v); }'
+[void][Dpi]::SetProcessDpiAwarenessContext([IntPtr]-4)
+$b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+$bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+$ms = New-Object System.IO.MemoryStream
+$bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+[Convert]::ToBase64String($ms.ToArray())
+EOF
 	echo "$out" ;;
-ipc) ssh_ "\"$(win "$VM_DIR")\\ii-windows\\qs.exe\" ipc call $*" ;;
+reload-agent)
+	: > "$Q/pending/reload-agent"
+	echo "agent will reload on its next poll" ;;
 *)
-	echo "usage: vm.sh up|down|ip|ssh|push <dir> [sub]|run <cmd>|kill [exe..]|log [file]|shot [out.png]|ipc <args>" >&2
+	cat >&2 <<EOF
+usage: vm.sh up|down|status|push <dist>|run <exe> [args]|kill [names]|log [name] [lines]|ipc <args>|shot [out.png]|job [timeout] < script.ps1|reload-agent
+EOF
 	exit 1 ;;
 esac
