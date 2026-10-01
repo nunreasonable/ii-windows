@@ -41,4 +41,12 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
 - **Never kill processes broadly in VM jobs** (e.g. `Get-Process powershell | Stop-Process`): the VM
   agent itself is a hidden powershell.exe running `iiw-agent\boot.ps1`; killing it cuts everyone off
   until the user logs off/on in Windows. Stop only processes you started (keep their PIDs).
+- **Don't talk DDC/CI to the monitor** from VM probes (brightness/input VCP codes): it froze the
+  monitor's firmware once. **Don't inject keyboard/mouse input** (SendInput) in VM probes unless the
+  task is about input, and then keep it to a few seconds: the user may be using that desktop.
+- The shell's state: `ii` QML boots on Windows (`tools/vm.sh ii start`); merged native backends:
+  window tracker + virtual desktops + Quickshell.Hyprland/ToplevelManager, Hotkeys/GlobalShortcut,
+  FocusGrab, Pipewire (Core Audio), Mpris (GSMTC), UPower, DesktopEntries/icons, Quickshell.Windows
+  system helpers. ii reaches Windows-only singletons through `modules/common/WindowsNative.qml`
+  (lazy, so the files still load on Linux) — follow that pattern for new ii wiring.
 - Report at the end: branch + commits, files, API mapping, what's verified on the VM, TODOs/risks.
