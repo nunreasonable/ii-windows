@@ -89,10 +89,12 @@ if (\$argv.Count) { \$p.ArgumentList = \$argv }
 EOF
 	;;
 kill)
-	names="${*:-qsw qs iiw_hello}"
+	names=""
+	for n in ${*:-qsw qs iiw_hello}; do names+="$(ps_quote "$n"),"; done
 	job <<EOF
-foreach (\$n in '${names// /','}') { Stop-Process -Name \$n -Force -ErrorAction SilentlyContinue }
-"killed: $names"
+Get-Process -Name @(${names%,}) -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 500
+"remaining: " + @(Get-Process -Name @(${names%,}) -ErrorAction SilentlyContinue).Count
 EOF
 	;;
 log)

@@ -40,4 +40,5 @@ mkdir -p "$D/config"
 	cp -f "$IIW/ii/$f" "$D/config/ii/$f"
 done
 
+rm -rf "$D/testconfigs"; cp -r "$IIW/tools/testconfigs" "$D/testconfigs"
 echo "staged $D ($(du -sh "$D" | cut -f1))"
