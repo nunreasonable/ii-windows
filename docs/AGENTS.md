@@ -38,4 +38,7 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
   <exe>`, `tools/vm.sh push <name>-probe`, then run it from a job) to probe Windows APIs. Do NOT start
   GUI programs or the shell (`vm.sh ii start`, `vm.sh run qsw ...`) — the integrator does GUI tests, and
   the VM desktop is shared with the user.
+- **Never kill processes broadly in VM jobs** (e.g. `Get-Process powershell | Stop-Process`): the VM
+  agent itself is a hidden powershell.exe running `iiw-agent\boot.ps1`; killing it cuts everyone off
+  until the user logs off/on in Windows. Stop only processes you started (keep their PIDs).
 - Report at the end: branch + commits, files, API mapping, what's verified on the VM, TODOs/risks.
