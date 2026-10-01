@@ -22,6 +22,10 @@ Get-Content "$d\key.pub" | ssh <linux user>@192.168.122.1 iiw-vm authorize
 # can be updated from Linux without touching the VM again.
 Set-Content -Encoding UTF8 "$d\boot.ps1" @'
 $d = "$env:LOCALAPPDATA\iiw-agent"
+# Single instance: the logon shortcut and the watchdog task both start this script.
+$created = $false
+$mutex = New-Object System.Threading.Mutex($true, 'Local\iiw-agent', [ref]$created)
+if (-not $created) { exit }
 while ($true) {
 	$a = ssh -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 <linux user>@192.168.122.1 agent 2>$null
 	if ($LASTEXITCODE -eq 0 -and $a) { Invoke-Expression ($a -join "`n") }
@@ -34,6 +38,11 @@ $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::Ge
 $lnk.TargetPath = 'powershell.exe'
 $lnk.Arguments = $bootArgs
 $lnk.Save()
+
+# Watchdog: restarts the agent within 5 minutes if it dies (no admin rights needed). conhost
+# --headless keeps the console from flashing every time the task fires.
+schtasks /create /f /tn iiw-agent /sc minute /mo 5 /rl limited `
+	/tr "conhost.exe --headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$d\boot.ps1`"" | Out-Null
 
 Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
 	Where-Object { $_.CommandLine -like '*iiw-agent\boot.ps1*' } |
