@@ -21,7 +21,7 @@ mkdir -p "$STAGE"
 # install.ps1.
 (cd "$SRC" && find . -mindepth 1 -maxdepth 1 ! -name testconfigs -print0) |
 	while IFS= read -r -d '' entry; do
-		cp -a "$entry" "$STAGE/"
+		cp -a "$SRC/${entry#./}" "$STAGE/"
 	done
 
 cp -f "$IIW/tools/install.ps1" "$IIW/tools/uninstall.ps1" "$STAGE/"
