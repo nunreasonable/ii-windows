@@ -8,7 +8,7 @@ Modo atual: **só build**. O usuário precisa da RTX no Linux, então as duas VM
 |---|---|---|
 | `quickshell/` | `windows` | Integrado: bt, capture, notif, net. Também a varredura de janelas mortas, os workspaces "ocupados", os binds só no `shell.qml` e a camada Bottom abaixo das janelas. |
 | `ii/` | `windows` | Integrado: bt, notif, net. Também as correções de first-run/hyprlock, os `/proc` e a seção de lock escondida no Windows. |
-| `quickshell` `wt-theme` / `ii` `wt-ii-theme` | `theme` | Agente trabalhando. Escopo: matugen, wallpaper, modo escuro e **todos** os chamadores de `switchwall.sh`. É o bug "configurações não mudam" do usuário: Settings → Quick chama bash. |
+| `quickshell` `wt-theme` / `ii` `wt-ii-theme` | `theme` | Feito e builda limpo (486/486 + os novos arquivos). `matugen.exe` 4.1.0 cross-compilado (cargo-xwin; shim `toolchain/bin/llvm-lib` sobre `llvm-ar` porque o host não tem `llvm-lib`; local, não commitado, `toolchain/` é gitignored). `system/wallpaper.cpp` (IDesktopWallpaper, AppsUseLightTheme/AccentColor via registro + WM_SETTINGCHANGE), `image/image_tools.cpp` (least_busy_region, text_color, scheme_for_image), `image/thumbnailer.cpp` (QImageReader em thread), `system/fs_utils.cpp` (classifica dir/file sem bash). No lado `ii`: `services/Wallpapers.qml` ganhou `setMode()/reapplyPalette()/setAccentColor()/openPicker()/_retheme()` — pipeline nativo no Windows, `switchwall.sh` inalterado no Linux — e **todo** chamador de `wallpaperSwitchScriptPath` fora do próprio Wallpapers.qml foi redirecionado (QuickConfig, welcome.qml, UtilButtons, DarkModeToggle, LightDarkPreferenceButton, FirstRunExperience, LauncherSearch, MaterialThemeLoader.toggleLightDark); isso resolve o bug "configurações não mudam" do usuário. `select()`/`setDirectory()` não dependem mais de `test -d`/bash em nenhuma plataforma (usa `fileIsDir` do FolderListModel ou `FsUtils.classify` no Windows). `AbstractBackgroundWidget.qml`, `ThumbnailImage.qml` e a geração em lote do grid (`Wallpapers._generateThumbnailsWindows`) usam os helpers nativos no Windows. `text_color.py`/`ImageTools.textColorFromImage` existe mas não foi ligado ao `ScreenTextOverlay.qml` (feature de OCR separada, fora do escopo). Nada disso rodou na VM ainda (sessão ficou em build-only) — ver item 8 em "Testes pendentes". |
 | `wt-region` / `wt-ii-region` | `region` | Agente trabalhando: seletor de região, OCR (Windows.Media.Ocr), recorte/cópia, busca de imagem, gravação com ffmpeg. |
 | `wt-pkg` | `pkg` | Agente trabalhando: `tools/package.sh`, `install.ps1`/`uninstall.ps1` (autostart só com `-Autostart`), crash handler com minidump. |
 
@@ -25,6 +25,13 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 5. **Captura:** `capture-probe`, depois as prévias do overview e do dock.
 6. **Notificações:** `tools/notif-test.ps1`, depois um toast da Calculadora espelhado no ii.
 7. **Rede:** `net-probe`, depois o ícone de ethernet e o diálogo de Wi-Fi sem adaptador.
+8. **Tema (theme):** rodar `tools/deploy-ii.sh` (agora copia `toolchain/matugen.exe` para o lado do qs.exe, se existir) e `vm.sh push ii-windows` antes de `vm.sh ii start`. Depois, na sessão GUI:
+   - Trocar o papel de parede pelo seletor (grid): confirma que a imagem muda de verdade no Windows (não só no `ii`) e que o grid mostra miniaturas reais, não só os ícones de pasta.
+   - Alternar claro/escuro pela barra, pelo Quick Settings e por `qs ipc call theme toggleLightDark`: olhar o Settings do Windows (Personalização → Cores) para confirmar que mudou de verdade.
+   - Trocar o tipo de paleta em Settings → Quick (Content, Expressive, etc.) e ver as cores do `ii` mudarem sem precisar trocar o papel de parede.
+   - `qs ipc call wallpapers apply <caminho>`, launcher `accentcolor <hex>`, e os botões "Random"/"Choose file" (estes últimos sem a policy `weeb`, que ainda não tem equivalente Windows).
+   - Fechar o `ii`, apagar `wallpaperPath` do config e reabrir: o fundo deve aparecer com o wallpaper que o Windows já tinha (não em branco).
+   - Com `QT_LOGGING_RULES=quickshell.windows.wallpaper.debug=true;quickshell.windows.imagetools.debug=true;quickshell.windows.thumbnailer.debug=true`, confirmar que não há warnings de `matugen.exe not found` nem de imagem não decodificada.
 
 ## Bugs abertos
 
