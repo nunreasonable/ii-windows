@@ -23,9 +23,10 @@ administrador, a não ser para o PowerShell 7 opcional.
   outros). O ii cria esses arquivos conforme você muda as coisas; instalar e atualizar nunca
   mexem neles.
 - **O estado e o cache do ii** (cores atuais, lista de tarefas, histórico de notificações, logs,
-  relatórios de falha) vão para `%LOCALAPPDATA%\quickshell` (`State`, `cache`, `run`), e os
-  arquivos temporários para `%TEMP%\quickshell`. Uma paleta de cores padrão é colocada se ainda
-  não houver nenhuma.
+  relatórios de falha) vão para `%LOCALAPPDATA%\quickshell` (`State`, `cache`, `run`), as
+  miniaturas dos papéis de parede e as imagens do histórico da área de transferência para
+  `%LOCALAPPDATA%\cache` (`thumbnails`, `quickshell`), e os arquivos temporários para
+  `%TEMP%\quickshell`. Uma paleta de cores padrão é colocada se ainda não houver nenhuma.
 - **Menu Iniciar:** "illogical-impulse" (abre o ii) e "illogical-impulse Settings".
 - **Aplicativos instalados:** uma entrada chamada "illogical-impulse (ii-windows)". *Modificar*
   abre este instalador (atualizar, reparar, desinstalar) e *Desinstalar* o abre na página de
@@ -88,22 +89,32 @@ tarefas se oculta automaticamente.
   barra enquanto roda (se ela estava desligada) e a desliga de novo quando fecha.
 - **Papel de parede e cores:** na primeira vez que abre, o ii usa o papel de parede atual do
   Windows sem mudá-lo. Quando você escolhe um papel de parede ou alterna entre claro e escuro no
-  ii, ele aplica o mesmo no Windows: o papel de parede da área de trabalho, o modo claro/escuro
-  do Windows e a cor de destaque.
+  ii, ele aplica o mesmo no Windows: o papel de parede da área de trabalho e o modo claro/escuro
+  do Windows. A **cor de destaque** do Windows o ii muda sempre que carrega a paleta dele,
+  inclusive toda vez que abre: ela passa a ser a cor principal da paleta do ii.
 - **Windows Terminal:** o ii grava um esquema de cores igual ao tema dele, mais ajustes de fonte,
   cursor, margem e transparência para os perfis do PowerShell e do Prompt de Comando, como um
   *fragmento* do Windows Terminal em
   `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\illogical-impulse`. Ele não edita o
   `settings.json` do Windows Terminal; só atualiza a data desse arquivo para as janelas abertas
   recarregarem. Desligar o tema do terminal nas configurações do ii remove o fragmento.
+- **Área de transferência:** o ii guarda um histórico do que você copia (até 200 itens), aberto
+  com Win+V no lugar do histórico do Windows. O texto fica só na memória e some quando o ii fecha;
+  as imagens copiadas são salvas em `%LOCALAPPDATA%\cache\quickshell\clipboard` e apagadas
+  quando o ii fecha. O que os apps marcam para ficar fora do histórico (como senhas de
+  gerenciadores de senha) não entra.
+- **Chaves de API:** se você salvar uma chave de API no painel de IA do ii, ela fica no
+  Gerenciador de Credenciais do Windows, numa credencial chamada `illogical-impulse`.
 - **Notificações:** o ii lê as notificações que o Windows mostra (pelo acesso a notificações que
   o Windows dá aos apps) para mostrá-las no painel dele. O Windows continua mostrando os próprios
   avisos também.
 - **Áreas de trabalho virtuais:** os workspaces do ii são as áreas de trabalho virtuais do
   Windows. Ir para um workspace que ainda não existe cria uma nova área de trabalho.
-- O que você muda pelos painéis do ii (volume e dispositivo de som, brilho, luz noturna, modo de
-  energia, Bluetooth, Wi-Fi) são configurações comuns do Windows, mudadas pelas APIs do próprio
-  Windows.
+- O que você muda pelos painéis do ii (volume e dispositivo de som, modo de energia, Bluetooth,
+  Wi-Fi) são configurações comuns do Windows, mudadas pelas APIs do próprio Windows. O **brilho**
+  é o da tela do notebook pelo Windows; num monitor externo, o ii muda o brilho do próprio
+  monitor (por DDC/CI), e ele fica assim. A **luz noturna** do ii não é a do Windows: ela ajusta a
+  gama da tela e tudo volta ao normal quando o ii fecha.
 
 ## Desinstalar
 
@@ -118,9 +129,12 @@ A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
   ligada por padrão; o PowerShell 7 também, se foi este instalador que o instalou), e remove as
   fontes que ele instalou;
 - apaga a pasta do fragmento do Windows Terminal, `%LOCALAPPDATA%\ii-windows`, as pastas do ii em
-  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`) e `%TEMP%\quickshell`;
-- apaga as suas configurações em `%LOCALAPPDATA%\illogical-impulse`, a não ser que você marque
-  *Manter minhas configurações*;
+  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
+  e `%TEMP%\quickshell`, e também `%LOCALAPPDATA%\cache\thumbnails` se essa pasta não existia
+  antes da instalação;
+- apaga as suas configurações em `%LOCALAPPDATA%\illogical-impulse` e a credencial
+  `illogical-impulse` (as chaves de API), a não ser que você marque *Manter minhas
+  configurações*;
 - volta o papel de parede, o modo claro/escuro, a cor de destaque e a ocultação automática da
   barra de tarefas anotados antes da primeira instalação, e garante que a barra de tarefas fique
   visível (uma opção, ligada por padrão).
@@ -128,7 +142,7 @@ A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
 Ela não consegue desfazer: áreas de trabalho virtuais que você ou o ii criaram; arquivos que
 você fez (capturas de tela, gravações, papéis de parede baixados); mudanças que você fez pelo ii
 em configurações comuns do Windows (volume, dispositivo de som, pareamentos Bluetooth, Wi-Fi,
-modo de energia); um fundo em apresentação de slides ou Destaque do Windows (a imagem volta, a
+modo de energia) e no brilho de monitores externos; um fundo em apresentação de slides ou Destaque do Windows (a imagem volta, a
 apresentação não). Ferramentas e fontes que você já tinha antes de instalar continuam
 instaladas.
 

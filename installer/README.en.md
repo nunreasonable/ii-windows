@@ -21,8 +21,10 @@ except for the optional PowerShell 7.
 - **Your settings** live in `%LOCALAPPDATA%\illogical-impulse` (`config.json` and friends). ii
   creates them as you change things; install and update never touch them.
 - **ii's state and cache** (current colors, to-do list, notification history, logs, crash
-  reports) go to `%LOCALAPPDATA%\quickshell` (`State`, `cache`, `run`), and temporary files to
-  `%TEMP%\quickshell`. A default color palette is put in place if there is none yet.
+  reports) go to `%LOCALAPPDATA%\quickshell` (`State`, `cache`, `run`), wallpaper thumbnails and
+  the clipboard history's images to `%LOCALAPPDATA%\cache` (`thumbnails`, `quickshell`), and
+  temporary files to `%TEMP%\quickshell`. A default color palette is put in place if there is
+  none yet.
 - **Start menu:** "illogical-impulse" (starts ii) and "illogical-impulse Settings".
 - **Apps & features:** an entry called "illogical-impulse (ii-windows)". *Modify* opens this
   setup (update, repair, uninstall) and *Uninstall* opens it on the uninstall page.
@@ -82,18 +84,29 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   was off) and turns it back off when it closes.
 - **Wallpaper and colors:** on its first start ii uses your current Windows wallpaper without
   changing it. When you pick a wallpaper or switch light/dark mode in ii, it sets the same in
-  Windows: the desktop wallpaper, Windows' light/dark mode and the accent color.
+  Windows: the desktop wallpaper and Windows' light/dark mode. The Windows **accent color** ii
+  changes whenever it loads its palette, including every time it starts: it becomes the main
+  color of ii's palette.
 - **Windows Terminal:** ii writes a color scheme matching its theme, plus font, cursor,
   padding and transparency settings for the PowerShell and Command Prompt profiles, as a Windows Terminal
   *fragment* in `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\illogical-impulse`. It does
   not edit Windows Terminal's `settings.json`; it only updates that file's date so open windows
   reload. Turning off terminal theming in ii's settings removes the fragment.
+- **Clipboard:** ii keeps a history of what you copy (up to 200 items), opened with Win+V instead
+  of Windows' own history. Text stays in memory only and is gone when ii closes; copied images
+  are saved in `%LOCALAPPDATA%\cache\quickshell\clipboard` and deleted when ii closes. What apps
+  mark to be left out of clipboard history (like passwords from password managers) isn't kept.
+- **API keys:** if you save an API key in ii's AI panel, it is kept in Windows Credential
+  Manager, in a credential called `illogical-impulse`.
 - **Notifications:** ii reads the notifications Windows shows (through the notification access
   Windows gives apps) to show them in its own panel. Windows keeps showing its own banners too.
 - **Virtual desktops:** ii's workspaces are Windows virtual desktops. Going to a workspace that
   doesn't exist yet creates a new desktop.
-- What you change from ii's panels (volume and sound device, brightness, night light, power
-  mode, Bluetooth, Wi-Fi) are ordinary Windows settings, changed through Windows' own APIs.
+- What you change from ii's panels (volume and sound device, power mode, Bluetooth, Wi-Fi) are
+  ordinary Windows settings, changed through Windows' own APIs. **Brightness** is a laptop
+  screen's through Windows; on an external monitor ii changes the monitor's own brightness (over
+  DDC/CI), and it stays that way. ii's **night light** is not Windows' one: it adjusts the
+  screen's gamma, and everything goes back to normal when ii closes.
 
 ## Uninstall
 
@@ -106,15 +119,17 @@ Uninstall reads `install-manifest.json` and undoes what it lists:
 - uninstalls with winget the terminal tools this setup installed (an option, on by default;
   PowerShell 7 too, if this setup installed it), and removes the fonts it installed;
 - deletes the Windows Terminal fragment folder, `%LOCALAPPDATA%\ii-windows`, ii's folders in
-  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`) and `%TEMP%\quickshell`;
-- deletes your settings in `%LOCALAPPDATA%\illogical-impulse`, unless you tick *Keep my
-  settings*;
+  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
+  and `%TEMP%\quickshell`, plus `%LOCALAPPDATA%\cache\thumbnails` if that folder wasn't there
+  before the install;
+- deletes your settings in `%LOCALAPPDATA%\illogical-impulse` and the `illogical-impulse`
+  credential (the API keys), unless you tick *Keep my settings*;
 - puts back the wallpaper, light/dark mode, accent color and taskbar auto-hide recorded before
   the first install, and makes sure the taskbar is visible (an option, on by default).
 
 It can't undo: virtual desktops you or ii created; files you made (screenshots, recordings,
 downloaded wallpapers); changes you made through ii to ordinary Windows settings (volume, sound
-device, Bluetooth pairings, Wi-Fi, power mode); a slideshow or Windows spotlight background
+device, Bluetooth pairings, Wi-Fi, power mode) and to external monitors' brightness; a slideshow or Windows spotlight background
 (the picture comes back, the slideshow doesn't). Tools and fonts you already had before
 installing stay installed.
 
