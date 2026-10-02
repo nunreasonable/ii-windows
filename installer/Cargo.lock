@@ -1472,7 +1472,7 @@ dependencies = [
 
 [[package]]
 name = "ii-windows-setup"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "iiw-setup-core",
  "serde",
@@ -1483,7 +1483,7 @@ dependencies = [
 
 [[package]]
 name = "iiw-setup-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "pulldown-cmark",
  "serde",
