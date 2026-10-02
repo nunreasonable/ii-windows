@@ -42,6 +42,15 @@ if [ -f "$IIW/toolchain/VirtualDesktopAccessor.dll" ]; then
 	cp -f "$IIW/toolchain/VirtualDesktopAccessor.dll" "$D/"
 fi
 
+# matugen.exe (GPL-2.0-or-later, InioX/matugen, cross-built for x86_64-pc-windows-msvc with
+# `cargo xwin`) generates the Material You palette from the wallpaper/color, same as `matugen`
+# on the Linux side. Wallpapers.qml's Windows path calls it with ii/defaults/windows/matugen.toml.
+if [ -f "$IIW/toolchain/matugen.exe" ]; then
+	cp -f "$IIW/toolchain/matugen.exe" "$D/"
+else
+	echo "warning: no matugen.exe (toolchain/matugen.exe) - Windows wallpaper theming will fail" >&2
+fi
+
 # The ii config itself (the vm job mirrors it to %LOCALAPPDATA%\quickshell\ii).
 rm -rf "$D/config/ii"
 mkdir -p "$D/config"
