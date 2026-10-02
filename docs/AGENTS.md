@@ -31,7 +31,12 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
 - **C++/WinRT must run on its own MTA thread** (`winrt::init_apartment(multi_threaded)` on a worker
   thread; post results back to the Qt thread). Qt's GUI thread is STA; init_apartment there fails and
   blocking `.get()` is forbidden on STA. Verified on the target.
-- Testing on the real target: a Windows 11 VM (25H2, build 26200, RTX 5060 Ti passthrough, 1920x1080)
+- **BUILD-ONLY MODE (since 2026-10-02):** the user needs the RTX on Linux, so both VMs (`win11`,
+  `win11-gpu`) are off and must stay off. Do not start a VM and do not queue `tools/vm.sh` jobs (the
+  agent is offline; jobs only time out). Verify by building (Windows cross-build, and the Linux build if
+  you touch shared code), by reading the APIs' docs, and with small host-side checks where possible.
+  End your report with the exact VM test steps the integrator should run later.
+- (When the VM is back) Testing on the real target: a Windows 11 VM (25H2, build 26200, RTX 5060 Ti passthrough, 1920x1080)
   is reachable through `tools/vm.sh job [timeout] < script.ps1` (runs a PowerShell script in the
   logged-on user's session and prints its output). You may push a small console test program
   (build it in your build dir, stage it under `dist/<name>-probe/` with `tools/deploy.sh dist/<name>-probe
@@ -47,6 +52,9 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
 - The shell's state: `ii` QML boots on Windows (`tools/vm.sh ii start`); merged native backends:
   window tracker + virtual desktops + Quickshell.Hyprland/ToplevelManager, Hotkeys/GlobalShortcut,
   FocusGrab, Pipewire (Core Audio), Mpris (GSMTC), UPower, DesktopEntries/icons, Quickshell.Windows
-  system helpers. ii reaches Windows-only singletons through `modules/common/WindowsNative.qml`
+  system helpers, Quickshell.Bluetooth (WinRT), Services.Notifications (own server + toast mirror),
+  ScreencopyView on Windows.Graphics.Capture and `Quickshell.Windows.Screenshot.captureScreen()`
+  (src/windows/capture.*). Network (WlanAPI) and theming (matugen/wallpaper) are in progress on
+  branches `net` and `theme`. ii reaches Windows-only singletons through `modules/common/WindowsNative.qml`
   (lazy, so the files still load on Linux) — follow that pattern for new ii wiring.
 - Report at the end: branch + commits, files, API mapping, what's verified on the VM, TODOs/risks.
