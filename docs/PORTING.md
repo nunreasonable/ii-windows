@@ -236,4 +236,7 @@ reasonable follow-up once the VM is back and each step can actually be exercised
 
 For VM testing (not run here — BUILD-ONLY MODE), `QS_DEBUG_CRASH_TEST` is an undocumented env var
 checked once at startup (`maybeTriggerDebugCrash`, after `setRelaunchInfo` so the real dump/relaunch
-path runs) that deliberately crashes the shell via the mode it names — see "VM test steps" below.
+path runs) that deliberately crashes the shell via the mode it names. Since that fires within
+moments of startup, it would only ever exercise the "crashed within 10s of launch, don't relaunch"
+branch on its own; `QS_DEBUG_CRASH_DELAY_MS` sleeps that many milliseconds first, so setting it
+above `10000` exercises the relaunch path instead. See "VM test steps" below.
