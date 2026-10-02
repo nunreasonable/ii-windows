@@ -1,42 +1,44 @@
-# Handoff: estado em 2026-10-01 (sessão congelada)
+# Handoff: estado em 2026-10-02
 
-Tudo está commitado localmente. Nenhum agente está rodando. Para retomar, leia isto, `docs/PORTING.md` e `docs/AGENTS.md`.
+Modo atual: **só build**. O usuário precisa da RTX no Linux, então as duas VMs ficam desligadas e não se liga nenhuma. Tudo o que foi integrado desde 2026-10-01 compila, mas ainda não rodou na VM (ver "Testes pendentes").
 
 ## Branches
 
 | Repo | Branch | Estado |
 |---|---|---|
-| `quickshell/` | `windows` | Integrado e testado na VM, incluindo a varredura de janelas mortas e os workspaces "ocupados" ao estilo Hyprland (último commit). |
-| `ii/` | `windows` | Integrado e testado na VM. |
-| `quickshell` worktree `wt-net` | `net` | Pronto: singleton nativo `Network` (`src/windows/system/network*`), WlanAPI + INetworkListManager + GetAdaptersAddresses/NotifyIpInterfaceChange. `qs.exe`/`qsw.exe` buildam e linkam limpo (cross-build clang-cl-xwin). Falta testar na VM (ver `docs/PORTING.md` e o relatório do agente). |
-| `ii` worktree `wt-ii-net` | `net` | Pronto: `Network.qml` (branch Windows liga em `WindowsNative.network`, API pública igual à do Linux), `WifiDialog.qml`/`WifiControl.qml` com aviso de permissão de localização e `setWifiListVisible`. `qmllint --bare` sem erro de sintaxe. Falta testar na VM. |
-| `quickshell` `wt-bt` | `bt` | Núcleo WinRT commitado. Faltam as classes QML (adapter, device, singleton). |
-| `ii` `wt-ii-bt` | `bt` | Nenhuma mudança ainda. |
-| `quickshell` `wt-theme` | `theme` | WIP: `image/image_tools` (least_busy_region, text_color, scheme_for_image), thumbnailer, `system/wallpaper`. O agente estava redeployando para testar. |
-| `ii` `wt-ii-theme` | `theme` | WIP: template e config do matugen em `defaults/windows/matugen`, ganchos no WindowsNative. Falta o `matugen.exe` (cargo-xwin) e o Wallpapers.qml. |
-| `quickshell` `wt-capture` | `capture` | ScreencopyView por WGC commitado. O agente estava rodando o probe na VM. Falta validar e integrar. |
-| `quickshell` `wt-notif` / `ii` `wt-ii-notif` | `notif` | Servidor de notificações commitado nos dois lados. O agente estava escrevendo a config de teste sem janela (`tools/testconfigs/notifications`). |
+| `quickshell/` | `windows` | Integrado: bt, capture, notif, net. Também a varredura de janelas mortas, os workspaces "ocupados", os binds só no `shell.qml` e a camada Bottom abaixo das janelas. |
+| `ii/` | `windows` | Integrado: bt, notif, net. Também as correções de first-run/hyprlock, os `/proc` e a seção de lock escondida no Windows. |
+| `quickshell` `wt-theme` / `ii` `wt-ii-theme` | `theme` | Agente trabalhando. Escopo: matugen, wallpaper, modo escuro e **todos** os chamadores de `switchwall.sh`. É o bug "configurações não mudam" do usuário: Settings → Quick chama bash. |
+| `wt-region` / `wt-ii-region` | `region` | Agente trabalhando: seletor de região, OCR (Windows.Media.Ocr), recorte/cópia, busca de imagem, gravação com ffmpeg. |
+| `wt-pkg` | `pkg` | Agente trabalhando: `tools/package.sh`, `install.ps1`/`uninstall.ps1` (autostart só com `-Autostart`), crash handler com minidump. |
 
-Integração: para cada um, faça o merge na branch `windows`. Os conflitos de sempre ficam em `src/windows/CMakeLists.txt` e `src/windows/services/CMakeLists.txt`: junte as listas de fontes e os `add_subdirectory`. Depois, build com `cmake --build build/qs`, `tools/deploy-ii.sh`, `tools/vm.sh push ii-windows` e `tools/vm.sh ii start`. Por fim, remova a worktree.
+Integração: faça o merge na `windows`. Os conflitos típicos ficam em `src/windows/CMakeLists.txt` (juntar as listas de fontes e de libs) e em `ii/modules/common/WindowsNative*.qml` (juntar as propriedades). Depois rode `. tools/env.sh && cmake build/qs && cmake --build build/qs` e remova a worktree.
 
-## Bugs abertos, achados no último teste do usuário
+## Testes pendentes (quando a VM voltar)
 
-1. **As configurações do app de Settings não chegam ao `config.json`.** Na VM, `%LOCALAPPDATA%\illogical-impulse\config.json` tinha sido gravado pela última vez às 18:23, mas o usuário mexeu nas configurações por volta das 21h. O log não mostra nenhum "Write of ... failed". Próximo passo: rodar `qsw -p settings.qml` com `QT_LOGGING_RULES=quickshell.io.fileview.debug=true` e ver se `writeAdapter` é chamado e para qual caminho (suspeita: `Directories.config` ou `shellConfigPath` com `/C:/`, ou `adapterUpdated` não disparando no processo do settings).
-2. **O processo do Settings também registra os atalhos globais.** Ele carrega o `keybinds.json` e instala o hook de teclado, então os atalhos ficam duplicados enquanto ele está aberto. Os binds devem carregar só no shell principal (por exemplo, de forma preguiçosa, no primeiro GlobalShortcut, ou nunca com `-p settings.qml`).
-3. **`ResourcesPopup.qml`: "formatKB is not a function".** O aviso se repete a cada atualização. A função está na raiz, que é um LazyLoader (StyledPopup). Conferir se acontece no Linux. A correção provável é mover a função para dentro do conteúdo ou usar uma função livre.
-4. **Na partida, uma tela `\\.\DISPLAY1` de 1280x800 aparece por um instante.** Ela gera warnings de `screen` nulo em Background, ScreenCorners, Lock e Brightness. O display fantasma foi desconectado, mas o Qt ainda o vê no boot.
-5. **`least-busy-region-venv.sh`** ainda é chamado no Windows. O C++ equivalente está na branch `theme`.
-6. **Warnings antigos que continuam:** FileViews de `/proc/*` e `/etc/os-release`, a tradução `en_US.json`, o `commandPrefix` do AiChat e a gamma do NightLight (falha no VG259Q5A).
+Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/PORTING.md`, e os probes em `tools/*-probe` e `build/*-probe`. Antes de testar, rode `tools/deploy-ii.sh`, que agora limpa os shims velhos de `dist/`.
 
-## Corrigido nesta sessão (já na branch `windows`)
+1. **Tracker e workspaces:** abrir e fechar apps, matar processos; os pontos de workspace só aparecem nos ocupados.
+2. **Atalhos com o Settings aberto:** cada atalho dispara uma vez só.
+3. **Camada Bottom (fundo do ii):** fica abaixo das janelas e não cobre apps. Win+D mostra o desktop nativo, o que é esperado.
+4. **Bluetooth** (VM sem adaptador): a UI some e não há TypeErrors.
+5. **Captura:** `capture-probe`, depois as prévias do overview e do dock.
+6. **Notificações:** `tools/notif-test.ps1`, depois um toast da Calculadora espelhado no ii.
+7. **Rede:** `net-probe`, depois o ícone de ethernet e o diálogo de Wi-Fi sem adaptador.
 
-- **Janelas fechadas continuavam na barra.** Apps que encerram com ExitProcess (NVIDIA App, kill, crash) não mandam `EVENT_OBJECT_DESTROY`. O tracker agora confere `IsWindow` a cada troca de foreground e a cada 2 s. Testado: notepad morto por `Stop-Process` sai da lista.
-- **Todos os desktops apareciam como ocupados.** `Hyprland.workspaces` agora lista só desktops com janelas mais o focado, como no Hyprland, com eventos `createworkspace`/`destroyworkspace`. O `workspace empty` do dispatcher procura em todos os desktops.
-- **Cliques na barra:** o FocusGrab tem 500 ms de tolerância. Nomes amigáveis dos apps no ActiveWindow.
+## Bugs abertos
+
+1. **`ResourcesPopup.qml`: "formatKB is not a function"** só aparece no Windows. No Linux, com o mesmo Qt 6.11.2, uma reprodução mínima não mostra o aviso. Investigar com a VM (cache de QML? lookup do método numa raiz LazyLoader?).
+2. **Tela fantasma `\\.\DISPLAY1` 1280x800 no boot da win11-gpu.** É o vídeo emulado da VM e não é bug do código; gera warnings de `screen` nulo.
+3. **`sendDesktop` de processos separados** (welcome.qml) vai para o servidor de notificação do próprio processo. Precisa de uma rota por IPC.
+4. **Warnings antigos:** a tradução `en_US.json`, o `commandPrefix` do AiChat/Anime (upstream) e a gamma do NightLight no VG259Q5A.
+
+## Decisões recentes
+
+- **O fundo do ii (camada Bottom) fica em HWND_BOTTOM, acima do desktop nativo.** O wallpaper do ii cobre os ícones, como no Linux, que não tem ícones. O Win+D revela o desktop nativo; o agente de tema define o mesmo wallpaper nele. Embutir o fundo no WorkerW, atrás dos ícones, fica como opção futura.
+- **Global binds só carregam quando a entrada do processo é `shell.qml`.** Settings, welcome e killDialog não registram atalhos.
 
 ## Próximas fases
 
-Depois de integrar a leva 2 e corrigir os bugs acima:
-
-- **Fase 4/5:** WorkerW para a camada de fundo, blur, região/OCR com Windows.Media.Ocr, gravação com ffmpeg ddagrab, conferir OSD e OSK.
-- **Fase 6:** pacote, autostart (perguntar antes) e crash handler.
+- **Fase 4:** blur atrás dos painéis, conferir OSD, OSK e overview com prévias, e WorkerW se o usuário quiser ícones visíveis.
+- **Fase 6:** integrar `pkg` e decidir o autostart com o usuário.
