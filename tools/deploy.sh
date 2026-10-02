@@ -31,5 +31,15 @@ done
 for q in QtQuick QtQml QtCore Qt5Compat QtPositioning QtMultimedia Qt; do
 	[ -d "$QT_WIN/qml/$q" ] && copy_tree "$QT_WIN/qml/$q" "$dest/qml/$q"
 done
+# The MSVC C++ runtime the binaries link against, app-local: a fresh Windows 10 (or any PC
+# without the Visual C++ redistributable) has none, and qs.exe wouldn't start. Taken from
+# Microsoft's VC_redist.x64.exe (VS 2026, 14.51), which must be at least the version of the
+# headers the build used (toolchain/xwin/crt/include/crtversion.h).
+if [ -d "$IIW/toolchain/vcredist" ]; then
+	cp -f "$IIW"/toolchain/vcredist/*.dll "$dest/"
+else
+	echo "warning: no toolchain/vcredist - qs.exe won't start where the VC++ runtime isn't installed" >&2
+fi
+
 printf '[Paths]\nPrefix = .\nPlugins = plugins\nQmlImports = qml\n' > "$dest/qt.conf"
 echo "deployed to $dest ($(du -sh "$dest" | cut -f1))"
