@@ -22,6 +22,20 @@ for f in \
 	cp -f "$f" "$D/fonts/"
 done
 
+# Icons for Quickshell.iconPath (qs adds <exe dir>/icons to the icon fallback paths): the config's
+# own logo and distro/brand glyphs, plus the generic fallbacks configs ask for, from Adwaita
+# (CC-BY-SA 3.0 / LGPL 3, licenses alongside).
+rm -rf "$D/icons"
+mkdir -p "$D/icons"
+cp -f "$IIW"/ii/defaults/windows/icons/*.svg "$D/icons/"
+cp -f "$IIW"/ii/assets/icons/*.svg "$D/icons/"
+for f in "$IIW"/tools/icons/adwaita/*; do
+	case "$f" in
+	*.svg) cp -f "$f" "$D/icons/" ;;
+	*) cp -f "$f" "$D/icons/adwaita-$(basename "$f")" ;;
+	esac
+done
+
 # Shim modules (same URIs as the Linux-only Quickshell modules) go next to Qt's own QML modules.
 # Drop the previously staged ones first: a shim deleted because a native module replaced it must
 # not linger in dist with a qmldir of the same URI.
