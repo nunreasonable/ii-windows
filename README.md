@@ -115,6 +115,7 @@ All of the design and nearly all of the shell are other people's work. This repo
     <h3></h3>
 </div>
 
-- Each part keeps its upstream license: Quickshell for Windows is LGPL-3.0 and ii for Windows is GPL-3.0, like the projects they are forked from
+- This repo (the setup and the packaging scripts) is GPL-3.0, like ii. See [LICENSE](LICENSE)
+- The forks keep their upstream licenses: Quickshell for Windows is LGPL-3.0 and ii for Windows is GPL-3.0
 - The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT) and fonts under the SIL Open Font License and Apache-2.0. The setup's README lists them all
 - Copying: go ahead, just follow the licenses, like upstream asks
