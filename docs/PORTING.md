@@ -77,6 +77,7 @@ Windows, so they show the real RTX output.
 | HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done   |
 | ToplevelManager                         | same window tracker                                                  | done   |
 | ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | built, needs GUI test |
+| Hyprland layer rules (blur, ignore_alpha) | `blur.cpp`: Windows.UI.Composition host-backdrop window under each panel, rounded shapes from the item tree, rules in `defaults/windows/layerrules.json` | built, needs GUI test |
 | IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done   |
 | Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done   |
 | Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done   |
@@ -240,3 +241,7 @@ path runs) that deliberately crashes the shell via the mode it names. Since that
 moments of startup, it would only ever exercise the "crashed within 10s of launch, don't relaunch"
 branch on its own; `QS_DEBUG_CRASH_DELAY_MS` sleeps that many milliseconds first, so setting it
 above `10000` exercises the relaunch path instead. See "VM test steps" below.
+
+### Blur (2026-10-02)
+- `defaults/windows/layerrules.json` (new, data only): the Hyprland `layer_rule` blur/ignore_alpha rules converted for `blur.cpp`; user override in `%LOCALAPPDATA%\illogical-impulse\layerrules.json`. Blur only exists while ii's transparency is on, like on Linux. Off with Windows' "Transparency effects", high contrast, energy saver, `QS_WINDOWS_BLUR=0`.
+- Tests: `tools/blur-shapes-test` (host, shape walk), `tools/testconfigs/blur` (VM, standalone), `tools/blur-check.ps1` (VM, read-only z-order check).
