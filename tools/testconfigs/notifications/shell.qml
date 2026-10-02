@@ -8,7 +8,8 @@
 // mirror's state and every mirrored toast. Mirrored toasts whose summary starts with
 // "ii-windows probe" are dismissed after 1.5 s, which removes them from the Windows notification
 // center. Show one from PowerShell while this runs to exercise the mirror. Quits after
-// QS_NOTIF_TEST_SECONDS (default 20).
+// QS_NOTIF_TEST_SECONDS (default 20); QS_NOTIF_TEST_PNG adds a notification whose app icon is
+// that PNG file. tools/notif-test.ps1 runs all of this on the VM.
 
 import QtQuick
 import Quickshell

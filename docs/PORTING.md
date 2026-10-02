@@ -40,6 +40,15 @@ Windows, so they show the real RTX output.
   owns a worker thread that calls `init_apartment(multi_threaded)` and posts results back to Qt.
   Verified: GSMTC works unpackaged this way.
 - Qt Quick picks Direct3D 11 (`GraphicsInfo.api == 4`); translucent frameless windows work as-is.
+- **Notification listener, unpackaged (25H2/26200).** `GetAccessStatus` is already `Allowed` when
+  Settings > Privacy & security > Notifications > "Notification access" is on (the default;
+  `ConsentStore\userNotificationListener` Value=Allow), and `RequestAccessAsync` returns at once,
+  no prompt, no per-app entry recorded. `GetNotificationsAsync(Toast)` (~10-25 ms) and
+  `RemoveNotification` work; `NotificationChanged` throws 0x80070490, so the mirror polls every 2 s.
+  Only text elements are exposed (no images, no launch args, no buttons); `AppInfo.DisplayInfo.GetLogo`
+  gives a PNG for packaged senders and null for unpackaged ones (PowerShell). Windows keeps showing
+  its own banners; users turn them off per app (or Do not disturb) in Settings > System >
+  Notifications, `Quickshell.Windows.NotificationSettings.openSettings()`.
 
 ## Status
 
@@ -72,7 +81,7 @@ Windows, so they show the real RTX output.
 | Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done   |
 | Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done   |
 | Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | done   |
-| Services.Notifications                  | internal server (+ UserNotificationListener mirror later)            | todo   |
+| Services.Notifications                  | native server: `notifySend` (notify-send args) + UserNotificationListener mirror of Windows toasts (branch `notif`) | todo   |
 | Services.SystemTray                     | empty stub (tray stays on the native taskbar)                        | todo   |
 | Services.Polkit / Pam / WlSessionLock   | inert stubs; lock = LockWorkStation                                  | todo   |
 | Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | todo   |
@@ -100,7 +109,7 @@ Windows, so they show the real RTX output.
 - `modules/waffle/looks/WUserAvatar.qml` — use the Windows account-picture path instead of /var/lib/AccountsService on Windows
 - `modules/common/functions/Session.qml` — Windows branches for lock/suspend/logout/poweroff/reboot/hibernate/rebootToFirmware (rundll32/shutdown)
 - `modules/common/panels/lock/LockContext.qml` — skip the fprintd fingerprint-check process on Windows
-- `services/Notifications.qml` — added `sendDesktop()` helper (console.info on Windows, notify-send on Linux) as the single place to later wire to a real Windows notifier
+- `services/Notifications.qml` — added `sendDesktop()` helper (notify-send on Linux; on Windows the native `NotificationServer.notifySend()`, which parses the same options)
 - `services/MaterialThemeLoader.qml` — quiet (no printed error) fallback to Appearance's built-in palette when colors.json is missing on Windows
 - `services/Hyprsunset.qml` — no-op hyprctl/hyprsunset calls on Windows (gamma ramp backend is a later phase)
 - `services/FirstRunExperience.qml` — skip the switchwall.sh/qs-welcome launch on Windows

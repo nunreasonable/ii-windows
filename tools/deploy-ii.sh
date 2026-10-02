@@ -23,6 +23,9 @@ for f in \
 done
 
 # Shim modules (same URIs as the Linux-only Quickshell modules) go next to Qt's own QML modules.
+# Drop the previously staged ones first: a shim deleted because a native module replaced it must
+# not linger in dist with a qmldir of the same URI.
+rm -rf "$D/qml/Quickshell" "$D/qml/org" "$D/qml/_common"
 if [ -d "$SHIMS" ]; then
 	(cd "$SHIMS" && find . -type f ! -name '*.md' -print0) | while IFS= read -r -d '' f; do
 		mkdir -p "$D/qml/$(dirname "$f")"
