@@ -1,6 +1,14 @@
 # Handoff: estado em 2026-10-02
 
-Modo atual: **só build**. O usuário precisa da RTX no Linux, então as duas VMs ficam desligadas e não se liga nenhuma. Tudo o que foi integrado desde 2026-10-01 compila, mas ainda não rodou na VM (ver "Testes pendentes").
+Modo atual: **win11-gpu ligada** (o usuário cedeu a RTX em 2026-10-02 às 9h50). Ele usa o desktop da VM ao mesmo tempo: nada de injetar input, e nada de mudar o tema ou o papel de parede do Windows por conta própria.
+
+Confirmado na VM em 2026-10-02:
+- **ii:** sobe sem warnings novos, e o `formatKB` sumiu sem a tela fantasma (a hipótese se confirmou).
+- **Notificações:** um toast do Windows é espelhado como popup do ii.
+- **Atalhos:** o Settings não registra binds ("Not loading binds in settings.qml").
+- **Settings:** aplica mudanças ao vivo (estilo da barra, cantos).
+- **Wallpaper e cores:** o ii adota o wallpaper do Windows sem alterar o Windows, o matugen.exe gera o `colors.json` em `State/user/generated` e o relógio do fundo vai para a região menos ocupada.
+- **Blur:** as janelas de backdrop ficam logo abaixo do painel, com o mesmo topmost (o render visual ainda não foi confirmado).
 
 ## Branches
 
