@@ -82,6 +82,11 @@ impl Paths {
 	pub fn quickshell_dirs(&self) -> Vec<PathBuf> {
 		["ii", "State", "cache", "run"].iter().map(|d| self.quickshell.join(d)).collect()
 	}
+	/// Qt's GenericCacheLocation (%LOCALAPPDATA%\cache): Quickshell keeps copied images there
+	/// (`quickshell\clipboard`), and ii its wallpaper thumbnails (`thumbnails`).
+	pub fn generic_cache(&self) -> PathBuf {
+		self.local.join("cache")
+	}
 	/// ii's temp root (%TEMP%\quickshell, Directories.tempRoot).
 	pub fn ii_temp(&self) -> PathBuf {
 		self.temp.join("quickshell")

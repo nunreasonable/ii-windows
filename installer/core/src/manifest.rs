@@ -112,6 +112,10 @@ pub struct PreInstall {
 	pub colorization_color: Option<u32>,
 	pub colorization_afterglow: Option<u32>,
 	pub wallpaper: Option<WallpaperState>,
+	/// Whether %LOCALAPPDATA%\cache and its `thumbnails` folder were there before ii, so
+	/// uninstall only removes them if ii made them (None: not recorded, leave them).
+	pub generic_cache_existed: Option<bool>,
+	pub thumbnails_existed: Option<bool>,
 	/// ii was running from somewhere else while this was recorded, so the taskbar values may be
 	/// the ones ii sets while it runs rather than the user's own.
 	pub other_instance_running: bool,

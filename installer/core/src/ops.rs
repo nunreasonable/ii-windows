@@ -547,6 +547,8 @@ fn record_pre_install(ctx: &mut Ctx) -> PreInstall {
 		colorization_color: win::get_dword(win::DWM_KEY, "ColorizationColor"),
 		colorization_afterglow: win::get_dword(win::DWM_KEY, "ColorizationAfterglow"),
 		other_instance_running: !others.is_empty(),
+		generic_cache_existed: Some(ctx.paths.generic_cache().exists()),
+		thumbnails_existed: Some(ctx.paths.generic_cache().join("thumbnails").exists()),
 		..Default::default()
 	};
 	match win::record_wallpaper(&ctx.paths.restore_dir(), &ctx.paths.install_dir) {
@@ -1758,6 +1760,11 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		dirs.push(ctx.paths.ii_temp());
 		dirs.push(ctx.paths.quickshell.join("ii.new"));
 		dirs.push(ctx.paths.quickshell.join("ii.old"));
+		dirs.push(ctx.paths.generic_cache().join("quickshell"));
+		let pre = m.pre_install.clone().unwrap_or_default();
+		if pre.thumbnails_existed == Some(false) {
+			dirs.push(ctx.paths.generic_cache().join("thumbnails"));
+		}
 		if !run.keep_settings {
 			dirs.push(ctx.paths.settings.clone());
 		}
@@ -1777,6 +1784,27 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		// left in it.
 		if std::fs::read_dir(&ctx.paths.quickshell).is_ok_and(|mut rd| rd.next().is_none()) {
 			let _ = std::fs::remove_dir(&ctx.paths.quickshell);
+		}
+		if pre.generic_cache_existed == Some(false)
+			&& std::fs::read_dir(ctx.paths.generic_cache()).is_ok_and(|mut rd| rd.next().is_none())
+		{
+			let _ = std::fs::remove_dir(ctx.paths.generic_cache());
+		}
+		// The AI sidebar's API keys (KeyringStorage.qml), a generic credential.
+		if !run.keep_settings {
+			match win::delete_generic_credential(crate::CREDENTIAL_TARGET) {
+				Ok(true) => ctx.info(format!("   removed the {} credential", crate::CREDENTIAL_TARGET)),
+				Ok(false) => {}
+				Err(e) => {
+					failed = true;
+					ctx.warn(
+						"ii_data",
+						Msg::new("credential_failed", format!("Couldn't remove the {} credential: {e}", crate::CREDENTIAL_TARGET))
+							.with("name", crate::CREDENTIAL_TARGET)
+							.with("error", e.to_string()),
+					);
+				}
+			}
 		}
 		if run.keep_settings && ctx.paths.settings.exists() {
 			ctx.note(

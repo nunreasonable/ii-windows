@@ -417,6 +417,19 @@ pub fn delete_tree(path: &str) -> std::io::Result<()> {
 	}
 }
 
+/// Deletes a generic Credential Manager entry. Ok(false) if there was none.
+pub fn delete_generic_credential(target: &str) -> std::io::Result<bool> {
+	use windows::Win32::Foundation::ERROR_NOT_FOUND;
+	use windows::Win32::Security::Credentials::{CredDeleteW, CRED_TYPE_GENERIC};
+
+	let name = wide(target);
+	match unsafe { CredDeleteW(PCWSTR(name.as_ptr()), CRED_TYPE_GENERIC, None) } {
+		Ok(()) => Ok(true),
+		Err(e) if e.code() == ERROR_NOT_FOUND.to_hresult() => Ok(false),
+		Err(e) => Err(std::io::Error::other(e.message())),
+	}
+}
+
 pub fn broadcast_setting_change(area: &str) {
 	let w = wide(area);
 	let mut result = 0usize;

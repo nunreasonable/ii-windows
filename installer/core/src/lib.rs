@@ -24,6 +24,8 @@ pub const LOG: &str = "setup.log";
 pub const UNINSTALL_KEY_NAME: &str = "ii-windows";
 /// HKCU\Software\Microsoft\Windows\CurrentVersion\Run value name.
 pub const RUN_VALUE: &str = "illogical-impulse";
+/// The Credential Manager entry ii keeps API keys in (KeyringStorage.qml).
+pub const CREDENTIAL_TARGET: &str = "illogical-impulse";
 pub const SHORTCUT_MAIN: &str = "illogical-impulse.lnk";
 pub const SHORTCUT_SETTINGS: &str = "illogical-impulse Settings.lnk";
 pub const DISPLAY_NAME: &str = "illogical-impulse (ii-windows)";
