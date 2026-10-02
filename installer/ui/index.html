@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>illogical-impulse Setup</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+	<header class="titlebar" data-tauri-drag-region>
+		<img class="titlebar-logo" src="logo.svg" alt="" data-tauri-drag-region>
+		<span class="titlebar-title" data-tauri-drag-region data-i18n="app_title">illogical-impulse Setup</span>
+		<span class="titlebar-spacer" data-tauri-drag-region></span>
+		<div class="lang-toggle" role="group" aria-label="Language">
+			<button type="button" data-lang="en">EN</button>
+			<button type="button" data-lang="pt">PT</button>
+		</div>
+		<button type="button" class="titlebar-btn" id="btn-min" aria-label="Minimize"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+		<button type="button" class="titlebar-btn close" id="btn-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+	</header>
+
+	<div class="body">
+		<nav class="rail" aria-label="Steps">
+			<ol class="stepper" id="stepper">
+				<li data-step="welcome"><span class="dot"></span><span class="label" data-i18n="rail_welcome"></span></li>
+				<li data-step="readme"><span class="dot"></span><span class="label" data-i18n="rail_readme"></span></li>
+				<li data-step="options"><span class="dot"></span><span class="label" data-i18n="rail_options"></span></li>
+				<li data-step="progress"><span class="dot"></span><span class="label" data-i18n="rail_progress"></span></li>
+				<li data-step="done"><span class="dot"></span><span class="label" data-i18n="rail_done"></span></li>
+			</ol>
+			<div class="rail-footer">
+				<div class="rail-version" id="setup-version"></div>
+				<button type="button" class="link" data-url="https://github.com/nunreasonable/ii-windows">nunreasonable/ii-windows ↗</button>
+			</div>
+		</nav>
+
+		<main class="stage" id="stage">
+
+			<!-- Welcome -->
+			<section class="page" data-page="welcome">
+				<div class="hero">
+					<div class="hero-logo"><div class="glow"></div><img src="logo.svg" alt=""></div>
+					<div class="hero-text">
+						<h1>illogical-impulse</h1>
+						<p class="hero-sub" data-i18n="hero_sub"></p>
+						<div class="chips" id="welcome-chips"></div>
+					</div>
+				</div>
+				<p class="section-title" data-i18n="welcome_choose"></p>
+				<div class="actions" id="actions">
+					<button type="button" class="action" data-action="install">
+						<span class="action-icon" data-icon="install"></span>
+						<span class="action-text"><span class="action-title"></span><span class="action-desc"></span></span>
+						<span class="action-check" data-icon="check"></span>
+					</button>
+					<button type="button" class="action" data-action="update">
+						<span class="action-icon" data-icon="update"></span>
+						<span class="action-text"><span class="action-title"></span><span class="action-desc"></span></span>
+						<span class="action-check" data-icon="check"></span>
+					</button>
+					<button type="button" class="action" data-action="repair">
+						<span class="action-icon" data-icon="repair"></span>
+						<span class="action-text"><span class="action-title"></span><span class="action-desc"></span></span>
+						<span class="action-check" data-icon="check"></span>
+					</button>
+					<button type="button" class="action danger" data-action="uninstall">
+						<span class="action-icon" data-icon="uninstall"></span>
+						<span class="action-text"><span class="action-title"></span><span class="action-desc"></span></span>
+						<span class="action-check" data-icon="check"></span>
+					</button>
+				</div>
+				<footer class="page-footer">
+					<span class="footer-note" id="welcome-note"></span>
+					<button type="button" class="btn filled" id="welcome-next" disabled><span data-i18n="continue"></span><span data-icon="arrow"></span></button>
+				</footer>
+			</section>
+
+			<!-- README -->
+			<section class="page" data-page="readme">
+				<div class="page-head">
+					<span class="head-icon" data-icon="doc"></span>
+					<div>
+						<h2 data-i18n="readme_title"></h2>
+						<p class="muted" data-i18n="readme_sub"></p>
+					</div>
+				</div>
+				<div class="readme-wrap">
+					<article class="readme" id="readme" tabindex="0"></article>
+					<div class="readme-fade"></div>
+				</div>
+				<div class="read-progress"><div id="read-bar"></div></div>
+				<footer class="page-footer">
+					<label class="checkbox" id="read-check-label">
+						<input type="checkbox" id="read-check" disabled>
+						<span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+						<span class="checkbox-text"><span data-i18n="read_check"></span><small id="read-hint" data-i18n="read_hint"></small></span>
+					</label>
+					<button type="button" class="btn text" data-back data-i18n="back"></button>
+					<button type="button" class="btn filled" id="readme-next" disabled><span data-i18n="continue"></span><span data-icon="arrow"></span></button>
+				</footer>
+			</section>
+
+			<!-- Options -->
+			<section class="page" data-page="options">
+				<div class="page-head">
+					<span class="head-icon" id="options-icon"></span>
+					<div>
+						<h2 id="options-title"></h2>
+						<p class="muted" id="options-sub"></p>
+					</div>
+				</div>
+				<div class="scroll" id="options-body"></div>
+				<footer class="page-footer">
+					<span class="footer-note" id="options-note"></span>
+					<button type="button" class="btn text" data-back data-i18n="back"></button>
+					<button type="button" class="btn filled" id="options-go" disabled></button>
+				</footer>
+			</section>
+
+			<!-- Progress -->
+			<section class="page" data-page="progress">
+				<div class="page-head">
+					<span class="head-icon spin-host" id="progress-icon"></span>
+					<div>
+						<h2 id="progress-title"></h2>
+						<p class="muted" id="progress-sub"></p>
+					</div>
+				</div>
+				<div class="overall"><div class="overall-bar" id="overall-bar"></div></div>
+				<div class="scroll" id="progress-scroll">
+					<ol class="steps" id="steps"></ol>
+					<pre class="log" id="log" hidden></pre>
+				</div>
+				<footer class="page-footer">
+					<button type="button" class="btn text" id="toggle-log"><span data-icon="terminal"></span><span data-i18n="show_details"></span></button>
+					<span class="footer-note" id="progress-note"></span>
+					<button type="button" class="btn tonal" id="cancel-btn" hidden data-i18n="cancel"></button>
+				</footer>
+			</section>
+
+			<!-- Done -->
+			<section class="page" data-page="done">
+				<div class="done-hero">
+					<div class="done-badge" id="done-badge"></div>
+					<h2 id="done-title"></h2>
+					<p class="muted" id="done-sub"></p>
+				</div>
+				<div class="scroll" id="done-body"></div>
+				<footer class="page-footer">
+					<button type="button" class="btn text" id="done-log"><span data-icon="doc"></span><span data-i18n="open_log"></span></button>
+					<span class="footer-note"></span>
+					<button type="button" class="btn tonal" id="done-launch" hidden><span data-icon="play"></span><span data-i18n="launch_now"></span></button>
+					<button type="button" class="btn filled" id="done-close" data-i18n="close"></button>
+				</footer>
+			</section>
+		</main>
+	</div>
+	<div class="toast" id="toast" role="status"></div>
+</div>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "identifier": "main",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-start-dragging"]
+}

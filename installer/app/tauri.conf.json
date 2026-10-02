@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "illogical-impulse Setup",
+  "mainBinaryName": "ii-windows-setup",
+  "identifier": "io.github.nunreasonable.ii-windows-setup",
+  "build": { "frontendDist": "../ui" },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "publisher": "nunreasonable",
+    "shortDescription": "Installs illogical-impulse (ii-windows) for the current user",
+    "copyright": "ii-windows contributors"
+  }
+}
