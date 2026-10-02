@@ -9,6 +9,13 @@ Confirmado na VM em 2026-10-02:
 - **Settings:** aplica mudanças ao vivo (estilo da barra, cantos).
 - **Wallpaper e cores:** o ii adota o wallpaper do Windows sem alterar o Windows, o matugen.exe gera o `colors.json` em `State/user/generated` e o relógio do fundo vai para a região menos ocupada.
 - **Blur:** as janelas de backdrop ficam logo abaixo do painel, com o mesmo topmost (o render visual ainda não foi confirmado).
+- **Desktops virtuais:** os painéis do ii não pertencem a desktop nenhum (`desktop=-1`). A barra sumia num desktop vazio porque o fundo do ii, em tela cheia, era tratado como "fullscreen app" (`ABN_FULLSCREENAPP`). Resolvido com `NonRudeHWND`; a barra continua no desktop 2.
+- **Probes:** captura (monitor em ~43 ms, ao vivo, quadro único) e Bluetooth (sem adaptador) ok. O `net-probe` não roda por falta de uma DLL no pacote do próprio probe.
+- **Crash:** um crash de teste depois de 12 s gera o dump e relança o shell (corrigido: era `-c` em vez de `-p`).
+- **Revisão de código (2 agentes) aplicada:**
+  - QML: o `TempScreenshotProcess.running` não voltava a false (também no Linux), a corrida do matugen, os retries quando o nativo carrega e o aviso do booru.
+  - C++: relaunch, qFatal, error mode herdado, ordem do filtro, use-after-free no Thumbnailer, caminhos nativos no OCR e no wallpaper, ethernet exigindo gateway, retomada do barramento de notificações e o vazamento do clipboard.
+  - Pendentes, de baixo impacto: corrida no `CaptureHandle` (live alternando), `captureScreen` sem limite de espera, toasts fantasmas ao religar o acesso e nome do perfil de Wi-Fi diferente do SSID.
 
 ## Branches
 
