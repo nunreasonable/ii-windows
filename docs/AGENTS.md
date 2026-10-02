@@ -31,12 +31,12 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
 - **C++/WinRT must run on its own MTA thread** (`winrt::init_apartment(multi_threaded)` on a worker
   thread; post results back to the Qt thread). Qt's GUI thread is STA; init_apartment there fails and
   blocking `.get()` is forbidden on STA. Verified on the target.
-- **BUILD-ONLY MODE (since 2026-10-02):** the user needs the RTX on Linux, so both VMs (`win11`,
-  `win11-gpu`) are off and must stay off. Do not start a VM and do not queue `tools/vm.sh` jobs (the
-  agent is offline; jobs only time out). Verify by building (Windows cross-build, and the Linux build if
-  you touch shared code), by reading the APIs' docs, and with small host-side checks where possible.
-  End your report with the exact VM test steps the integrator should run later.
-- (When the VM is back) Testing on the real target: a Windows 11 VM (25H2, build 26200, RTX 5060 Ti passthrough, 1920x1080)
+- **VM ON (since 2026-10-02 ~10h):** win11-gpu runs with the RTX; the user isn't using it
+  continuously, so GUI tests with input injection are allowed (keep them short). Use `SendInput`
+  for mouse moves (SetCursorPos doesn't reach low-level hooks). Never change Windows' wallpaper,
+  theme or security settings yourself (ExecutionPolicy etc.) outside what a task explicitly tests,
+  and restore anything you change.
+- Testing on the real target: a Windows 11 VM (25H2, build 26200, RTX 5060 Ti passthrough, 1920x1080)
   is reachable through `tools/vm.sh job [timeout] < script.ps1` (runs a PowerShell script in the
   logged-on user's session and prints its output). You may push a small console test program
   (build it in your build dir, stage it under `dist/<name>-probe/` with `tools/deploy.sh dist/<name>-probe
