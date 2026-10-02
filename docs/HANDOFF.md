@@ -10,6 +10,12 @@ Confirmado na VM em 2026-10-02:
 - **Wallpaper e cores:** o ii adota o wallpaper do Windows sem alterar o Windows, o matugen.exe gera o `colors.json` em `State/user/generated` e o relógio do fundo vai para a região menos ocupada.
 - **Blur:** as janelas de backdrop ficam logo abaixo do painel, com o mesmo topmost (o render visual ainda não foi confirmado).
 - **Desktops virtuais:** os painéis do ii não pertencem a desktop nenhum (`desktop=-1`). A barra sumia num desktop vazio porque o fundo do ii, em tela cheia, era tratado como "fullscreen app" (`ABN_FULLSCREENAPP`). Resolvido com `NonRudeHWND`; a barra continua no desktop 2.
+- **Testado com o usuário ou com input injetado (o usuário liberou o uso da VM fora das horas em que ele olha):**
+  - Tema claro/escuro e esquemas (com delay), desktops (Win+N), About, transparência/blur, overview com prévias, F11 e o cheatsheet no Win+/ (agora pelo layout ABNT2).
+  - Seletor de wallpaper com miniaturas, ícones de pasta e caminhos DOS.
+  - Recorte copiando a imagem (500x300 exato) e OCR do texto do cheatsheet.
+  - Gravar sem ffmpeg avisa e não abre o seletor (bug de ordem corrigido).
+  - Taskbar só no hover: aparece na borda, some 0,7 s depois de o cursor sair e não volta ao fechar apps. O teste precisa de `SendInput`, porque `SetCursorPos` não passa pelo hook LL.
 - **Probes:** captura (monitor em ~43 ms, ao vivo, quadro único) e Bluetooth (sem adaptador) ok. O `net-probe` não roda por falta de uma DLL no pacote do próprio probe.
 - **Crash:** um crash de teste depois de 12 s gera o dump e relança o shell (corrigido: era `-c` em vez de `-p`).
 - **Revisão de código (2 agentes) aplicada:**
