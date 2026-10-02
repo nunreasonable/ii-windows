@@ -110,7 +110,7 @@ ipc)
 	argl=""
 	for a in "$@"; do argl+="$(ps_quote "$a"),"; done
 	job <<EOF
-& "\$env:IIW_ROOT\\ii-windows\\qs.exe" ipc call @(${argl%,}) 2>&1
+& "\$env:IIW_ROOT\\ii-windows\\qs.exe" -c ii ipc call @(${argl%,}) 2>&1
 EOF
 	;;
 shot)
