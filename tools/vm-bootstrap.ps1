@@ -3,6 +3,9 @@
 #
 #   iex (ssh <linux user>@192.168.122.1 iiw-vm bootstrap | Out-String)
 #
+# (192.168.122.1 is the host on libvirt's default network.) vm-gateway.sh fills in @IIW_GW_HOST@
+# below as it serves this file.
+#
 # It asks for the Linux password twice (this download, then authorizing the agent's key).
 # After that the agent starts with every Windows logon and needs no password.
 & {
@@ -16,7 +19,7 @@ if (-not (Test-Path "$d\key")) {
 }
 
 Write-Host 'Authorizing the agent key on the host (Linux password again):'
-Get-Content "$d\key.pub" | ssh <linux user>@192.168.122.1 iiw-vm authorize
+Get-Content "$d\key.pub" | ssh @IIW_GW_HOST@ iiw-vm authorize
 
 # boot.ps1 never changes: it fetches the real agent from the host on every start, so the agent
 # can be updated from Linux without touching the VM again.
@@ -27,7 +30,7 @@ $created = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\iiw-agent', [ref]$created)
 if (-not $created) { exit }
 while ($true) {
-	$a = ssh -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 <linux user>@192.168.122.1 agent 2>$null
+	$a = ssh -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 @IIW_GW_HOST@ agent 2>$null
 	if ($LASTEXITCODE -eq 0 -and $a) { Invoke-Expression ($a -join "`n") }
 	Start-Sleep 10
 }

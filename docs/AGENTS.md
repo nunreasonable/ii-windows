@@ -11,6 +11,7 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
   Keep each service's public API identical; change implementations only.
 
 ## Rules
+- `$IIW` below is the workspace root (the folder holding `tools/`, `quickshell/` and `ii/`).
 - Work in your OWN git worktree + branch (others work in parallel):
   `git -C $IIW/quickshell worktree add $IIW/wt-<name> -b <name> windows`
   (and the same for `ii/` if you touch QML: `wt-ii-<name>`). Never edit the main checkouts.

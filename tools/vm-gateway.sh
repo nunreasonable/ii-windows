@@ -23,12 +23,22 @@ mkdir -p "$Q/pending" "$Q/running" "$Q/done"
 
 valid_name() { [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]]; }
 
+# How the VM reaches this host: this user at the libvirt bridge address, unless IIW_GW_HOST says
+# otherwise. Filled into the PowerShell served below in place of @IIW_GW_HOST@.
+gw_host() {
+	if [ -n "${IIW_GW_HOST:-}" ]; then echo "$IIW_GW_HOST"; return; fi
+	local ip
+	ip=$(ip -4 -o addr show "${IIW_GW_BRIDGE:-virbr0}" 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1)
+	echo "$(id -un)@${ip:-192.168.122.1}"
+}
+serve() { sed "s/@IIW_GW_HOST@/$(gw_host)/g" "$1"; }
+
 if [ -n "${SSH_ORIGINAL_COMMAND+x}" ]; then
 	# Forced command: only agent commands.
 	read -r cmd a1 a2 _ <<<"$SSH_ORIGINAL_COMMAND"
 	date +%s > "$Q/agent.seen"
 	case "$cmd" in
-	agent) cat "$IIW/tools/vm-agent.ps1" ;;
+	agent) serve "$IIW/tools/vm-agent.ps1" ;;
 	poll)
 		for _ in $(seq 40); do
 			job=$(find "$Q/pending" -maxdepth 1 -type f ! -name '.*' -printf '%f\n' | sort | head -1)
@@ -55,7 +65,7 @@ if [ -n "${SSH_ORIGINAL_COMMAND+x}" ]; then
 fi
 
 case "${1:-}" in
-bootstrap) cat "$IIW/tools/vm-bootstrap.ps1" ;;
+bootstrap) serve "$IIW/tools/vm-bootstrap.ps1" ;;
 authorize)
 	key=$(head -c 1024 | tr -d '\r' | head -1)
 	[[ "$key" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+(\ .*)?$ ]] || { echo "not an ed25519 public key" >&2; exit 2; }

@@ -6,7 +6,7 @@ $utf8 = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
 
-$gwHost = '<linux user>@192.168.122.1'
+$gwHost = '@IIW_GW_HOST@' # filled in by vm-gateway.sh
 $sshArgs = @('-i', "$d\key", '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
 	'-o', 'ConnectTimeout=5', '-o', 'ServerAliveInterval=15')
 # For jobs: cmd.exe pipes bytes untouched (PowerShell 5.1 pipelines would mangle a tar stream).
