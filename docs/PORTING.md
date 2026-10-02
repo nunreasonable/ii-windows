@@ -150,3 +150,90 @@ Windows, so they show the real RTX output.
 - `modules/ii/regionSelector/RegionSelection.qml` — screenshotPath now sanitizes `screen.name`; `enableContentRegions` forced off on Windows (no OpenCV port yet); `checkRecordingProc`'s command and `snip()`'s action dispatch branch on `Platform.isWindows` (calling the new `ScreenshotAction.runWindows()`/recording helpers instead of `getCommand()` + `execDetached`); a new `ffmpegMissing` state shows a notification and bails instead of opening the region UI when ffmpeg isn't installed.
 - `scripts/videos/record.ps1` — new file: Windows counterpart to `record.sh` (ffmpeg `gdigrab` region to Matroska, remuxed to mp4 on stop because ffmpeg can only be killed from outside; sound through a DirectShow loopback device such as Stereo Mix or a virtual cable, else records silently and ii says so; PID file instead of `pgrep`/`pkill`).
 - Noticed but out of scope here: `modules/ii/screenTranslator/ScreenTranslatorPanel.qml` and `modules/waffle/screenSnip/WRegionSelectionPanel.qml` build the same unsanitized `image-${screen.name}` temp path as the region selector did; worth the same `FileUtils.sanitizeFilename()` fix when those are ported.
+
+## Packaging
+
+`tools/package.sh` turns a built `dist/ii-windows` (staged by `tools/deploy-ii.sh`) into
+`dist/ii-windows-<date>.zip`: the whole runtime (qs.exe, qsw.exe, Qt DLLs/plugins/qml, bundled
+fonts, `config/ii`, `VirtualDesktopAccessor.dll`, `matugen.exe`, `qt.conf`) minus the dev-only
+`testconfigs`, plus `tools/install.ps1`/`tools/uninstall.ps1` dropped at the zip root. A user
+extracts the zip anywhere and runs `install.ps1` from inside it.
+
+```
+tools/deploy-ii.sh      # stage dist/ii-windows (unchanged, see Build above)
+tools/package.sh        # -> dist/ii-windows-<date>.zip
+```
+
+`install.ps1` (PowerShell 5.1, per-user, no admin — everything lives under `%LOCALAPPDATA%`):
+
+- Stops any `qs.exe`/`qsw.exe` already running from a previous install (their DLLs would
+  otherwise be locked), then mirrors (`robocopy /MIR`) the package into `%LOCALAPPDATA%\ii-windows`
+  — except `install.ps1`/`uninstall.ps1` themselves, which are copied separately right after so a
+  reinstall never has to overwrite its own open file mid-mirror.
+- Mirrors `%LOCALAPPDATA%\ii-windows\config\ii` into `%LOCALAPPDATA%\quickshell\ii` — the same
+  path `tools/vm.sh`'s `ii start` job mirrors to on the test VM, and where `qsw.exe -c ii` expects
+  to find it. The user's actual settings (`%LOCALAPPDATA%\illogical-impulse\config.json`, per
+  `ii/modules/common/Directories.qml`'s `shellConfig`) live in a separate directory entirely and
+  this mirror never reaches it; `/XF config.json` on the mirror is a defensive backstop only, in
+  case that ever changes.
+- Seeds `%LOCALAPPDATA%\quickshell\State\user\generated\colors.json` from
+  `config/ii/defaults/windows/colors.json` only if nothing is there yet (same rule as
+  `tools/vm.sh ii start`), so a reinstall doesn't clobber a palette matugen already generated.
+- Creates two per-user Start Menu shortcuts: "illogical-impulse" → `qsw.exe -c ii`, "ii Settings"
+  → `qsw.exe -p "<config>\settings.qml"`.
+- Autostart is opt-in only, via `-Autostart` (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+  value name `illogical-impulse`). Default install leaves it off; running `install.ps1` again
+  without `-Autostart` turns it back off, so there's one lever rather than a separate removal switch.
+
+`uninstall.ps1` reverses all of the above (process, shortcuts, Run key, `%LOCALAPPDATA%\ii-windows`)
+and keeps the user's config (`%LOCALAPPDATA%\quickshell\ii`, `%LOCALAPPDATA%\illogical-impulse`)
+unless run with `-RemoveConfig`. Shared quickshell state (colors.json, logs, crash dumps under
+`%LOCALAPPDATA%\quickshell\{State,run,crashes}`) isn't ii-specific and is left alone either way.
+
+Both scripts were written against the existing `tools/vm.sh`/`deploy-ii.sh` conventions (same
+paths, same "mirror, don't just copy" approach) but are **untested on the VM** (BUILD-ONLY MODE):
+checked with a manual read-through plus a bracket/quote-balance script since `pwsh` isn't
+installed on this host and isn't in the Fedora 44 repos. See the end of this file for VM test
+steps.
+
+## Crash handling (Windows)
+
+`src/windows/crash/handler.cpp` (built only for `WINDOWS_BACKEND`, gated by the same
+`CRASH_HANDLER` option as the Linux handler in `src/crash/`, now valid on both platforms instead
+of POSIX-only) hooks `SetUnhandledExceptionFilter`, `_set_invalid_parameter_handler`,
+`std::set_terminate` and `signal(SIGABRT)` into one funnel that:
+
+1. Writes a minidump (`MiniDumpWriteDump`, dbghelp, `MiniDumpWithDataSegs | MiniDumpWithThreadInfo`)
+   to `QsPaths::crashDir(instanceId)` (the same cross-platform helper `src/crash/` uses — resolves
+   under `%LOCALAPPDATA%\...\cache\crashes\<instanceId>\` on Windows) as `<instanceId>-<launchTimeMs>.dmp`.
+2. Copies the live detailed log (`CrashInfo::INSTANCE.logFd`, already kept pointed at the current
+   log file by the platform-neutral `logging.cpp`) and a `report.txt`
+   (`qs::debuginfo::combinedInfo()` plus the exception reason/code) next to it — skipped for
+   `EXCEPTION_STACK_OVERFLOW` specifically, to keep that path to just the dump.
+3. Relaunches `qsw.exe`/`qs.exe -c <configPath>` via `CreateProcessW`, unless this instance crashed
+   within 10 seconds of its own launch (mirrors the Linux handler's crash-loop guard exactly), then
+   terminates itself.
+
+All paths (exe, config, crash dir, dump file) are resolved once at startup
+(`CrashHandler::setRelaunchInfo`, called right after `InstanceInfo::CURRENT` is populated) into
+fixed-size buffers, so the filter itself never allocates — the one Qt/heap-using exception is the
+supporting-files step above, which only runs once the dump is already safely on disk.
+`SetThreadStackGuarantee(64 KiB)` reserves stack for the filter to run in after a stack overflow,
+on the thread `init()` was called from (the Qt GUI thread); worker threads (the WinRT MTA threads
+used by GSMTC/Bluetooth/notifications) aren't covered.
+
+**Design decision — in-process dump, not a watchdog process.** A second process (debugging this
+one via the Win32 Debug API, or woken by a shared event to run `MiniDumpWriteDump` against our PID
+from outside) would be more robust against a genuinely corrupted stack/heap, since its own stack
+is guaranteed healthy — closer to what the Linux handler gets from forking a coredump child before
+doing anything risky. It was not built here: it needs a handle/shared-memory handoff across a
+process boundary (what happens if the watchdog itself fails to start, how the crashed process and
+watchdog agree on "done", inheritable handles vs. a named mapping) that would ship with zero
+verification under BUILD-ONLY MODE. The in-process filter calling `MiniDumpWriteDump(GetCurrentProcess(), ...)`
+is the standard, documented approach (it's what Microsoft's own minidump samples do) and is simple
+enough to read and trust without a VM. If a future pass wants the more robust version, it's a
+reasonable follow-up once the VM is back and each step can actually be exercised.
+
+For VM testing (not run here — BUILD-ONLY MODE), `QS_DEBUG_CRASH_TEST` is an undocumented env var
+checked once at startup (`maybeTriggerDebugCrash`, after `setRelaunchInfo` so the real dump/relaunch
+path runs) that deliberately crashes the shell via the mode it names — see "VM test steps" below.
