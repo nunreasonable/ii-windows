@@ -74,3 +74,19 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 
 - **Fase 4:** blur atrás dos painéis, conferir OSD, OSK e overview com prévias, e WorkerW se o usuário quiser ícones visíveis.
 - **Fase 6:** integrar `pkg` e decidir o autostart com o usuário.
+
+## Terminal (2026-10-02): feito e testado na VM
+
+- **Cores:** `Quickshell.Windows.TerminalColors` em C++, bit a bit igual ao `generate_colors_material.py`, conferido no host (1,6M cores) e no Windows (5312 casos). `services/WindowsTerminalTheme.qml` gera:
+  - `State/user/generated/terminal/sequences.txt`, como no Linux mas sem o OSC 1, que no Windows Terminal vira título de aba;
+  - o fragmento `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\illogical-impulse\illogical-impulse.json`, com o esquema e as atualizações dos perfis Windows PowerShell, cmd e PowerShell 7 (fonte, cursor em barra, padding 22, acrílico conforme a transparência do ii);
+  - `ii.omp.json`, o tema do Oh My Posh no layout do `starship.toml` do ii.
+  Ao mudar, ele toca a data do `settings.json` para o Windows Terminal recarregar. Com `enableTerminal` desligado, apaga os três.
+- **Shell:** `defaults/windows/terminal/profile.ps1` usa o Oh My Posh com o tema do ii e, se ele não existir, o Starship com o `starship.toml` do ii. Ele também imprime o `sequences.txt` e define os aliases clear/celar/claer, `ls` → eza e `q`. O `starship.toml` agora é uma cópia byte a byte: a do agente perdia os glifos de uso privado.
+- **O que o instalador precisa fazer, tudo descrito no README:**
+  - Instalar a fonte JetBrainsMono NF por usuário: copiar os TTFs de `dist/fonts` para `%LOCALAPPDATA%\Microsoft\Windows\Fonts` e registrar em HKCU `...\Fonts`, com WM_FONTCHANGE. Sem admin.
+  - Instalar por `winget --scope user`, sem UAC: `JanDeDobbeleer.OhMyPosh`, `Starship.Starship`, `eza-community.eza`. O `Microsoft.PowerShell` (PowerShell 7) exige UAC e fica opcional.
+  - No `$PROFILE` do PowerShell 7 e no do 5.1, adicionar o bloco `# >>> illogical-impulse >>>` / `# <<< illogical-impulse <<<`, que dot-sourcea o `profile.ps1` com Test-Path.
+  - O PowerShell 5.1 só carrega o perfil com a ExecutionPolicy CurrentUser em RemoteSigned. É uma mudança de segurança: precisa de opção explícita no instalador e de menção no README.
+  - Guardar num manifesto o que foi instalado, para o desinstalar remover só o que o ii pôs.
+- **Já instalados na VM durante os testes:** a fonte por usuário, Starship, eza e Oh My Posh, todos no escopo do usuário.
