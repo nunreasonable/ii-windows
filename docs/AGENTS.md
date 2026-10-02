@@ -57,4 +57,8 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
   (src/windows/capture.*). Network (WlanAPI) and theming (matugen/wallpaper) are in progress on
   branches `net` and `theme`. ii reaches Windows-only singletons through `modules/common/WindowsNative.qml`
   (lazy, so the files still load on Linux) — follow that pattern for new ii wiring.
+- Spawning on Windows: QProcess escapes `"` inside an argument as `\"` (C runtime rules), which
+  cmd.exe does not understand. Never pass `cmd /c` an argument containing quotes: call the program
+  directly with separate arguments (curl.exe, ffmpeg...), or use `powershell -Command` (it parses
+  `\"` correctly). Paths given to cmd built-ins need backslashes (`/x` is a switch).
 - Report at the end: branch + commits, files, API mapping, what's verified on the VM, TODOs/risks.
