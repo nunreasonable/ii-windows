@@ -130,12 +130,19 @@ fn override_release() -> Option<Result<ReleaseInfo, Error>> {
 	Some(get_json(url.trim()).and_then(|j| parse_release(&j)))
 }
 
+/// The "latest" (non-draft, non-prerelease) release JSON of any repo on GitHub. Pulled out of
+/// `latest()` so other lookups (e.g. microsoft/winget-cli, in `appinstaller.rs`) can reuse the
+/// same HTTP/JSON handling.
+pub(crate) fn latest_release_json(repo: &str) -> Result<serde_json::Value, Error> {
+	get_json(&format!("https://api.github.com/repos/{repo}/releases/latest"))
+}
+
 /// The newest published (non-draft, non-prerelease) release.
 pub fn latest() -> Result<ReleaseInfo, Error> {
 	if let Some(r) = override_release() {
 		return r;
 	}
-	parse_release(&get_json(&format!("https://api.github.com/repos/{REPO}/releases/latest"))?)
+	parse_release(&latest_release_json(REPO)?)
 }
 
 /// The release of one version, tagged "v<version>" or "<version>".

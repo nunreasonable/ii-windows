@@ -58,6 +58,12 @@ pub struct ProfileEdit {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
+pub struct AppInstaller {
+	pub installed_at: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct ExecPolicyChange {
 	pub changed: bool,
 	/// The CurrentUser scope value before ("Undefined" when it had none).
@@ -75,6 +81,9 @@ pub struct Items {
 	pub profiles: Vec<ProfileEdit>,
 	pub exec_policy: Option<ExecPolicyChange>,
 	pub colors_seeded: bool,
+	/// winget (App Installer) itself, installed by this setup on Windows 10 (it isn't a winget
+	/// package, so it's not in `winget` above). `None`: this setup didn't install it.
+	pub app_installer: Option<AppInstaller>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

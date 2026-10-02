@@ -58,7 +58,8 @@
     - `Win`+`/` = keybind list
     - `Win` alone = search
     - `Win`+`Enter` = terminal
-  - Needs Windows 11 (build 22000 or newer). winget is needed for the optional terminal tools
+  - Needs Windows 10 version 2004 or newer (22H2 recommended) or Windows 11 (build 22000 or
+    newer). winget is needed for the optional terminal tools
 
 </details>
 

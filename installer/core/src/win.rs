@@ -330,6 +330,12 @@ pub fn find_on_path(exe_name: &str) -> Option<PathBuf> {
 	fresh_path_dirs().into_iter().map(|d| d.join(exe_name)).find(|p| p.is_file())
 }
 
+/// Is `wt.exe` reachable the same way launching it would find it (PATH, which includes the
+/// per-user WindowsApps alias folder)? Windows 11 normally has it; Windows 10 may not.
+pub fn windows_terminal_present() -> bool {
+	find_on_path("wt.exe").is_some()
+}
+
 /// Starts a GUI program on its own, not tied to this process.
 pub fn spawn_detached(exe: &Path, args: &[&str], cwd: &Path) -> std::io::Result<u32> {
 	let child = Command::new(exe)
@@ -948,6 +954,32 @@ pub fn winget_uninstall(exe: &Path, id: &str) -> Result<Output, Output> {
 	}
 }
 
+// ---------------------------------------------------------------------------------------------
+// App Installer itself (winget's own package), via Add-AppxPackage
+
+/// Quotes a path for a PowerShell single-quoted string literal (doubles embedded `'`, which is
+/// how a literal single quote is escaped inside one).
+fn ps_quote(s: &str) -> String {
+	format!("'{}'", s.replace('\'', "''"))
+}
+
+/// `Add-AppxPackage -Path <msixbundle> -DependencyPath <dependency_paths>`: installs App
+/// Installer (winget) for the current user. No administrator permission is needed; Windows
+/// checks the package's Microsoft signature as part of this.
+pub fn install_appx_bundle(msixbundle: &Path, dependency_paths: &[PathBuf]) -> std::io::Result<Output> {
+	let deps = dependency_paths.iter().map(|p| ps_quote(&p.display().to_string())).collect::<Vec<_>>().join(",");
+	let script =
+		format!("Add-AppxPackage -Path {} -DependencyPath @({deps})", ps_quote(&msixbundle.display().to_string()));
+	ps(&powershell_exe(), &script, Duration::from_secs(600))
+}
+
+/// `Get-AppxPackage -Name <name> | Remove-AppxPackage`: removes a per-user Appx package. No
+/// administrator permission is needed; finding nothing to remove is success.
+pub fn remove_appx_package(name: &str) -> std::io::Result<Output> {
+	let script = format!("Get-AppxPackage -Name {} | Remove-AppxPackage", ps_quote(name));
+	ps(&powershell_exe(), &script, Duration::from_secs(120))
+}
+
 #[cfg(test)]
 mod tests {
 	#[test]
@@ -956,6 +988,39 @@ mod tests {
 		assert_eq!(super::base64(b"Ma"), "TWE=");
 		assert_eq!(super::base64(b"M"), "TQ==");
 	}
+
+	#[test]
+	fn ps_quoting() {
+		assert_eq!(super::ps_quote(r"C:\Users\test\file.exe"), r"'C:\Users\test\file.exe'");
+		assert_eq!(super::ps_quote("C:\\Users\\O'Brien\\file.exe"), "'C:\\Users\\O''Brien\\file.exe'");
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// WebView2
+
+const WEBVIEW2_CLIENT_KEY: &str = r"Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
+
+/// The Evergreen WebView2 Runtime (what Tauri's window needs): the registry `pv` value under
+/// any of the three places its installer writes it, present, non-empty and not "0.0.0.0" (what
+/// the value holds for a moment while the runtime is still installing). Windows 11 always has
+/// it; Windows 10 may not.
+pub fn webview2_present() -> bool {
+	let candidates = [
+		(HKEY_LOCAL_MACHINE, format!(r"SOFTWARE\WOW6432Node\{WEBVIEW2_CLIENT_KEY}")),
+		(HKEY_LOCAL_MACHINE, format!(r"SOFTWARE\{WEBVIEW2_CLIENT_KEY}")),
+		(HKEY_CURRENT_USER, format!(r"Software\{WEBVIEW2_CLIENT_KEY}")),
+	];
+	candidates.iter().any(|(root, path)| {
+		RegKey::predef(*root)
+			.open_subkey_with_flags(path, KEY_READ)
+			.ok()
+			.and_then(|k| k.get_value::<String, _>("pv").ok())
+			.is_some_and(|v| {
+				let v = v.trim();
+				!v.is_empty() && v != "0.0.0.0"
+			})
+	})
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -976,4 +1041,10 @@ pub fn single_instance(name: &str) -> Option<windows::Win32::Foundation::HANDLE>
 pub fn message_box(title: &str, text: &str) {
 	use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
 	unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from(title), MB_OK | MB_ICONINFORMATION) };
+}
+
+/// Like `message_box`, but Yes/No; `true` is Yes.
+pub fn message_box_yes_no(title: &str, text: &str) -> bool {
+	use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, IDYES, MB_ICONQUESTION, MB_YESNO};
+	(unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from(title), MB_YESNO | MB_ICONQUESTION) }) == IDYES
 }

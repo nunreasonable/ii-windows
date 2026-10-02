@@ -1,5 +1,6 @@
 //! Everything the ii-windows installer does, minus the window: the UI (app/) only calls in here.
 
+pub mod appinstaller;
 pub mod fsops;
 pub mod log;
 pub mod manifest;
@@ -32,6 +33,19 @@ pub const DISPLAY_NAME: &str = "illogical-impulse (ii-windows)";
 pub const PUBLISHER: &str = "nunreasonable";
 
 /// Terminal tools installed per user through winget, with the command each one provides.
-pub const TERMINAL_TOOLS: [(&str, &str); 3] =
-	[("JanDeDobbeleer.OhMyPosh", "oh-my-posh"), ("Starship.Starship", "starship"), ("eza-community.eza", "eza")];
+/// Windows Terminal is last: Windows 11 normally already has it, so the generic "already
+/// installed" check in `ops::install_tools` is what skips it there; Windows 10 doesn't have it
+/// built in, so this is what installs it.
+pub const TERMINAL_TOOLS: [(&str, &str); 4] = [
+	("JanDeDobbeleer.OhMyPosh", "oh-my-posh"),
+	("Starship.Starship", "starship"),
+	("eza-community.eza", "eza"),
+	("Microsoft.WindowsTerminal", "wt"),
+];
 pub const PWSH_WINGET_ID: &str = "Microsoft.PowerShell";
+/// App Installer's Appx package name (not its package family name below) - used to remove it
+/// with `Get-AppxPackage -Name ... | Remove-AppxPackage` on uninstall.
+pub const APP_INSTALLER_NAME: &str = "Microsoft.DesktopAppInstaller";
+/// App Installer's package family name, for the install record and the README. Windows 10 may
+/// not have it; winget is part of it.
+pub const APP_INSTALLER_PACKAGE_FAMILY: &str = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe";

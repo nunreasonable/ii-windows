@@ -8,12 +8,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::fsops::{self, Swap};
 use crate::log::{self, Log};
-use crate::manifest::{ExecPolicyChange, Font, Manifest, Options, PreInstall, ProfileEdit, RunValue, WingetPackage};
+use crate::manifest::{
+	AppInstaller, ExecPolicyChange, Font, Manifest, Options, PreInstall, ProfileEdit, RunValue, WingetPackage,
+};
 use crate::package::{self, PackageInfo};
 use crate::paths::Paths;
 use crate::progress::{Event, Msg, Reporter, Status};
 use crate::release::{self, ReleaseInfo};
-use crate::{profile, ttf, version, win};
+use crate::{appinstaller, profile, ttf, version, win};
 
 type R<T> = Result<T, Msg>;
 
@@ -35,6 +37,10 @@ pub enum Action {
 pub struct RunOptions {
 	pub options: Options,
 	pub launch: bool,
+	/// Install/Repair, when the "Terminal setup" option is on: on Windows 10, if winget isn't
+	/// there yet, download and install it (App Installer) first, before the terminal tools step.
+	/// Ignored when winget is already there, or this is Windows 11.
+	pub install_winget: bool,
 	/// Uninstall: winget-uninstall the terminal tools this installer installed.
 	pub remove_tools: bool,
 	/// Uninstall: also PowerShell 7, if this installer installed it.
@@ -81,6 +87,24 @@ pub fn msg_from_release_error(e: &release::Error) -> Msg {
 		release::Error::Network(x) => Msg::new("network", e.to_string()).with("error", x.clone()),
 		release::Error::NoPackage(t) => Msg::new("no_package_asset", e.to_string()).with("tag", t.clone()),
 		release::Error::Integrity(x) => Msg::new("checksum_mismatch", x.clone()),
+		release::Error::Io(x) => Msg::new("io", x.to_string()).with("error", x.to_string()),
+		release::Error::Cancelled => Msg::new("cancelled", "cancelled"),
+	}
+}
+
+/// Like `msg_from_release_error`, worded for the winget-cli release this setup downloads App
+/// Installer from, not the ii-windows one.
+fn msg_from_winget_release_error(e: &release::Error) -> Msg {
+	match e {
+		release::Error::NotFound => Msg::new("winget_no_release", "No winget-cli release was found on GitHub"),
+		release::Error::Network(x) => {
+			Msg::new("winget_network", format!("Couldn't reach GitHub for winget: {x}")).with("error", x.clone())
+		}
+		release::Error::NoPackage(tag) => {
+			Msg::new("winget_no_asset", format!("winget-cli release {tag} doesn't have the files this setup needs"))
+				.with("tag", tag.clone())
+		}
+		release::Error::Integrity(x) => Msg::new("winget_checksum_mismatch", x.clone()),
 		release::Error::Io(x) => Msg::new("io", x.to_string()).with("error", x.to_string()),
 		release::Error::Cancelled => Msg::new("cancelled", "cancelled"),
 	}
@@ -242,6 +266,9 @@ pub struct Preflight {
 	pub checks: Vec<Check>,
 	pub windows_build: u32,
 	pub winget: bool,
+	/// `wt.exe` reachable on PATH. Windows 11 normally has it already; Windows 10 may not, in
+	/// which case the "Terminal setup" option also installs it.
+	pub windows_terminal_present: bool,
 	pub pwsh: Option<PathBuf>,
 	pub exec_policy_current_user: Option<String>,
 	pub exec_policy_effective: Option<String>,
@@ -273,13 +300,23 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> 
 				.with("build", build.to_string())
 				.with("display", display.clone()),
 		));
+	} else if build >= 19041 {
+		checks.push(check(
+			"windows",
+			"ok",
+			Msg::new("win10_ok", format!("Windows 10 {display} (build {build})"))
+				.with("build", build.to_string())
+				.with("display", display.clone()),
+		));
 	} else {
 		checks.push(check(
 			"windows",
-			"warn",
+			"error",
 			Msg::new(
-				"win_old",
-				format!("Windows build {build}: ii-windows is made for Windows 11 (build 22000 or newer)"),
+				"win_too_old",
+				format!(
+					"Windows build {build}: ii-windows needs Windows 10 version 2004 (build 19041) or newer (22H2, build 19045, recommended), or Windows 11"
+				),
 			)
 			.with("build", build.to_string()),
 		));
@@ -375,6 +412,7 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> 
 		checks,
 		windows_build: build,
 		winget,
+		windows_terminal_present: win::windows_terminal_present(),
 		pwsh,
 		exec_policy_current_user: cu,
 		exec_policy_effective: eff,
@@ -933,6 +971,136 @@ fn remove_fonts(ctx: &mut Ctx, m: &mut Manifest, step: &str) -> Vec<PathBuf> {
 	leftover
 }
 
+/// Should this run try to install winget itself first? Only on Windows 10 (winget isn't built
+/// into it) when it isn't there yet, the "Terminal setup" option is on, and the user didn't turn
+/// the "Install winget" toggle off.
+fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
+	opts.terminal
+		&& run.install_winget
+		&& win::winget_exe().is_none()
+		&& (19041..22000).contains(&win::windows_build().0)
+}
+
+/// Downloads the latest microsoft/winget-cli release and installs it (App Installer) for the
+/// current user, before the terminal tools step that needs winget. Any failure here (network, a
+/// missing asset, a bad checksum, Add-AppxPackage) is only a warning: `install_tools` runs right
+/// after this regardless, finds winget still missing, warns again and skips the terminal tools
+/// exactly as it does today without this step. Nothing here fails the whole install.
+fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
+	ctx.begin("winget");
+	let dir = ctx.scratch.join("winget");
+	let result = (|| -> R<()> {
+		let rel = appinstaller::latest().map_err(|e| msg_from_winget_release_error(&e))?;
+		let total = rel.msixbundle.size + rel.dependencies_zip.size;
+		let free = win::free_space(&ctx.scratch).unwrap_or(u64::MAX);
+		if free < total + (64 << 20) {
+			let m = Msg::new("disk_low", format!("Not enough space in {} for the winget download", ctx.scratch.display()))
+				.with("need", mb(total))
+				.with("free", mb(free));
+			return Err(m);
+		}
+		let _ = fsops::remove_any(&dir);
+		std::fs::create_dir_all(&dir).map_err(|e| io_msg("io", dir.display(), e))?;
+
+		let reporter = ctx.reporter;
+		let mut last = 0.0;
+		let msixbundle_path = dir.join(&rel.msixbundle.name);
+		ctx.info(format!("   {} -> {}", rel.msixbundle.url, msixbundle_path.display()));
+		let msixbundle_hash = release::download(
+			&rel.msixbundle.url,
+			&msixbundle_path,
+			rel.msixbundle.size,
+			&mut |done, _| {
+				let f = if total > 0 { done as f64 / total as f64 } else { 0.0 };
+				if f - last >= 0.005 || done >= rel.msixbundle.size {
+					last = f;
+					reporter.emit(Event::Progress {
+						id: "winget".into(),
+						fraction: f,
+						text: Some(format!("{} / {}", mb(done), mb(total))),
+					});
+				}
+			},
+			&|| reporter.cancelled(),
+		)
+		.map_err(|e| msg_from_winget_release_error(&e))?;
+
+		let deps_zip_path = dir.join(&rel.dependencies_zip.name);
+		ctx.info(format!("   {} -> {}", rel.dependencies_zip.url, deps_zip_path.display()));
+		let base = rel.msixbundle.size;
+		release::download(
+			&rel.dependencies_zip.url,
+			&deps_zip_path,
+			rel.dependencies_zip.size,
+			&mut |done, _| {
+				let total_done = base + done;
+				let f = if total > 0 { total_done as f64 / total as f64 } else { 0.0 };
+				if f - last >= 0.005 || total_done >= total {
+					last = f;
+					reporter.emit(Event::Progress {
+						id: "winget".into(),
+						fraction: f,
+						text: Some(format!("{} / {}", mb(total_done), mb(total))),
+					});
+				}
+			},
+			&|| reporter.cancelled(),
+		)
+		.map_err(|e| msg_from_winget_release_error(&e))?;
+
+		if let Some(sha_txt) = &rel.sha_txt {
+			let text = release::fetch_text(&sha_txt.url).map_err(|e| msg_from_winget_release_error(&e))?;
+			match release::parse_sha256_file(&text, &rel.msixbundle.name) {
+				Ok(want) if msixbundle_hash.eq_ignore_ascii_case(&want) => {
+					ctx.info(format!("   {}: SHA-256 matches ({msixbundle_hash})", sha_txt.name));
+				}
+				Ok(want) => {
+					return Err(Msg::new(
+						"winget_checksum_mismatch",
+						format!("SHA-256 of the winget download is {msixbundle_hash}, {} says {want}", sha_txt.name),
+					));
+				}
+				Err(_) => {
+					ctx.info(format!(
+						"   {} doesn't hold a SHA-256 for {}; not checked (Windows verifies the package's signature on install)",
+						sha_txt.name, rel.msixbundle.name
+					));
+				}
+			}
+		} else {
+			ctx.info("   no checksum file on this release; Windows verifies the package's signature on install");
+		}
+
+		let dep_paths = appinstaller::extract_x64_dependencies(&deps_zip_path, &dir.join("x64"))
+			.map_err(|e| msg_from_winget_release_error(&e))?;
+		ctx.info(format!("   {} dependency package(s) (x64)", dep_paths.len()));
+
+		if reporter.cancelled() {
+			return Err(Msg::new("cancelled", "cancelled"));
+		}
+		ctx.info("   Add-AppxPackage (per user)");
+		let out = win::install_appx_bundle(&msixbundle_path, &dep_paths).map_err(|e| io_msg("io", "Add-AppxPackage", e))?;
+		ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+		if !out.success() {
+			return Err(Msg::new(
+				"winget_install_failed",
+				format!("Add-AppxPackage couldn't install winget (exit {:?})", out.code),
+			)
+			.with("code", format!("{:?}", out.code.map(|c| c as u32))));
+		}
+		Ok(())
+	})();
+	let _ = fsops::remove_any(&dir);
+	match result {
+		Ok(()) => {
+			m.items.app_installer = Some(AppInstaller { installed_at: log::timestamp() });
+			save(ctx, m);
+			ctx.done_with("winget", Msg::new("winget_installed", "winget (App Installer) was installed"));
+		}
+		Err(e) => ctx.warn("winget", e),
+	}
+}
+
 fn install_tools(ctx: &mut Ctx, m: &mut Manifest) {
 	ctx.begin("tools");
 	let Some(winget) = win::winget_exe() else {
@@ -1315,13 +1483,16 @@ fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
 	}
 }
 
-fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous: &Options) {
+fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous: &Options, run: &RunOptions) {
 	shortcuts_and_entry(ctx, m);
 	save(ctx, m);
 	set_autostart(ctx, m, opts.autostart);
 	save(ctx, m);
 	if opts.terminal {
 		install_fonts(ctx, m);
+		if needs_app_installer(opts, run) {
+			install_app_installer(ctx, m);
+		}
 		install_tools(ctx, m);
 	} else if previous.terminal {
 		ctx.begin("fonts");
@@ -1354,12 +1525,15 @@ fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous:
 	save(ctx, m);
 }
 
-fn integration_steps(opts: &Options, previous: &Options, had_policy: bool) -> Vec<&'static str> {
+fn integration_steps(opts: &Options, previous: &Options, had_policy: bool, run: &RunOptions) -> Vec<&'static str> {
 	let mut s = vec!["shortcuts", "autostart"];
 	if opts.terminal || previous.terminal {
 		s.push("fonts");
 	}
 	if opts.terminal {
+		if needs_app_installer(opts, run) {
+			s.push("winget");
+		}
 		s.push("tools");
 	}
 	if opts.pwsh7 {
@@ -1397,7 +1571,7 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		plan.push("record");
 	}
 	plan.extend(["files", "config"]);
-	plan.extend(integration_steps(&opts, &previous_opts, had_policy));
+	plan.extend(integration_steps(&opts, &previous_opts, had_policy, run));
 	plan.push("finish");
 	if run.launch {
 		plan.push("launch");
@@ -1428,7 +1602,7 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		seed_colors(ctx, &mut m, false);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
-		apply_integrations(ctx, &mut m, &opts, &previous_opts);
+		apply_integrations(ctx, &mut m, &opts, &previous_opts, run);
 		ctx.begin("finish");
 		m.state = "installed".into();
 		save(ctx, &m);
@@ -1507,7 +1681,7 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 	let had_policy = m.items.exec_policy.as_ref().is_some_and(|c| c.changed);
 	let mut plan = source_steps(source);
 	plan.extend(["stop", "settings", "files", "config"]);
-	plan.extend(integration_steps(&opts, &opts, had_policy));
+	plan.extend(integration_steps(&opts, &opts, had_policy, run));
 	plan.extend(["finish", "launch"]);
 	ctx.plan(&plan);
 	ctx.log.open(&ctx.paths.log());
@@ -1566,7 +1740,7 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		seed_colors(ctx, &mut m, true);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
-		apply_integrations(ctx, &mut m, &opts, &opts);
+		apply_integrations(ctx, &mut m, &opts, &opts, run);
 		ctx.begin("finish");
 		m.state = "installed".into();
 		save(ctx, &m);
@@ -1603,11 +1777,13 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 	let tools: Vec<String> =
 		m.items.winget.iter().map(|p| p.id.clone()).filter(|id| id != crate::PWSH_WINGET_ID).collect();
 	let pwsh_ours = m.has_winget(crate::PWSH_WINGET_ID);
+	let app_installer_ours = m.items.app_installer.is_some();
 	let mut plan = vec!["stop", "autostart", "shortcuts", "profiles"];
 	if m.items.exec_policy.as_ref().is_some_and(|c| c.changed) {
 		plan.push("exec_policy");
 	}
-	if (run.remove_tools && !tools.is_empty()) || (run.remove_pwsh7 && pwsh_ours) {
+	let had_winget_items = (run.remove_tools && !tools.is_empty()) || (run.remove_pwsh7 && pwsh_ours);
+	if had_winget_items || (run.remove_tools && app_installer_ours) {
 		plan.push("tools");
 	}
 	plan.extend(["fonts", "terminal_theme"]);
@@ -1671,20 +1847,25 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 
 		if plan.contains(&"tools") {
 			ctx.begin("tools");
+			let mut failed = false;
 			match win::winget_exe() {
-				None => ctx.warn(
-					"tools",
-					Msg::new(
-						"winget_missing_uninstall",
-						"winget was not found: the terminal tools were left installed",
-					),
-				),
+				None => {
+					if had_winget_items {
+						failed = true;
+						ctx.warn(
+							"tools",
+							Msg::new(
+								"winget_missing_uninstall",
+								"winget was not found: the terminal tools were left installed",
+							),
+						);
+					}
+				}
 				Some(winget) => {
 					let mut ids: Vec<String> = if run.remove_tools { tools.clone() } else { Vec::new() };
 					if run.remove_pwsh7 && pwsh_ours {
 						ids.push(crate::PWSH_WINGET_ID.into());
 					}
-					let mut failed = false;
 					for (i, id) in ids.iter().enumerate() {
 						ctx.progress("tools", i as f64 / ids.len() as f64, Some(id.clone()));
 						ctx.info(format!("   winget uninstall {id}"));
@@ -1709,10 +1890,38 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 						}
 					}
 					ctx.progress("tools", 1.0, None);
-					if !failed {
-						ctx.done("tools");
+				}
+			}
+			// After the winget tools (winget itself still needs to be there for those): remove
+			// App Installer last, only if this setup installed it.
+			if run.remove_tools && app_installer_ours {
+				ctx.info(format!("   Get-AppxPackage -Name {} | Remove-AppxPackage", crate::APP_INSTALLER_NAME));
+				match win::remove_appx_package(crate::APP_INSTALLER_NAME) {
+					Ok(out) if out.success() => {
+						ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+						m.items.app_installer = None;
+						save(ctx, &m);
+					}
+					Ok(out) => {
+						failed = true;
+						ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+						ctx.warn(
+							"tools",
+							Msg::new(
+								"winget_uninstall_failed",
+								format!("Couldn't remove App Installer (exit {:?})", out.code),
+							)
+							.with("code", format!("{:?}", out.code.map(|c| c as u32))),
+						);
+					}
+					Err(e) => {
+						failed = true;
+						ctx.warn("tools", io_msg("winget_uninstall_failed", "Remove-AppxPackage", e));
 					}
 				}
+			}
+			if !failed {
+				ctx.done("tools");
 			}
 		}
 

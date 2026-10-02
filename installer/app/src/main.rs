@@ -336,6 +336,23 @@ fn ready(window: tauri::WebviewWindow) {
 }
 
 fn main() {
+	// Tauri's window needs the WebView2 Runtime; without it `.build()` below fails and
+	// `.expect(...)` would just make this exe vanish with no message. Windows 11 always has the
+	// runtime; Windows 10 may not, so check first and point the user at Microsoft's installer.
+	if !win::webview2_present() {
+		let pt = win::ui_language_is_portuguese();
+		let title = "illogical-impulse Setup";
+		let text = if pt {
+			"Este instalador precisa do Microsoft Edge WebView2 Runtime, que esta versão do Windows pode não ter instalado. Abrir a página de download da Microsoft agora?"
+		} else {
+			"This setup needs the Microsoft Edge WebView2 Runtime, which this version of Windows may not have installed. Open Microsoft's download page now?"
+		};
+		if win::message_box_yes_no(title, text) {
+			win::shell_open("https://developer.microsoft.com/microsoft-edge/webview2/");
+		}
+		return;
+	}
+
 	let mut args = parse_args();
 	let paths = win::detect_paths();
 	let self_exe = std::env::current_exe().unwrap_or_default();
