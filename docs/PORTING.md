@@ -59,7 +59,7 @@ Windows, so they show the real RTX output.
   Quickshell.Hyprland/ToplevelManager, hotkeys (RegisterHotKey + LL hook, lone Super), focus grabs,
   Core Audio, GSMTC, UPower/power modes, Start-menu apps + shell icons, system helpers
   (Quickshell.Windows: session, stats, brightness, keyboard, clipboard, credentials, input, night
-  light). Still shims: Notifications, SystemTray, Polkit, Pam, Bluetooth.
+  light). Still shims: SystemTray, Polkit, Pam.
 - On Windows ii doesn't talk DDC/CI at startup: a boot-time query plus the monitor's OSD froze the
   ASUS VG259Q5A firmware. Brightness DDC only runs when the user changes it.
 - Fixed upstream bugs that only show on named pipes: chunked IPC commands left a QDataStream
@@ -76,15 +76,15 @@ Windows, so they show the real RTX output.
 | Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor) | todo |
 | HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done   |
 | ToplevelManager                         | same window tracker                                                  | done   |
-| ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | todo   |
+| ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | built, needs GUI test |
 | IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done   |
 | Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done   |
 | Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done   |
 | Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | done   |
-| Services.Notifications                  | native server: `notifySend` (notify-send args) + UserNotificationListener mirror of Windows toasts (branch `notif`) | todo   |
+| Services.Notifications                  | native server: `notifySend` (notify-send args) + UserNotificationListener mirror of Windows toasts | built, needs GUI test |
 | Services.SystemTray                     | empty stub (tray stays on the native taskbar)                        | todo   |
 | Services.Polkit / Pam / WlSessionLock   | inert stubs; lock = LockWorkStation                                  | todo   |
-| Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | todo   |
+| Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | built, needs adapter test |
 | DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | done   |
 | org.kde.kirigami (Icon only)            | QML shim                                                             | done   |
 | org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | done   |
@@ -131,3 +131,8 @@ Windows, so they show the real RTX output.
 - `services/Battery.qml` — route notify-send calls through `Notifications.sendDesktop()`, use `Session.suspend()` instead of a raw systemctl/loginctl call
 - `services/TimerService.qml`, `services/LauncherSearch.qml`, `welcome.qml`, `modules/ii/bar/weather/WeatherBar.qml`, `modules/ii/sidebarLeft/aiChat/MessageCodeBlock.qml`, `modules/common/models/quickToggles/CloudflareWarpToggle.qml`, `modules/ii/sidebarRight/quickToggles/classicStyle/CloudflareWarp.qml` — route notify-send calls through `Notifications.sendDesktop()`
 - `defaults/windows/colors.json` — new file: seed Material palette (copied from a live Linux colors.json; contains no personal data) so MaterialThemeLoader has something to load before matugen exists on Windows
+
+### ii files changed for Bluetooth / capture (2026-10-02)
+- Null-guarded writes to `Bluetooth.defaultAdapter` (Windows PCs often have no adapter): `modules/common/models/quickToggles/BluetoothToggle.qml`, `modules/ii/sidebarRight/quickToggles/classicStyle/BluetoothToggle.qml`, `modules/ii/sidebarRight/SidebarRightContent.qml`, `modules/waffle/actionCenter/bluetooth/BluetoothControl.qml`.
+- `modules/waffle/actionCenter/nightLight/NightLightControl.qml`: dropped the Bluetooth discovery start/stop copied from the Bluetooth panel (upstream bug; it scanned while the night light panel was open).
+- To do when wiring the region selector: `RegionSelection.qml` names temp files `image-${screen.name}`, and Windows screen names are `\\.\DISPLAY1`; sanitize before using them in paths.
