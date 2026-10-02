@@ -88,7 +88,7 @@ Windows, so they show the real RTX output.
 | DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | done   |
 | org.kde.kirigami (Icon only)            | QML shim                                                             | done   |
 | org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | done   |
-| nmcli (Network.qml)                     | WlanAPI + INetworkListManager                                        | todo   |
+| nmcli (Network.qml)                     | WlanAPI + INetworkListManager                                        | built, needs VM test (worktree `net`) |
 | ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2)                                                 | done   |
 | cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | done   |
 | ydotool                                 | SendInput                                                            | done   |
@@ -121,7 +121,12 @@ Windows, so they show the real RTX output.
 - `services/HyprlandKeybinds.qml` — skip hyprctl binds polling on Windows
 - `services/ResourceUsage.qml` — disable the /proc polling Timer/Process on Windows (stays at zeroed defaults)
 - `services/SystemInfo.qml` — set distro/username/desktop info directly from Windows env vars instead of /etc/os-release + whoami
-- `services/Network.qml` — disable all nmcli Processes on Windows (neutral/disconnected defaults), `openPublicWifiPortal()` uses `Qt.openUrlExternally` on Windows
+- `services/Network.qml` — Windows branch binds to `WindowsNative.network` (native `Network`
+  singleton: INetworkListManager + GetAdaptersAddresses/NotifyIpInterfaceChange +
+  WlanAPI, worktree `net`) instead of spawning nmcli; same public API (properties/functions)
+  on both platforms. `openPublicWifiPortal()` uses `Qt.openUrlExternally` on Windows. New
+  `setWifiListVisible()`/`wifiNeedsLocationPermission`/`openWifiLocationSettings()` are
+  Windows-only additions, wired into `WifiDialog.qml`/`WifiControl.qml`.
 - `services/Brightness.qml` — skip the ddcutil detect pass on Windows
 - `services/SessionWarnings.qml` — `refresh()` no-ops on Windows (no pidof)
 - `services/Weather.qml` — `getData()` no-ops on Windows (curl|jq pipeline needs bash+jq)

@@ -8,8 +8,8 @@ Tudo está commitado localmente. Nenhum agente está rodando. Para retomar, leia
 |---|---|---|
 | `quickshell/` | `windows` | Integrado e testado na VM, incluindo a varredura de janelas mortas e os workspaces "ocupados" ao estilo Hyprland (último commit). |
 | `ii/` | `windows` | Integrado e testado na VM. |
-| `quickshell` worktree `wt-net` | `net` | Backend WlanAPI/NLM commitado pelo agente. Falta revisar e integrar. |
-| `ii` worktree `wt-ii-net` | `net` | WIP: `Network.qml`, WifiDialog, WifiControl. O agente parou no meio do WifiControl (waffle). |
+| `quickshell` worktree `wt-net` | `net` | Pronto: singleton nativo `Network` (`src/windows/system/network*`), WlanAPI + INetworkListManager + GetAdaptersAddresses/NotifyIpInterfaceChange. `qs.exe`/`qsw.exe` buildam e linkam limpo (cross-build clang-cl-xwin). Falta testar na VM (ver `docs/PORTING.md` e o relatório do agente). |
+| `ii` worktree `wt-ii-net` | `net` | Pronto: `Network.qml` (branch Windows liga em `WindowsNative.network`, API pública igual à do Linux), `WifiDialog.qml`/`WifiControl.qml` com aviso de permissão de localização e `setWifiListVisible`. `qmllint --bare` sem erro de sintaxe. Falta testar na VM. |
 | `quickshell` `wt-bt` | `bt` | Núcleo WinRT commitado. Faltam as classes QML (adapter, device, singleton). |
 | `ii` `wt-ii-bt` | `bt` | Nenhuma mudança ainda. |
 | `quickshell` `wt-theme` | `theme` | WIP: `image/image_tools` (least_busy_region, text_color, scheme_for_image), thumbnailer, `system/wallpaper`. O agente estava redeployando para testar. |
