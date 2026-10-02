@@ -92,8 +92,8 @@ Windows, so they show the real RTX output.
 | ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2)                                                 | done   |
 | cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | done   |
 | ydotool                                 | SendInput                                                            | done   |
-| grim/slurp/magick/tesseract             | WGC capture, C++ crop, Windows.Media.Ocr                             | todo   |
-| wf-recorder                             | ffmpeg ddagrab                                                       | todo   |
+| grim/slurp/magick/tesseract             | `Screenshot.captureScreen`/`.cropToFile` (C++), `Ocr` singleton on Windows.Media.Ocr (MTA worker thread) | built, needs GUI test (worktree `region`) |
+| wf-recorder                             | `scripts/videos/record.ps1` (ffmpeg gdigrab + PID file); content-region detection (find-regions-venv.sh, OpenCV) stays off on Windows | built, needs GUI test (worktree `region`) |
 | matugen + switchwall.sh                 | matugen.exe + IDesktopWallpaper + system dark mode                   | todo   |
 | systemctl/loginctl (Session.qml)        | LockWorkStation, ExitWindowsEx, InitiateShutdownW, SetSuspendState   | done   |
 | secret-tool                             | CredRead/CredWrite                                                   | done   |
@@ -140,4 +140,13 @@ Windows, so they show the real RTX output.
 ### ii files changed for Bluetooth / capture (2026-10-02)
 - Null-guarded writes to `Bluetooth.defaultAdapter` (Windows PCs often have no adapter): `modules/common/models/quickToggles/BluetoothToggle.qml`, `modules/ii/sidebarRight/quickToggles/classicStyle/BluetoothToggle.qml`, `modules/ii/sidebarRight/SidebarRightContent.qml`, `modules/waffle/actionCenter/bluetooth/BluetoothControl.qml`.
 - `modules/waffle/actionCenter/nightLight/NightLightControl.qml`: dropped the Bluetooth discovery start/stop copied from the Bluetooth panel (upstream bug; it scanned while the night light panel was open).
-- To do when wiring the region selector: `RegionSelection.qml` names temp files `image-${screen.name}`, and Windows screen names are `\\.\DISPLAY1`; sanitize before using them in paths.
+
+### ii files changed for the region selector (2026-10-02, worktree `region`)
+- `modules/common/WindowsNative.qml`/`WindowsNativeImpl.qml` — expose the new `Quickshell.Windows` `Screenshot` and `Ocr` singletons (screenshot was already native; Ocr is new, see quickshell changes below).
+- `modules/common/functions/FileUtils.qml` — new `sanitizeFilename()`, a no-op on the Linux-style names already in use (`DP-1`, `eDP-1`) but needed for Windows screen names (`\\.\DISPLAY1`), which aren't safe to drop straight into a path segment.
+- `modules/common/Directories.qml` — new `recordingPidFile` path (Windows only; the ffmpeg recorder's PID, written by `scripts/videos/record.ps1` and read back by `ScreenshotAction.qml`'s recording helpers to stop the right process).
+- `modules/common/utils/TempScreenshotProcess.qml` — restructured from a bare `Process` into a small wrapper: Linux keeps the same grim `Process` unchanged; Windows calls `WindowsNative.screenshot.captureScreen()` directly (no process to spawn) and defers the same `exited(exitCode, exitStatus)` signal with `Qt.callLater`. Both branches also run screen names through `FileUtils.sanitizeFilename()` now.
+- `modules/common/utils/ScreenshotAction.qml` — `getCommand()` (Linux, bash/magick/wl-copy/tesseract/satty-swappy pipeline) is untouched; added `runWindows()` as its Windows counterpart, built on the native crop/clipboard/OCR calls instead of a shell pipeline, plus `startWindowsRecording()`/`stopWindowsRecording()`/`windowsRecordingStatusCommand()` for the ffmpeg-based recorder and a `Connections` block that routes `Ocr.recognized` results to the clipboard + a notification.
+- `modules/ii/regionSelector/RegionSelection.qml` — screenshotPath now sanitizes `screen.name`; `enableContentRegions` forced off on Windows (no OpenCV port yet); `checkRecordingProc`'s command and `snip()`'s action dispatch branch on `Platform.isWindows` (calling the new `ScreenshotAction.runWindows()`/recording helpers instead of `getCommand()` + `execDetached`); a new `ffmpegMissing` state shows a notification and bails instead of opening the region UI when ffmpeg isn't installed.
+- `scripts/videos/record.ps1` — new file: Windows counterpart to `record.sh`'s region recording (ffmpeg `gdigrab` for the region, optional WASAPI loopback audio, PID file instead of `pgrep`/`pkill`).
+- Noticed but out of scope here: `modules/ii/screenTranslator/ScreenTranslatorPanel.qml` and `modules/waffle/screenSnip/WRegionSelectionPanel.qml` build the same unsanitized `image-${screen.name}` temp path as the region selector did; worth the same `FileUtils.sanitizeFilename()` fix when those are ported.
