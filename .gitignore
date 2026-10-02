@@ -4,6 +4,7 @@
 /build/
 /dist/
 *.png
+!/assets/*.png
 *.ppm
 /quickshell-shims/
 /wt-*/
