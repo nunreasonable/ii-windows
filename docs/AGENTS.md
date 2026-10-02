@@ -32,8 +32,10 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
 - **C++/WinRT must run on its own MTA thread** (`winrt::init_apartment(multi_threaded)` on a worker
   thread; post results back to the Qt thread). Qt's GUI thread is STA; init_apartment there fails and
   blocking `.get()` is forbidden on STA. Verified on the target.
-- **VM ON (since 2026-10-02 ~10h):** win11-gpu runs with the RTX; the user isn't using it
-  continuously, so GUI tests with input injection are allowed (keep them short). Use `SendInput`
+- **Test VMs:** `win11-gpu` (RTX passthrough, only when the user says so), `win11` (same disk, no
+  GPU) and `win10` (Windows 10 22H2, own disk, created by `tools/vm-win10.sh`). They all poll the
+  same job queue, so only one runs at a time; ask the integrator which one is up. GUI tests with
+  input injection are allowed when the user isn't using the VM (keep them short). Use `SendInput`
   for mouse moves (SetCursorPos doesn't reach low-level hooks). Never change Windows' wallpaper,
   theme or security settings yourself (ExecutionPolicy etc.) outside what a task explicitly tests,
   and restore anything you change.

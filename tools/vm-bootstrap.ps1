@@ -18,8 +18,18 @@ if (-not (Test-Path "$d\key")) {
 	ssh-keygen -q -t ed25519 -N '""' -C iiw-agent -f "$d\key"
 }
 
-Write-Host 'Authorizing the agent key on the host (Linux password again):'
-Get-Content "$d\key.pub" | ssh @IIW_GW_HOST@ iiw-vm authorize
+# A key the host already accepts (tools/vm-win10.sh pins it before the VM exists) needs no
+# password.
+# Windows PowerShell turns a native program's stderr into a terminating error under 'Stop', and
+# ssh warns there when it first meets the host key.
+$ErrorActionPreference = 'Continue'
+ssh -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 @IIW_GW_HOST@ agent 2>&1 | Out-Null
+$keyWorks = $LASTEXITCODE -eq 0
+$ErrorActionPreference = 'Stop'
+if (-not $keyWorks) {
+	Write-Host 'Authorizing the agent key on the host (Linux password again):'
+	Get-Content "$d\key.pub" | ssh @IIW_GW_HOST@ iiw-vm authorize
+}
 
 # boot.ps1 never changes: it fetches the real agent from the host on every start, so the agent
 # can be updated from Linux without touching the VM again.

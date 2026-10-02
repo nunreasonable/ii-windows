@@ -11,7 +11,8 @@
 #
 #   setup commands (the user, logged in with their own password from inside the VM):
 #     bootstrap        print the PowerShell installer (vm-bootstrap.ps1)
-#     authorize        read the VM's public key on stdin and pin it to this script
+#     authorize [name] read the VM's public key on stdin and pin it to this script (one key per
+#                      name; the default name is the one the win11 VMs use)
 #
 # Installed as ~/.local/bin/iiw-vm, so the user only has to type a short line in the VM.
 set -euo pipefail
@@ -67,15 +68,17 @@ fi
 case "${1:-}" in
 bootstrap) serve "$IIW/tools/vm-bootstrap.ps1" ;;
 authorize)
+	name="iiw-agent${2:+-$2}"
+	[[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "bad name" >&2; exit 2; }
 	key=$(head -c 1024 | tr -d '\r' | head -1)
 	[[ "$key" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+(\ .*)?$ ]] || { echo "not an ed25519 public key" >&2; exit 2; }
 	mkdir -p ~/.ssh && chmod 700 ~/.ssh
 	touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
 	blob=$(awk '{print $2}' <<<"$key")
 	# Replace an older key of the agent instead of piling them up.
-	sed -i '/ iiw-agent$/d' ~/.ssh/authorized_keys
-	printf 'restrict,from="192.168.122.0/24",command="%s" ssh-ed25519 %s iiw-agent\n' \
-		"$self" "$blob" >> ~/.ssh/authorized_keys
+	sed -i "/ $name\$/d" ~/.ssh/authorized_keys
+	printf 'restrict,from="192.168.122.0/24",command="%s" ssh-ed25519 %s %s\n' \
+		"$self" "$blob" "$name" >> ~/.ssh/authorized_keys
 	echo "authorized" ;;
-*) echo "usage: iiw-vm bootstrap|authorize" >&2; exit 2 ;;
+*) echo "usage: iiw-vm bootstrap|authorize [name]" >&2; exit 2 ;;
 esac
