@@ -197,6 +197,40 @@ checked with a manual read-through plus a bracket/quote-balance script since `pw
 installed on this host and isn't in the Fedora 44 repos. See the end of this file for VM test
 steps.
 
+## GUI installer (`installer/`)
+
+`ii-windows-setup.exe` is what users get: a Tauri v2 app (Rust + static HTML/CSS/JS in
+`installer/ui`, no node/bundler/CDN) that installs, updates, repairs and uninstalls ii per user.
+It supersedes `install.ps1`/`uninstall.ps1` (which stay for the old zip flow).
+
+- `installer/core` (`iiw-setup-core`): all the work. Portable parts are unit-tested on Linux
+  (`cargo test -p iiw-setup-core`: profile-block edits, versions, release JSON, SHA-256, zip,
+  swap/rollback, TTF names, manifest); `win.rs`/`ops.rs` are Windows-only.
+- `installer/app`: the window, Tauri commands and the relaunch-from-%TEMP% trick (the copy in
+  the install dir can't replace its own folder).
+- `installer/README.en.md` / `README.pt-BR.md`: shown before anything runs (scroll to the end +
+  checkbox). They must stay true to what `ops.rs` does: change both when behavior changes.
+
+Build and release:
+```
+cd installer && cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup
+tools/deploy-ii.sh && tools/release.sh   # -> dist/release/ii-windows-<VERSION>.zip, .sha256, ii-windows-setup.exe
+```
+`VERSION` (repo root) is the release version; `installer/Cargo.toml` must say the same
+(`release.sh` checks). The zip is `dist/ii-windows` minus `testconfigs`, plus `VERSION` and the
+setup exe itself (an update installs the matching setup into the install dir).
+
+At run time the package comes from the latest release of `nunreasonable/ii-windows` (assets
+`ii-windows-<version>.zip` + `.zip.sha256`), or offline: `--package <zip>` or an
+`ii-windows-<version>.zip` next to the exe (with its `.sha256` next to it, it's verified too).
+`IIW_SETUP_RELEASE_JSON=<url>` replaces the GitHub API with a release JSON of the same shape
+(testing hook; used on the VM with a loopback server to test download + checksum rejection).
+
+What it records and undoes is in `%LOCALAPPDATA%\ii-windows\install-manifest.json`; the log is
+`setup.log` next to it (uninstall logs to `%TEMP%`). Stopping ii: `qs kill --pid`, then
+TerminateProcess after 10 s, then the taskbar is shown again and auto-hide put back (see the
+quit hang in HANDOFF).
+
 ## Crash handling (Windows)
 
 `src/windows/crash/handler.cpp` (built only for `WINDOWS_BACKEND`, gated by the same
