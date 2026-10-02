@@ -6,10 +6,10 @@ Modo atual: **só build**. O usuário precisa da RTX no Linux, então as duas VM
 
 | Repo | Branch | Estado |
 |---|---|---|
-| `quickshell/` | `windows` | Integrado: bt, capture, notif, net, theme. Também a varredura de janelas mortas, os workspaces "ocupados", os binds só no `shell.qml`, a camada Bottom abaixo das janelas, o servidor de notificação único por sessão e `ImageTools.imageSize`. |
-| `ii/` | `windows` | Integrado: bt, notif, net, theme. Também first-run/hyprlock sem bash, `/proc` desligado, a seção de lock escondida, o config do matugen gerado em tempo de execução (o do agente gravava fora do `State`) e o tamanho do wallpaper sem magick. |
+| `quickshell/` | `windows` | Integrado: bt, capture, notif, net, theme, region. Também a varredura de janelas mortas, os workspaces "ocupados", os binds só no `shell.qml`, a camada Bottom abaixo das janelas, o servidor de notificação único por sessão e `ImageTools.imageSize`. |
+| `ii/` | `windows` | Integrado: bt, notif, net, theme, region. Também first-run/hyprlock sem bash, `/proc` desligado, a seção de lock escondida, o config do matugen gerado em tempo de execução (o do agente gravava fora do `State`) e o tamanho do wallpaper sem magick. |
 | (integrado) | `theme` | matugen.exe 4.1.0 (cargo-xwin, em `toolchain/`), Wallpaper/ImageTools/Thumbnailer/FsUtils nativos e todos os chamadores de `switchwall.sh` redirecionados. Isso resolve o bug "configurações não mudam"; falta testar na VM (item 8). |
-| `quickshell/wt-region` / `ii/wt-ii-region` (dentro dos repos, excluídas via `.git/info/exclude`) | `region` | Agente trabalhando: seletor de região, OCR (Windows.Media.Ocr), recorte/cópia, busca de imagem, gravação com ffmpeg. |
+| (integrado) | `region` | Seletor de região no Windows: captura nativa, recorte (`Screenshot.cropToFile`), imagem no clipboard, OCR (`Ocr`, Windows.Media.Ocr num MTA), busca por `curl.exe`, edição no mspaint, gravação com `record.ps1` (ffmpeg gdigrab → mkv → mp4; som via loopback DirectShow). As regiões de conteúdo (OpenCV) ficam desligadas no Windows. Falta testar na VM. |
 | `wt-blur` | `blur` | Agente (Opus) trabalhando: blur atrás dos painéis por namespace (`layerrules.json`). |
 | `wt-ii-cmds` (+ `wt-cmds`) | `cmds` | Agente trabalhando: auditoria dos comandos Linux que o ii ainda chama no Windows. |
 | `wt-pkg` | `pkg` | Agente trabalhando: `tools/package.sh`, `install.ps1`/`uninstall.ps1` (autostart só com `-Autostart`), crash handler com minidump. |
