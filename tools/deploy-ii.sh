@@ -58,6 +58,11 @@ fi
 if [ -f "$IIW/toolchain/VirtualDesktopAccessor.dll" ]; then
 	cp -f "$IIW/toolchain/VirtualDesktopAccessor.dll" "$D/"
 fi
+# Windows 10 needs Ciantic's 2019-windows10 release instead; qs loads it from win10\ there.
+if [ -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" ]; then
+	mkdir -p "$D/win10"
+	cp -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" "$D/win10/"
+fi
 
 # matugen.exe (GPL-2.0-or-later, InioX/matugen, cross-built for x86_64-pc-windows-msvc with
 # `cargo xwin`) generates the Material You palette from the wallpaper/color, same as `matugen`
