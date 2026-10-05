@@ -98,7 +98,7 @@ $qsw = Join-Path $InstallDir 'qsw.exe'
 
 $mainShortcut = $shell.CreateShortcut((Join-Path $StartMenuDir 'illogical-impulse.lnk'))
 $mainShortcut.TargetPath = $qsw
-$mainShortcut.Arguments = '-c ii'
+$mainShortcut.Arguments = '-n -c ii'
 $mainShortcut.WorkingDirectory = $InstallDir
 $mainShortcut.IconLocation = $qsw
 $mainShortcut.Description = 'illogical-impulse shell'
@@ -115,7 +115,7 @@ $settingsShortcut.Save()
 # Autostart is opt-in only: re-running install.ps1 without -Autostart turns it back off, so
 # there's one obvious way to toggle it rather than a separate switch to remove it.
 if ($Autostart) {
-	$runCommand = '"' + $qsw + '" -c ii'
+	$runCommand = '"' + $qsw + '" -n -c ii'
 	New-ItemProperty -Path $RunKey -Name 'illogical-impulse' -Value $runCommand -PropertyType String -Force | Out-Null
 	Write-Host "Autostart enabled (HKCU Run: illogical-impulse)."
 } else {

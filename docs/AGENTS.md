@@ -25,8 +25,9 @@ Port of end-4's illogical-impulse (ii) Quickshell shell to Windows 11. Two local
   Toolchain: clang-cl + lld-link + xwin (MSVC CRT/SDK incl. C++/WinRT headers) + Qt 6.11.2 msvc2022_64.
 - Commit often (every compiling milestone), short plain messages, NEVER a Co-Authored-By trailer, never
   push or add remotes. Sessions can end abruptly; uncommitted work is lost.
-- Code style: match the surrounding code (tabs, `this->`, Q_OBJECT_BINDABLE_PROPERTY patterns, comments
-  explain why). Don't copy code from GPL/AGPL projects (Seelen, Lively, quickshell-macos); Apache/MIT
+- Code style: match the surrounding code (tabs, `this->`, Q_OBJECT_BINDABLE_PROPERTY patterns). Write no
+  comments in our code; put every explanation in your final report as `file :: symbol (line) :: text`
+  instead (license headers, NOLINT and other tool directives stay). Don't copy code from GPL/AGPL projects (Seelen, Lively, quickshell-macos); Apache/MIT
   references (PowerToys, ManagedShell, EarTrumpet, Twinkle Tray, VirtualDesktopAccessor) are fine to
   consult.
 - **C++/WinRT must run on its own MTA thread** (`winrt::init_apartment(multi_threaded)` on a worker

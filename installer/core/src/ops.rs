@@ -801,10 +801,10 @@ fn shortcuts_and_entry(ctx: &mut Ctx, m: &mut Manifest) {
 	let icon = p.setup_exe();
 	let main = p.start_menu.join(crate::SHORTCUT_MAIN);
 	let settings = p.start_menu.join(crate::SHORTCUT_SETTINGS);
-	let settings_args = format!("-p \"{}\"", p.settings_qml().display());
+	let settings_args = format!("-n -p \"{}\"", p.settings_qml().display());
 	let mut ok = true;
 	for (lnk, args, desc) in [
-		(&main, "-c ii".to_string(), "illogical-impulse shell"),
+		(&main, "-n -c ii".to_string(), "illogical-impulse shell"),
 		(&settings, settings_args, "illogical-impulse settings"),
 	] {
 		match win::create_shortcut(lnk, &p.qsw_exe(), &args, &p.install_dir, &icon, desc) {
@@ -852,7 +852,7 @@ fn shortcuts_and_entry(ctx: &mut Ctx, m: &mut Manifest) {
 }
 
 fn run_command(p: &Paths) -> String {
-	format!("\"{}\" -c ii", p.qsw_exe().display())
+	format!("\"{}\" -n -c ii", p.qsw_exe().display())
 }
 
 fn set_autostart(ctx: &mut Ctx, m: &mut Manifest, on: bool) {
@@ -1520,14 +1520,14 @@ fn restore_exec_policy(ctx: &mut Ctx, change: &ExecPolicyChange, step: &str) {
 
 fn launch(ctx: &mut Ctx) {
 	ctx.begin("launch");
-	match win::spawn_detached(&ctx.paths.qsw_exe(), &["-c", "ii"], &ctx.paths.install_dir) {
+	match win::spawn_detached(&ctx.paths.qsw_exe(), &["-n", "-c", "ii"], &ctx.paths.install_dir) {
 		Ok(pid) => ctx.done_with("launch", Msg::new("launched", format!("started (pid {pid})"))),
 		Err(e) => ctx.warn("launch", io_msg("launch_failed", ctx.paths.qsw_exe().display(), e)),
 	}
 }
 
 pub fn launch_ii(paths: &Paths) -> std::io::Result<u32> {
-	win::spawn_detached(&paths.qsw_exe(), &["-c", "ii"], &paths.install_dir)
+	win::spawn_detached(&paths.qsw_exe(), &["-n", "-c", "ii"], &paths.install_dir)
 }
 
 /// Program files + config, with rollback if the config part fails. On a fresh install that
