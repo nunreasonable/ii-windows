@@ -1,10 +1,3 @@
-# Host (Linux) test for the blur shape walk of the Windows backend (src/windows/blur_shapes.cpp
-# of the quickshell checkout given as QS_WINDOWS_SRC, which has no Windows dependencies). Loads
-# small QML scenes shaped like ii's panels and checks the rectangles blur would go behind.
-#   . tools/env.sh
-#   cmake -S tools/blur-shapes-test -B build/blur-shapes-test -G Ninja \
-#     -DCMAKE_PREFIX_PATH=$QT_HOST -DQS_WINDOWS_SRC=$IIW/wt-blur/src/windows
-#   cmake --build build/blur-shapes-test && QT_QPA_PLATFORM=offscreen build/blur-shapes-test/blur_shapes_test
 cmake_minimum_required(VERSION 3.20)
 project(iiw_blur_shapes_test LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)

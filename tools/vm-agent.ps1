@@ -1,15 +1,11 @@
-# ii-windows VM agent. boot.ps1 (installed by vm-bootstrap.ps1) downloads this file from the host
-# on every start and runs it in the logged-on user's session, so jobs can start GUI programs.
-# $d is set by boot.ps1.
 $ErrorActionPreference = 'Continue'
 $utf8 = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
 
-$gwHost = '@IIW_GW_HOST@' # filled in by vm-gateway.sh
+$gwHost = '@IIW_GW_HOST@'
 $sshArgs = @('-i', "$d\key", '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
 	'-o', 'ConnectTimeout=5', '-o', 'ServerAliveInterval=15')
-# For jobs: cmd.exe pipes bytes untouched (PowerShell 5.1 pipelines would mangle a tar stream).
 $env:IIW_GW = "ssh -i `"$d\key`" -o BatchMode=yes -o StrictHostKeyChecking=accept-new $gwHost"
 $env:IIW_ROOT = 'C:\ii-windows'
 New-Item -Force -ItemType Directory "$env:IIW_ROOT\logs", "$d\jobs" | Out-Null
@@ -20,7 +16,7 @@ while ($true) {
 	if ($resp.Count -eq 0 -or -not $resp[0]) { continue }
 
 	$id = $resp[0].Trim()
-	if ($id -eq 'reload-agent') { break }  # back to boot.ps1, which fetches the new agent body
+	if ($id -eq 'reload-agent') { break }
 
 	$file = "$d\jobs\$id.ps1"
 	$outFile = "$d\jobs\$id.out"
@@ -29,8 +25,6 @@ while ($true) {
 	[IO.File]::WriteAllText($file, $body, $utf8)
 	$timeout = 120
 	if ($resp.Count -gt 1 -and $resp[1] -match '^#timeout=(\d+)') { $timeout = [int]$Matches[1] }
-	# Output goes to a file through cmd.exe, not to a pipe: programs a job starts in the
-	# background inherit the job's handles, and a pipe would stay open until they exit.
 	$psi = New-Object System.Diagnostics.ProcessStartInfo 'cmd.exe',
 		"/c powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$file`" > `"$outFile`" 2>&1"
 	$psi.UseShellExecute = $false

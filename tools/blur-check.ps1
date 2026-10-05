@@ -1,9 +1,3 @@
-# blur-check.ps1: read-only report of the blur backdrop windows of a running ii (branch `blur`).
-# Run while ii is up:  tools/vm.sh job < tools/blur-check.ps1
-# For every QuickshellBlurBackdrop window: visible, rect, topmost, and the window directly above
-# it in the z-order, which must be its panel (a Qt window of qs/qsw.exe with the same rect).
-# Nothing is started, stopped or changed.
-
 Add-Type @"
 using System;
 using System.Text;
@@ -52,7 +46,6 @@ $backdrops = New-Object System.Collections.ArrayList
 "$($backdrops.Count) backdrop window(s)"
 foreach ($hwnd in $backdrops) {
 	"backdrop: " + [BlurCheck]::Describe($hwnd)
-	# GW_HWNDPREV = 3: the window right above
 	$above = [BlurCheck]::GetWindow($hwnd, 3)
 	if ($above -ne [IntPtr]::Zero) { "  above:  " + [BlurCheck]::Describe($above) } else { "  above:  (none, top of the z-order)" }
 }

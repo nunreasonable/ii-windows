@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# Host side of the Windows test VM channel. The VM connects to the host (never the other way
-# around): its agent (tools/vm-agent.ps1) logs in with a key that is pinned to this script as a
-# forced command, so that key can only do what the "agent commands" below allow.
-#
-#   agent commands (VM key, via SSH_ORIGINAL_COMMAND):
-#     agent            print the current agent body (vm-agent.ps1)
-#     poll             wait up to 20 s for a queued job; print "<id>" then the PowerShell script
-#     fetch <name>     tar stream of dist/<name>
-#     result <id> <rc> store the job's output (stdin) and exit code
-#
-#   setup commands (the user, logged in with their own password from inside the VM):
-#     bootstrap        print the PowerShell installer (vm-bootstrap.ps1)
-#     authorize [name] read the VM's public key on stdin and pin it to this script (one key per
-#                      name; the default name is the one the win11 VMs use)
-#
-# Installed as ~/.local/bin/iiw-vm, so the user only has to type a short line in the VM.
 set -euo pipefail
 
 self=$(readlink -f "${BASH_SOURCE[0]}")
@@ -24,8 +8,6 @@ mkdir -p "$Q/pending" "$Q/running" "$Q/done"
 
 valid_name() { [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]]; }
 
-# How the VM reaches this host: this user at the libvirt bridge address, unless IIW_GW_HOST says
-# otherwise. Filled into the PowerShell served below in place of @IIW_GW_HOST@.
 gw_host() {
 	if [ -n "${IIW_GW_HOST:-}" ]; then echo "$IIW_GW_HOST"; return; fi
 	local ip
@@ -35,7 +17,6 @@ gw_host() {
 serve() { sed "s/@IIW_GW_HOST@/$(gw_host)/g" "$1"; }
 
 if [ -n "${SSH_ORIGINAL_COMMAND+x}" ]; then
-	# Forced command: only agent commands.
 	read -r cmd a1 a2 _ <<<"$SSH_ORIGINAL_COMMAND"
 	date +%s > "$Q/agent.seen"
 	case "$cmd" in
@@ -75,7 +56,6 @@ authorize)
 	mkdir -p ~/.ssh && chmod 700 ~/.ssh
 	touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
 	blob=$(awk '{print $2}' <<<"$key")
-	# Replace an older key of the agent instead of piling them up.
 	sed -i "/ $name\$/d" ~/.ssh/authorized_keys
 	printf 'restrict,from="192.168.122.0/24",command="%s" ssh-ed25519 %s %s\n' \
 		"$self" "$blob" "$name" >> ~/.ssh/authorized_keys

@@ -1,9 +1,3 @@
-# Read-only console probe for the Wallpaper singleton's read path (src/windows/system/wallpaper.*
-# of the quickshell checkout given as QS_WINDOWS_SRC). Prints the current desktop wallpaper and
-# the matugen.exe path it would use - calls no setter, so it never touches the real wallpaper or
-# theme. Build like tools/hello:
-#   cmake -S tools/wallpaper-probe -B build/wallpaper-probe -G Ninja \
-#     -DCMAKE_TOOLCHAIN_FILE=$IIW/tools/clang-cl-xwin.cmake -DQS_WINDOWS_SRC=$IIW/wt-theme/src/windows
 cmake_minimum_required(VERSION 3.20)
 project(iiw_wallpaper_probe LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)

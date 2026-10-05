@@ -1,6 +1,3 @@
-// Read-only console probe: prints what Wallpaper::currentWallpaper() and Wallpaper::matugenPath()
-// see on this machine. Calls no setter (setWallpaper/setDarkMode/setAccentColor) - never changes
-// the real wallpaper or theme.
 #include <cstdio>
 
 #include <qguiapplication.h>
@@ -10,7 +7,7 @@
 using qs::windows::sys::Wallpaper;
 
 int main(int argc, char** argv) {
-	QGuiApplication app(argc, argv); // initializes COM on this (the GUI) thread
+	QGuiApplication app(argc, argv);
 
 	auto current = Wallpaper::currentWallpaper();
 	printf("currentWallpaper(): %s\n", current.isEmpty() ? "(empty)" : qPrintable(current));

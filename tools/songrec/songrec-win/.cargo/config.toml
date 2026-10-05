@@ -1,3 +1,2 @@
-# Static CRT: songrec.exe sits in its own folder, away from the VC++ runtime the shell ships.
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=/ignore:4099"]

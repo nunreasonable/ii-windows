@@ -1,12 +1,5 @@
-// Windows headless CLI for MicroTeX, mirroring the flags of gtkmm_main.cpp's `-headless` mode
-// (outputdir/samples/prefix/textsize/foreground/background/input/output/padding/maxwidth) but
-// rendering through the Qt backend (graphic_qt) into an SVG via QSvgGenerator instead of Cairo,
-// so Windows doesn't need gtkmm/cairomm. Added for the ii-windows port; not part of upstream
-// MicroTeX. MIT-licensed, same as the rest of this project.
-//
-// Usage matches what ii/services/LatexRenderer.qml spawns on Linux:
-//   LaTeX.exe -headless -input=<tex> -output=<file.svg> -textsize=<n> -padding=<n>
-//             -foreground=<color> [-background=<color>] -maxwidth=<n>
+// Added for the ii-windows port; not part of upstream MicroTeX.
+// MIT-licensed, same as the rest of this project.
 
 #include "latex.h"
 #include "atom/atom_basic.h"
@@ -100,11 +93,9 @@ int renderToSvg(const Options& o) {
 	return 0;
 }
 
-}  // namespace
+}
 
 int main(int argc, char** argv) {
-	// QFontDatabase (used by graphic_qt's Font_qt) needs a QGuiApplication for the platform
-	// font plugin to be loaded, even though we never show a window.
 	QGuiApplication app(argc, argv);
 
 	vector<string> args(argv + 1, argv + argc);

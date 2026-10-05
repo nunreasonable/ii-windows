@@ -1,26 +1,5 @@
-//! songrec for Windows: SongRec's command-line recognizer without GLib.
-//!
-//! The fingerprinting (algorithm.rs, signature_format.rs, hanning.rs, user_agent.rs) is
-//! SongRec's own code, compiled from the upstream checkout as is. What's here replaces the
-//! parts that need GLib/libsoup: the HTTP request to Shazam (communication.rs) and the
-//! listening loop (listen.rs), which records with cpal so it can also take the default
-//! output device through WASAPI loopback - upstream only lists capture devices.
-//!
-//! Subcommands keep upstream's names and output:
-//!   audio-file-to-recognized-song FILE   Shazam's JSON answer, pretty-printed
-//!   audio-file-to-fingerprint FILE       the data-URI signature
-//!   fingerprint-to-recognized-song URI   Shazam's JSON answer, pretty-printed
-//!   listen [options]                     one line per newly recognized song
-//!   recognize [options]                  listen until the first match
-//! listen/recognize options: --audio-device ID, --loopback (default output device),
-//! --request-interval SECS, --json, --timeout SECS, --list-devices.
-//!
-//! Exit codes: 0 done (a timeout without a match included), 1 bad usage or other error,
-//! 2 no usable audio device, 3 Shazam unreachable, 4 rate-limited by Shazam.
-
 use std::process::ExitCode;
 
-// Its ffmpeg fallback import is unused without the "ffmpeg" feature.
 #[path = "../../upstream/src/core/fingerprinting/algorithm.rs"]
 #[allow(unused_imports)]
 mod algorithm;
@@ -34,7 +13,6 @@ mod user_agent;
 mod communication;
 mod listen;
 
-// The module paths SongRec's files expect (crate::core::fingerprinting::..., crate::plugins::...).
 mod core {
     pub mod fingerprinting {
         pub(crate) use crate::hanning;
@@ -42,8 +20,6 @@ mod core {
     }
 }
 mod plugins {
-    /// algorithm.rs imports this unconditionally but only calls it with the "ffmpeg"
-    /// feature, which this build leaves off (upstream's version needs the tempfile crate).
     pub mod ffmpeg_wrapper {
         #[allow(dead_code)]
         pub fn decode_with_ffmpeg(

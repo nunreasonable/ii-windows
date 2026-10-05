@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# Builds LaTeX.exe (MicroTeX, MIT) for ii's AI chat LaTeX rendering on Windows into
-# toolchain/microtex/ (LaTeX.exe, res/, licenses/), which tools/deploy-ii.sh picks up.
-#
-# Upstream's `-headless` CLI only exists for the gtkmm/cairomm backend, which doesn't
-# cross-compile for MSVC; microtex-windows.patch adds an equivalent Qt + QSvgGenerator CLI
-# (qt_headless_main.cpp, next to this script) with the same flags and SVG output.
 set -euo pipefail
 
 MICROTEX_COMMIT="${MICROTEX_COMMIT:-0e3707f}"
@@ -19,7 +13,6 @@ TX_PREFIX="$IIW/toolchain/tinyxml2"
 OUT="$IIW/toolchain/microtex"
 CROSS=(-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE="$IIW/tools/clang-cl-xwin.cmake")
 
-# tinyxml2 (zlib license), MicroTeX's XML parser
 [ -d "$TX_SRC/.git" ] || git clone https://github.com/leethomason/tinyxml2 "$TX_SRC"
 git -C "$TX_SRC" checkout --quiet "$TINYXML2_COMMIT"
 cmake -S "$TX_SRC" -B "$IIW/build/tinyxml2-build" "${CROSS[@]}" \
@@ -27,7 +20,6 @@ cmake -S "$TX_SRC" -B "$IIW/build/tinyxml2-build" "${CROSS[@]}" \
 cmake --build "$IIW/build/tinyxml2-build" -j "${JOBS:-8}"
 cmake --install "$IIW/build/tinyxml2-build"
 
-# MicroTeX with the Windows headless CLI
 [ -d "$SRC/.git" ] || git clone https://github.com/NanoMichael/MicroTeX "$SRC"
 git -C "$SRC" checkout --quiet -- .
 git -C "$SRC" checkout --quiet "$MICROTEX_COMMIT"

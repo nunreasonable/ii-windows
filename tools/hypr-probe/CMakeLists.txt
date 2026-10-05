@@ -1,8 +1,3 @@
-# Console probe for the Windows window tracker and virtual desktops (src/windows of the
-# quickshell checkout given as QS_WINDOWS_SRC). Prints the tracked windows and desktops, watches
-# events for a while and optionally switches desktops. Build like tools/hello:
-#   cmake -S tools/hypr-probe -B build/hypr-probe -G Ninja \
-#     -DCMAKE_TOOLCHAIN_FILE=$IIW/tools/clang-cl-xwin.cmake -DQS_WINDOWS_SRC=$IIW/wt-hypr/src/windows
 cmake_minimum_required(VERSION 3.20)
 project(iiw_hypr_probe LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Host check of the Windows backend's terminal color harmonization against ii's Python
-# generator: builds terminal_colors_test with the host compiler (CXX=clang++ to use clang) from
-# the given quickshell src/windows and runs compare.py with ii's Python.
-#   tools/terminal-colors-test/run.sh [quickshell src/windows] [compare.py args...]
 set -euo pipefail
 IIW="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 src="${1:-$IIW/quickshell/src/windows}"

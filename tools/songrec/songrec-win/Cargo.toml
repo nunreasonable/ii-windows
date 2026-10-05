@@ -1,10 +1,3 @@
-# Windows command-line build of SongRec's recognizer (https://github.com/marin-m/SongRec).
-#
-# Upstream SongRec needs GLib, libsoup and gettext even without its GUI, which don't
-# cross-compile for MSVC. This crate compiles SongRec's own fingerprinting modules
-# (../upstream/src/core/fingerprinting, unmodified) and swaps the libsoup HTTP client for
-# ureq (Windows' SChannel TLS) and the microphone thread for a cpal capture that can also
-# record the default output device (WASAPI loopback). GPL-3.0-or-later, like SongRec.
 [package]
 name = "songrec"
 version = "0.7.5+win.1"
@@ -25,12 +18,9 @@ uuid = { version = "1.23.0", features = ["v4"] }
 rand = "0.10.0"
 cpal = "0.18.1"
 ureq = { version = "3", default-features = false, features = ["native-tls", "gzip"] }
-# SongRec's modules call gettext() for their error strings; this build isn't translated.
 gettext-rs = { path = "stubs/gettext-rs" }
 
 [features]
-# SongRec's algorithm.rs falls back to an ffmpeg binary for formats rodio can't decode.
-# Off here: we only ever hand it WAV, and ii doesn't ship ffmpeg for this.
 ffmpeg = []
 
 [profile.release]

@@ -1,6 +1,3 @@
-// Checks collectBlurShapes() (src/windows/blur_shapes.cpp) against small scenes shaped like ii's
-// panels. Run with QT_QPA_PLATFORM=offscreen. Exit code = number of failed cases.
-
 #include <cmath>
 #include <cstdio>
 #include <optional>
@@ -26,7 +23,7 @@ int failures = 0; // NOLINT
 struct Expect {
 	QRectF rect;
 	qreal radius;
-	QRectF clip; // null: don't check
+	QRectF clip;
 };
 
 QString describe(const BlurShape& shape) {
@@ -101,17 +98,15 @@ void check(
 	delete item;
 }
 
-} // namespace
+}
 
 int main(int argc, char** argv) {
 	QGuiApplication app(argc, argv);
 	QQmlEngine engine;
 
 	auto ii = BlurShapeQuery {.ignoreAlpha = 0.79};
-	// window rect in physical pixels at dpr 1, the default clip
 	auto win = QRectF(0, 0, 400, 300);
 
-	// ii's sidebar: shadow item, then a translucent rounded background with a 1px border.
 	check(
 	    "sidebar background",
 	    engine,
@@ -144,7 +139,6 @@ int main(int argc, char** argv) {
 	    {}
 	);
 
-	// Bar without background: only the widget groups are opaque enough.
 	check(
 	    "transparent bar, translucent groups",
 	    engine,
@@ -161,7 +155,6 @@ int main(int argc, char** argv) {
 	    {{QRectF(5, 5, 98, 30), 15, win}, {QRectF(115, 5, 58, 30), 15, win}}
 	);
 
-	// 0.6 over 0.6 shows 0.84 of whatever is above: blur goes behind the child only.
 	check(
 	    "coverage of nested rectangles",
 	    engine,
@@ -203,7 +196,6 @@ int main(int argc, char** argv) {
 	    {}
 	);
 
-	// A notification list scrolled so one item is half out of view.
 	check(
 	    "ancestor clip",
 	    engine,

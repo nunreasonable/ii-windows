@@ -1,6 +1,3 @@
-// Console probe: dumps what the window tracker and the virtual desktop reader see, watches
-// events for a while, and with `switch` switches to another desktop and back.
-//   iiw_hypr_probe [seconds] [switch]
 #include <cstdio>
 
 #include <qguiapplication.h>
@@ -16,7 +13,6 @@ using namespace qs::windows;
 
 namespace {
 
-// Raw registry values, to see whether explorer keeps them live on this build.
 QString regGuid(const wchar_t* subkey, const wchar_t* value) {
 	GUID guid {};
 	DWORD size = sizeof(guid);
@@ -96,7 +92,7 @@ void dump(WindowTracker* tracker) {
 	fflush(stdout);
 }
 
-} // namespace
+}
 
 int main(int argc, char** argv) {
 	QLoggingCategory::setFilterRules("quickshell.windows.*.debug=true");
@@ -144,8 +140,6 @@ int main(int argc, char** argv) {
 	}
 
 	if (doRemove) {
-		// Cleanup after `switch` on a profile that had one desktop: drop the last desktop if
-		// no tracked window lives there.
 		QTimer::singleShot(1000, [vd, tracker]() {
 			auto last = vd->count() - 1;
 			auto occupied = false;

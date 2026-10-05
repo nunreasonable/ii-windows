@@ -1,11 +1,3 @@
-// Console probe for Windows.UI.Notifications.Management.UserNotificationListener from an
-// unpackaged exe. Commands:
-//   notif-probe status
-//   notif-probe request <timeoutSec>      RequestAccessAsync, gives up after the timeout
-//   notif-probe list [logoDir]            GetNotificationsAsync(Toast), optionally saves logos
-//   notif-probe events <sec>              try NotificationChanged, print events
-//   notif-probe poll <sec>                poll GetNotificationsAsync every 2 s, print diffs
-//   notif-probe remove <id>               RemoveNotification(id), then check it is gone
 #include <windows.h>
 
 #include <chrono>
@@ -205,7 +197,7 @@ int cmdRemove(const UserNotificationListener& listener, uint32_t id) {
 	return 0;
 }
 
-} // namespace
+}
 
 int main(int argc, char** argv) {
 	SetConsoleOutputCP(CP_UTF8);

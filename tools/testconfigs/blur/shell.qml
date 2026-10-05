@@ -1,26 +1,3 @@
-// Manual test for blur behind panels (quickshell branch `blur`, src/windows/blur.cpp).
-// Its rules are in defaults/windows/layerrules.json next to this file.
-//
-//   qs -p tools/testconfigs/blur
-//   qs ipc -p tools/testconfigs/blur call blur toggleEnabled
-//   qs ipc -p tools/testconfigs/blur call blur toggleCards
-//   qs ipc -p tools/testconfigs/blur call blur state
-//
-// Put a busy window (a web page, an image) behind the cards. Expected:
-// - "card" (top left): blurred behind the rounded rectangle only, sharp in the 40px margin
-//   around it (where the fake shadow is), corners rounded like the card. Clicks on the margin
-//   reach the window below; clicks on the card log PRESS card.
-// - "nested": blur only behind the inner rectangle (0.4 over 0.4 shows 0.64 > 0.5), not behind
-//   the outer one (0.4 < 0.5).
-// - "moving": the blur follows the card while it slides.
-// - "opaque": no blur (and no backdrop window: tools/blur-check.ps1 lists one window less).
-// - "whole": the whole window blurred (ignoreAlpha null), square corners.
-// - "off": never blurred.
-// - "overlay" (Overlay layer, overlaps "card"): its blur shows "card" blurred underneath, and
-//   card's blur never covers overlay's contents.
-// - toggleCards hides and shows every card: no blur left behind while hidden.
-// With QS_WINDOWS_BLUR_DEBUG=1 every blurred shape gets a red tint.
-
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -79,7 +56,7 @@ ShellRoot {
 		WlrLayershell.namespace: "blurtest"
 		mask: Region { item: card }
 
-		Rectangle { // fake shadow in the margin: must stay sharp
+		Rectangle {
 			anchors.fill: card
 			anchors.margins: -30
 			radius: 50
