@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
-# Creates the Windows 10 22H2 test VM ("win10") from Microsoft's ISO, unattended:
-#
-#   tools/vm-win10.sh create <Win10_22H2_*.iso>
-#
-# The install takes a while and needs no clicks: autounattend.xml (tools/win10/) installs Windows
-# 10 Pro with the generic key (not activated), a local administrator that logs on by itself, and
-# the test agent. The agent's key is pinned on the host first (iiw-vm authorize win10), so
-# nothing asks for the Linux password. Afterwards tools/vm.sh drives it like the win11 VMs; run
-# only one test VM at a time, since they all pull from the same job queue.
-#
-# The VM's local user and password live in build/win10-vm/credentials (not in git).
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
 
@@ -41,11 +30,9 @@ create)
 	sed -e "s/@USER@/$user/g" -e "s/@PASSWORD@/$password/g" \
 		"$IIW/tools/win10/autounattend.xml" > "$WORK/disc/autounattend.xml"
 	cp -f "$IIW/tools/win10/setup-agent.ps1" "$IIW/tools/win10/setup-agent.cmd" "$WORK/disc/"
-	# The bootstrap as the gateway would serve it, with this host's address filled in.
 	"$IIW/tools/vm-gateway.sh" bootstrap > "$WORK/disc/bootstrap.ps1"
 	xorriso -as mkisofs -quiet -J -r -V UNATTEND -o "$WORK/unattend.iso" "$WORK/disc"
 
-	# Into libvirt's default pool through libvirt itself (the directory is root's).
 	vol="$NAME-unattend.iso"
 	virsh_ vol-delete --pool default "$vol" >/dev/null 2>&1 || true
 	virsh_ vol-create-as default "$vol" "$(stat -c %s "$WORK/unattend.iso")" --format raw >/dev/null

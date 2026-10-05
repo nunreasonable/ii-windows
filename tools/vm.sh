@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Drive the Windows test VM through its agent. The VM connects to the host (tools/vm-gateway.sh,
-# installed in the VM once with tools/vm-bootstrap.ps1); this script queues PowerShell jobs for
-# the agent and waits for their output. Works with whichever of win11 / win11-gpu is running
-# (they share one disk), and never starts win11-gpu itself.
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
 
@@ -17,7 +13,6 @@ agent_age() {
 	echo $(($(date +%s) - seen))
 }
 
-# job [timeout]: PowerShell script on stdin -> output on stdout, exit code of the job
 job() {
 	local timeout="${1:-120}" id
 	id="$(date +%s%N)-$RANDOM"
@@ -62,7 +57,6 @@ status)
 	echo "agent last seen $(agent_age)s ago" ;;
 job) job "${1:-120}" ;;
 push)
-	# push <dist name>: mirror dist/<name> to C:\ii-windows\<name>
 	name="$1"
 	[ -d "$IIW/dist/$name" ] || { echo "no dist/$name" >&2; exit 1; }
 	job 600 <<EOF
@@ -76,7 +70,6 @@ if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }
 EOF
 	;;
 run)
-	# run <exe under C:\ii-windows> [args...]: start detached in the user session, logs in logs\
 	exe="$1"; shift
 	base=$(basename "${exe//\\//}" .exe)
 	argl=""
@@ -114,7 +107,6 @@ ipc)
 EOF
 	;;
 shot)
-	# Captured inside Windows, so it also works with the RTX passed through (win11-gpu).
 	out="${1:-$IIW/build/shots/$(date +%H%M%S).png}"
 	mkdir -p "$(dirname "$out")"
 	job <<'EOF' | tr -d '\r\n' | base64 -d > "$out"
@@ -131,8 +123,6 @@ $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
 EOF
 	echo "$out" ;;
 ii)
-	# ii start|stop: install dist/ii-windows/config/ii as %LOCALAPPDATA%\quickshell\ii, seed the
-	# colors on first run, and run it like `qs -c ii` on Linux.
 	case "${1:-start}" in
 	start) job 60 <<'EOF'
 $dir = "$env:IIW_ROOT\ii-windows"
@@ -160,8 +150,6 @@ reload-agent)
 	: > "$Q/pending/reload-agent"
 	echo "agent will reload on its next poll" ;;
 restart-agent)
-	# For an agent too old to understand reload-agent: start a fresh boot.ps1, then kill the
-	# old one. The job's own result is lost with the old agent, so don't wait for it.
 	cat > "$Q/pending/$(date +%s%N)-restart" <<'EOF'
 $old = Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
 	Where-Object { $_.CommandLine -like '*iiw-agent\boot.ps1*' }

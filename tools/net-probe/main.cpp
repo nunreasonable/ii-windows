@@ -1,12 +1,3 @@
-// Console probe for qs::windows::sys::Network: dumps connectivity/ethernet/wifi state, watches
-// every change for a while, and issues one explicit rescan.
-//   iiw_net_probe [seconds]
-//
-// No logging.cpp pulled in from the real tree (that cascades into much of the "Quickshell" core
-// library for no benefit here) -- this is a trivial stand-in for qs::log::initLogCategoryLevel
-// (called by the QS_LOGGING_CATEGORY macro in network_wifi.cpp/network_connectivity.cpp) so
-// their qCWarning/qCDebug calls still print, just without the real rules-file/env-var level
-// overrides.
 #include <cstdio>
 
 #include <qcoreapplication.h>
@@ -17,7 +8,7 @@
 #include "network.hpp"
 
 namespace qs::log {
-void initLogCategoryLevel(const char* /*name*/, QtMsgType /*defaultLevel*/) {}
+void initLogCategoryLevel(const char*, QtMsgType) {}
 }
 
 using qs::windows::sys::Network;
@@ -63,7 +54,7 @@ void dump(Network* net) {
 	fflush(stdout);
 }
 
-} // namespace
+}
 
 int main(int argc, char** argv) {
 	QLoggingCategory::setFilterRules("quickshell.windows.network.*.debug=true");

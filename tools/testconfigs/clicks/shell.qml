@@ -1,4 +1,3 @@
-// Click delivery test: each window logs presses on its MouseArea.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland

@@ -1,16 +1,3 @@
-// Windowless test for the native Quickshell.Services.Notifications on Windows (no windows are
-// created, safe to run on a shared desktop):
-//
-//   qs -p tools/testconfigs/notifications
-//
-// Sends notifications through notifySend (the notify-send stand-in ii's sendDesktop uses),
-// prints what arrives, invokes actions, replaces/expires/dismisses, prints the Windows toast
-// mirror's state and every mirrored toast. Mirrored toasts whose summary starts with
-// "ii-windows probe" are dismissed after 1.5 s, which removes them from the Windows notification
-// center. Show one from PowerShell while this runs to exercise the mirror. Quits after
-// QS_NOTIF_TEST_SECONDS (default 20); QS_NOTIF_TEST_PNG adds a notification whose app icon is
-// that PNG file. tools/notif-test.ps1 runs all of this on the VM.
-
 import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
@@ -74,8 +61,6 @@ ShellRoot {
 			const mirrored = n.hints["x-windows-toast-id"] !== undefined;
 			root.log(mirrored ? "mirrored" : "notification", root.describe(n));
 			if (n.appIcon !== "") {
-				// Loads through the icon provider like ii's NotificationAppIcon; a failure shows
-				// up as "Could not load icon" in the log.
 				const icon = iconCheck.createObject(root, {
 					label: "notification " + n.id,
 					sourceSize: Qt.size(64, 64),
@@ -141,7 +126,6 @@ ShellRoot {
 					"-t", "5000", "-h", "string:desktop-entry:notepad", "-c", "im.received",
 					"--hint=string:image-path:C:/Windows/Web/Wallpaper/Windows/img0.jpg"]);
 				root.ids.plain = server.notifySend("Plain", "no args");
-				// A PNG app icon, the way mirrored toasts hand over cached app logos.
 				if (Quickshell.env("QS_NOTIF_TEST_PNG")) {
 					server.notifySend("PNG icon", "app icon from a PNG file", ["-a", "Shell", "-i", Quickshell.env("QS_NOTIF_TEST_PNG")]);
 				}

@@ -1,9 +1,3 @@
-# Console probe for the native Network singleton (src/windows/system/network*.{hpp,cpp} of the
-# quickshell checkout given as QS_WINDOWS_SRC) -- connectivity, ethernet link state and Wi-Fi,
-# without needing the full QML engine or a GUI. Build like tools/hypr-probe:
-#   cmake -S tools/net-probe -B build/net-probe -G Ninja \
-#     -DCMAKE_TOOLCHAIN_FILE=$IIW/tools/clang-cl-xwin.cmake -DQS_WINDOWS_SRC=$IIW/wt-net/src/windows \
-#     -DQS_CORE_SRC=$IIW/wt-net/src/core
 cmake_minimum_required(VERSION 3.20)
 project(iiw_net_probe LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)

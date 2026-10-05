@@ -1,15 +1,3 @@
-//! `songrec listen` / `songrec recognize` on cpal, without GLib's main loop.
-//!
-//! Same scheme as upstream's microphone_thread.rs: the capture callback downmixes and
-//! resamples every chunk to 16 kHz mono into a 12 second window, and every
-//! `--request-interval` seconds of new audio that window (unless it is all silence) is
-//! fingerprinted and sent to Shazam. Requests run on the main thread while capture goes on;
-//! audio arriving meanwhile counts towards the next interval.
-//!
-//! Unlike upstream, the device may be an output device: cpal's WASAPI host records a render
-//! endpoint in loopback mode, which is how "what's playing" is recognized on Windows.
-//! Loopback delivers nothing while the device is silent, so the window simply stays empty.
-
 use std::collections::VecDeque;
 use std::num::NonZero;
 use std::process::ExitCode;
@@ -42,7 +30,6 @@ impl Options {
         let mut options = Options {
             audio_device: None,
             loopback: false,
-            // Upstream's default.
             request_interval: 10,
             timeout: None,
             json: false,
@@ -61,7 +48,6 @@ impl Options {
                 "--timeout" => options.timeout = Some(args.next()?.parse().ok()?),
                 "-j" | "--json" => options.json = true,
                 "-l" | "--list-devices" => options.list_devices = true,
-                // Accepted for compatibility with upstream's command line; there's no MPRIS here.
                 "--disable-mpris" => {}
                 _ => {
                     eprintln!("Unknown argument: {arg}");
@@ -109,7 +95,6 @@ fn list_devices(host: &cpal::Host) -> ExitCode {
 
 fn pick_device(host: &cpal::Host, options: &Options) -> Option<cpal::Device> {
     if let Some(wanted) = &options.audio_device {
-        // An id from --list-devices, or a device's display name.
         return host.devices().ok()?.find(|device| {
             device.id().is_ok_and(|id| id.to_string() == *wanted)
                 || device.description().is_ok_and(|d| d.name() == wanted)
@@ -166,8 +151,6 @@ where
         config,
         move |data: &[T], _: &_| push_chunk(&window, data, channels, sample_rate),
         move |error: cpal::Error| {
-            // A device switch (headphones plugged in...) ends a WASAPI stream; report it and
-            // let the main loop stop, ii simply starts over on the next click.
             if !matches!(
                 error.kind(),
                 cpal::ErrorKind::Xrun | cpal::ErrorKind::RealtimeDenied
@@ -184,7 +167,6 @@ fn start_capture(
     device: &cpal::Device,
     window: Arc<Mutex<Window>>,
 ) -> Result<cpal::Stream, String> {
-    // A render endpoint has no input config; its mix format is what loopback delivers.
     let config = if device.supports_input() {
         device.default_input_config()
     } else {
@@ -264,7 +246,6 @@ pub fn run(options: &Options) -> ExitCode {
             continue;
         }
 
-        // Upstream always fingerprints a full 12 s window, zeros first while it fills up.
         let mut padded = vec![0.0f32; WINDOW - samples.len()];
         padded.extend(samples);
 
@@ -297,7 +278,6 @@ pub fn run(options: &Options) -> ExitCode {
         }
     }
 
-    // Timed out: say why nothing was found if every recent attempt failed.
     match last_error {
         Some(RecognizeError::RateLimited) => ExitCode::from(EXIT_RATE_LIMITED),
         Some(RecognizeError::Network(_)) => ExitCode::from(EXIT_NETWORK),

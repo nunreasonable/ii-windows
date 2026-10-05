@@ -1,4 +1,3 @@
-// Core smoke test: no PanelWindow, so it runs without the Windows window backend.
 import QtQuick
 import Quickshell
 import Quickshell.Io

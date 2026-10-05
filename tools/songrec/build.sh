@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Builds songrec.exe (SongRec's recognizer, GPL-3.0-or-later) for x86_64-pc-windows-msvc
-# with cargo-xwin, into bin/ next to this script. songrec-win/ is the GLib-free command-line
-# front end around SongRec's own fingerprinting code, which is read from upstream/ (a clone
-# of https://github.com/marin-m/SongRec at $SONGREC_TAG).
 set -euo pipefail
 
 SONGREC_TAG="${SONGREC_TAG:-0.7.5}"

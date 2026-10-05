@@ -69,8 +69,6 @@ def end_to_end_cases(script, termscheme):
                     for fg_boost in FG_BOOST:
                         runs.append((seed, mode, SCHEMES[k % len(SCHEMES)], harmony, threshold, fg_boost))
                         k += 1
-            # The script's monochrome branch checks for the scheme "monochrome", which
-            # switchwall.sh never passes (it passes "scheme-monochrome"); reach it anyway.
             runs.append((seed, mode, "monochrome", "0.8", "100", "0.35"))
 
     def run(params):
@@ -99,7 +97,6 @@ def end_to_end_cases(script, termscheme):
 
 
 def load_script(script):
-    """The script's helpers and its terminal loop, without running its argparse/image code."""
     tree = ast.parse(script.read_text(), str(script))
     helpers, loop = [], []
     for node in tree.body:
@@ -131,10 +128,10 @@ def in_process_cases(script, termscheme, count, seed):
 
     def color():
         kind = rng.random()
-        if kind < 0.15:  # exact grey, black and white included
+        if kind < 0.15:
             g = rng.choice([0, 0xFF, rng.randrange(256)])
             return f"#{g:02X}{g:02X}{g:02X}"
-        if kind < 0.35:  # near grey
+        if kind < 0.35:
             g = rng.randrange(3, 253)
             return "#" + "".join(f"{min(255, max(0, g + rng.randint(-3, 3))):02X}" for _ in range(3))
         return f"#{rng.randrange(1 << 24):06X}"

@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# deploy-ii.sh: stage dist/ii-windows = qs.exe/qsw.exe + Qt runtime + bundled fonts + QML shims
-# + the ii config. Push it with `tools/vm.sh push ii-windows`.
 set -euo pipefail
 . "$(dirname "$0")/env.sh"
 
@@ -10,7 +8,6 @@ SHIMS="${SHIMS:-$IIW/quickshell/shims}"
 
 "$IIW/tools/deploy.sh" "$D" "$IIW/build/qs/qs.exe" "$IIW/build/qs/qsw.exe" >/dev/null
 
-# Fonts ii expects (all OFL/Apache, so they can ship with the build). qs loads <exe dir>/fonts.
 mkdir -p "$D/fonts"
 for f in \
 	/usr/share/fonts/google-sans-flex-vf-fonts/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf \
@@ -22,9 +19,6 @@ for f in \
 	cp -f "$f" "$D/fonts/"
 done
 
-# Icons for Quickshell.iconPath (qs adds <exe dir>/icons to the icon fallback paths): the config's
-# own logo and distro/brand glyphs, plus the generic fallbacks configs ask for, from Adwaita
-# (CC-BY-SA 3.0 / LGPL 3, licenses alongside).
 rm -rf "$D/icons"
 mkdir -p "$D/icons"
 cp -f "$IIW"/ii/defaults/windows/icons/*.svg "$D/icons/"
@@ -36,9 +30,6 @@ for f in "$IIW"/tools/icons/adwaita/*; do
 	esac
 done
 
-# Shim modules (same URIs as the Linux-only Quickshell modules) go next to Qt's own QML modules.
-# Drop the previously staged ones first: a shim deleted because a native module replaced it must
-# not linger in dist with a qmldir of the same URI.
 rm -rf "$D/qml/Quickshell" "$D/qml/org" "$D/qml/_common"
 if [ -d "$SHIMS" ]; then
 	(cd "$SHIMS" && find . -type f ! -name '*.md' -print0) | while IFS= read -r -d '' f; do
@@ -49,32 +40,20 @@ else
 	echo "warning: no shims found ($SHIMS)" >&2
 fi
 
-# Optional: VirtualDesktopAccessor.dll (Ciantic, MIT) next to qs.exe lets the Hyprland module
-# switch virtual desktops and move other applications' windows between them without injecting
-# keystrokes. Get the build for the VM's Windows version from
-# https://github.com/Ciantic/VirtualDesktopAccessor/releases (2024-12-16-windows11 or newer for
-# 24H2+; if every call returns -1 on a newer build, build the `rust` branch with cargo instead)
-# and drop it in toolchain/.
 if [ -f "$IIW/toolchain/VirtualDesktopAccessor.dll" ]; then
 	cp -f "$IIW/toolchain/VirtualDesktopAccessor.dll" "$D/"
 fi
-# Windows 10 needs Ciantic's 2019-windows10 release instead; qs loads it from win10\ there.
 if [ -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" ]; then
 	mkdir -p "$D/win10"
 	cp -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" "$D/win10/"
 fi
 
-# matugen.exe (GPL-2.0-or-later, InioX/matugen, cross-built for x86_64-pc-windows-msvc with
-# `cargo xwin`) generates the Material You palette from the wallpaper/color, same as `matugen`
-# on the Linux side. Wallpapers.qml's Windows path calls it with ii/defaults/windows/matugen.toml.
 if [ -f "$IIW/toolchain/matugen.exe" ]; then
 	cp -f "$IIW/toolchain/matugen.exe" "$D/"
 else
 	echo "warning: no matugen.exe (toolchain/matugen.exe) - Windows wallpaper theming will fail" >&2
 fi
 
-# songrec.exe (SongRec's recognizer, GPL-3.0-or-later) for ii's music recognition; its source is
-# tools/songrec (build with tools/songrec/build.sh). FsUtils.findExecutable finds it next to qs.exe.
 if [ -f "$IIW/tools/songrec/bin/songrec.exe" ]; then
 	cp -f "$IIW/tools/songrec/bin/songrec.exe" "$D/"
 	mkdir -p "$D/licenses/songrec"
@@ -83,8 +62,6 @@ else
 	echo "warning: no tools/songrec/bin/songrec.exe - music recognition will be unavailable" >&2
 fi
 
-# LaTeX.exe (MicroTeX, MIT, Qt/SVG headless CLI from tools/microtex/build.sh) and its res/ for
-# the AI chat's LaTeX rendering. It runs on the Qt DLLs deploy.sh already staged for qs.exe.
 if [ -f "$IIW/toolchain/microtex/LaTeX.exe" ]; then
 	cp -f "$IIW/toolchain/microtex/LaTeX.exe" "$D/"
 	rm -rf "$D/res" && cp -r "$IIW/toolchain/microtex/res" "$D/res"
@@ -94,7 +71,6 @@ else
 	echo "warning: no toolchain/microtex/LaTeX.exe - LaTeX rendering in the AI chat will be unavailable" >&2
 fi
 
-# The ii config itself (the vm job mirrors it to %LOCALAPPDATA%\quickshell\ii).
 rm -rf "$D/config/ii"
 mkdir -p "$D/config"
 (cd "$IIW/ii" && git ls-files -z --recurse-submodules) | while IFS= read -r -d '' f; do

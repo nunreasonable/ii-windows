@@ -1,6 +1,3 @@
-//! Shazam's recognition request, as upstream's core/fingerprinting/communication.rs sends it
-//! (same endpoint, body and headers), over ureq instead of libsoup.
-
 use std::fmt;
 use std::time::{Duration, SystemTime};
 
@@ -14,9 +11,7 @@ use crate::user_agent::USER_AGENTS;
 
 #[derive(Debug)]
 pub enum RecognizeError {
-    /// HTTP 429: upstream tells the user to raise the request interval.
     RateLimited,
-    /// No connection, TLS failure, timeout, or a non-JSON answer.
     Network(String),
     Other(String),
 }
@@ -33,11 +28,8 @@ impl fmt::Display for RecognizeError {
 
 fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
-        // Upstream's soup session timeout.
         .timeout_global(Some(Duration::from_secs(20)))
-        // A 429 must reach us as a status, not as an error with the body thrown away.
         .http_status_as_error(false)
-        // SChannel: Windows' own TLS and certificate store, nothing to ship.
         .tls_config(
             TlsConfig::builder()
                 .provider(TlsProvider::NativeTls)
@@ -120,7 +112,6 @@ pub fn recognize_song_from_signature(
     })
 }
 
-/// Shazam answers 200 with an empty "matches" list (and no "track") when nothing matched.
 pub fn has_match(json: &Value) -> bool {
     json["track"]["title"].is_string() && json["track"]["subtitle"].is_string()
 }

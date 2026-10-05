@@ -1,4 +1,3 @@
-// Toolchain smoke test: translucent Qt Quick window + a C++/WinRT call (GSMTC).
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -9,8 +8,6 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Media.Control.h>
 
-// Qt initializes COM as STA on the GUI thread, and C++/WinRT may not block (.get()) on an STA
-// thread, so WinRT calls run on their own MTA thread.
 static QString mediaSessionsOnMta() {
 	try {
 		winrt::init_apartment(winrt::apartment_type::multi_threaded);

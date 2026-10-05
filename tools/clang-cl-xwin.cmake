@@ -1,6 +1,3 @@
-# Cross toolchain: Linux host -> x86_64 Windows (MSVC ABI) with clang-cl + lld-link,
-# MSVC CRT / Windows SDK from `xwin splat`, Qt from aqt (msvc2022_64) with a matching host Qt.
-
 set(CMAKE_SYSTEM_NAME Windows)
 set(CMAKE_SYSTEM_VERSION 10.0.26100)
 set(CMAKE_SYSTEM_PROCESSOR AMD64)
@@ -21,7 +18,6 @@ find_program(IIW_LLVM_LIB NAMES llvm-lib PATHS /usr/bin "${IIW}/toolchain/bin" N
 if(IIW_LLVM_LIB)
 	set(CMAKE_AR "${IIW_LLVM_LIB}")
 else()
-	# lld-link /lib works as a librarian when llvm-lib is missing.
 	set(CMAKE_AR "${IIW_LLD_LINK}")
 	set(CMAKE_CXX_CREATE_STATIC_LIBRARY "<CMAKE_AR> /lib /nologo <LINK_FLAGS> /out:<TARGET> <OBJECTS>")
 	set(CMAKE_C_CREATE_STATIC_LIBRARY "<CMAKE_AR> /lib /nologo <LINK_FLAGS> /out:<TARGET> <OBJECTS>")
@@ -52,12 +48,9 @@ set(CMAKE_EXE_LINKER_FLAGS_INIT "${_iiw_libs}")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_iiw_libs}")
 set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_iiw_libs}")
 
-# Link with lld-link directly instead of CMake's `vs_link_exe` wrapper, which needs rc.exe/mt.exe
-# for manifests; lld-link embeds the default manifest by itself.
 string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " /manifest:embed")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/clang-cl-rules.cmake")
 
-# Qt is built against the dynamic release CRT.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 
 set(QT_HOST_PATH "${QT_HOST}" CACHE PATH "")

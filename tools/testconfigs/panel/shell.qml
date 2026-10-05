@@ -1,14 +1,3 @@
-// Manual test for the Windows PanelWindow backend.
-//
-//   qs -p tools/testconfigs/panel
-//   qs ipc -p tools/testconfigs/panel call test ping
-//   qs ipc -p tools/testconfigs/panel call test toggleBar
-//
-// Checks: top bar reserves 40px (maximize a window: it must stop below the bar), the bar's
-// side margins are click-through, the overlay in the bottom right takes focus when its text
-// field is clicked, the gradient sits behind every window, the floating window is a normal
-// window, and WlrLayershell attached properties resolve.
-
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -32,8 +21,6 @@ ShellRoot {
 		}
 	}
 
-	// Top bar: exclusive zone, transparent window with a smaller rounded bar inside.
-	// Only the rounded rectangle accepts input; clicks on the margins go through.
 	PanelWindow {
 		id: barWindow
 
@@ -98,7 +85,6 @@ ShellRoot {
 		}
 	}
 
-	// Overlay panel with on-demand keyboard focus: clicking the text field must focus it.
 	PanelWindow {
 		color: "transparent"
 		implicitWidth: 320
@@ -140,7 +126,6 @@ ShellRoot {
 		}
 	}
 
-	// Background panel covering the whole screen: behind every window, above the desktop.
 	PanelWindow {
 		exclusionMode: ExclusionMode.Ignore
 
@@ -171,7 +156,6 @@ ShellRoot {
 		}
 	}
 
-	// Regular top level window, should look like any other application window.
 	FloatingWindow {
 		title: "Quickshell floating window"
 		implicitWidth: 400

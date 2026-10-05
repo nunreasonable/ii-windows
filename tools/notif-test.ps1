@@ -1,17 +1,3 @@
-# VM job: windowless test of the native Quickshell.Services.Notifications.
-#   tools/vm.sh job 150 < tools/notif-test.ps1
-# Needs a qs.exe with the module plus tools/testconfigs/notifications next to it (tools/deploy-ii.sh
-# stages both into dist/ii-windows) and the listener probe (tools/notif-probe, pushed as
-# notif-probe). Runs qs.exe (console, no windows) on the test config, shows three test toasts
-# (two as Windows PowerShell, one as Calculator) and removes one from the Windows side, then
-# prints the qs log. Each toast shows a Windows banner for a few seconds; if ii is running it
-# mirrors them too.
-#
-# Expected: "access Allowed", "mirror active true", the notifySend notifications with parsed
-# urgency/app name/actions/hints, "actionInvoked", mirrored toasts with appIcon set and an
-# "icon ... ready" line without a "Could not load icon" warning, "closed N Dismissed" for the
-# "ii-windows probe" toasts (and they are gone from "toasts after"), "closed N CloseRequested" for
-# "keep B", "qs exit code: 0".
 $dir = if ($env:NOTIF_QS_DIR) { $env:NOTIF_QS_DIR } else { "$env:IIW_ROOT\ii-windows" }
 $cfg = if ($env:NOTIF_TEST_CONFIG) { $env:NOTIF_TEST_CONFIG } else { "$dir\testconfigs\notifications" }
 $probe = "$env:IIW_ROOT\notif-probe\notif-probe.exe"
@@ -23,7 +9,6 @@ $out = "$env:IIW_ROOT\logs\notif-test.out"; $err = "$env:IIW_ROOT\logs\notif-tes
 "--- toasts before"
 & $probe list 2>&1 | Select-String '^- id'
 
-# A PNG app icon (what mirrored toasts get from the logo cache) for the "PNG icon" notification.
 Add-Type -AssemblyName System.Drawing
 $png = "$env:IIW_ROOT\logs\notif-test-icon.png"
 $bmp = New-Object System.Drawing.Bitmap 32, 32
@@ -36,7 +21,7 @@ $env:QS_NOTIF_TEST_SECONDS = "26"
 $qs = Start-Process -PassThru -WindowStyle Hidden -FilePath "$dir\qs.exe" -WorkingDirectory $dir `
 	-ArgumentList '-p', $cfg, '--no-color', '--log-rules', 'quickshell.windows.notifications*.debug=true' `
 	-RedirectStandardOutput $out -RedirectStandardError $err
-$null = $qs.Handle # keep the handle so ExitCode is readable after exit
+$null = $qs.Handle
 "started qs $($qs.Id)"
 
 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
