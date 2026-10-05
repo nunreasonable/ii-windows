@@ -70,6 +70,11 @@ light or dark mode, the accent color and whether the taskbar hides automatically
     if (Test-Path -LiteralPath $IiProfile) { . $IiProfile }
     # <<< illogical-impulse <<<
     ```
+
+    In the classic console (Windows PowerShell opened without Windows Terminal), the profile also
+    switches that window to the JetBrainsMono Nerd Font, loads ii's colors into it, keeps it below
+    ii's bar and, when ii's transparency is on, makes it slightly see-through. That lasts only as
+    long as the window is open.
 - **Install PowerShell 7** (off by default): `winget install Microsoft.PowerShell`. It is
   installed for all users, so Windows asks for administrator permission.
 - **Install FFmpeg** (off by default): `winget install --scope user Gyan.FFmpeg`, the `ffmpeg`,
@@ -105,9 +110,10 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   everything on to Explorer, whose own tray keeps working. When ii closes or crashes, apps talk to
   Explorer directly again. While ii runs, taskbar tweaking tools that look for the taskbar by its
   window class may not find it.
-- **Desktop background:** ii's wallpaper and its widgets (clock, weather) are placed inside the
-  Windows desktop, behind your desktop icons, instead of being a window of their own (Settings >
-  Background can switch this off). Your desktop folder and icons aren't changed.
+- **Desktop background:** ii's wallpaper is placed inside the Windows desktop, behind your desktop
+  icons, instead of being a window of their own (Settings > Background can switch this off). Its
+  widgets (clock, weather) sit inside the desktop too, next to the icons, so you can still drag
+  them; the icons take every click outside them. Your desktop folder and icons aren't changed.
 - **Wallpaper and colors:** on its first start ii uses your current Windows wallpaper without
   changing it. When you pick a wallpaper or switch light/dark mode in ii, it sets the same in
   Windows: the desktop wallpaper and Windows' light/dark mode. The Windows **accent color** ii
@@ -139,6 +145,12 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   Windows gives apps) to show them in its own panel. Windows keeps showing its own banners too.
 - **Virtual desktops:** ii's workspaces are Windows virtual desktops. Going to a workspace that
   doesn't exist yet creates a new desktop.
+- **Tiling** (off until you turn it on in Settings > Interface > Windows tiling): ii arranges the
+  windows of each virtual desktop and monitor like Hyprland's dwindle layout, by moving and
+  resizing them, and its keybinds (Win+Alt+Space floats a window, Win+\ flips a split, Win+; and
+  Win+' change a split's size) work on them. Dialogs, fixed-size windows, windows of apps running
+  as administrator and the apps you list there stay floating. Turning it off puts every window
+  back where it was before.
 - What you change from ii's panels (volume and sound device, power mode, Bluetooth, Wi-Fi) are
   ordinary Windows settings, changed through Windows' own APIs. **Brightness** is a laptop
   screen's through Windows; on an external monitor ii changes the monitor's own brightness (over

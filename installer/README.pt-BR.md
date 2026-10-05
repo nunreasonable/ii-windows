@@ -76,6 +76,11 @@ tarefas se oculta automaticamente.
     if (Test-Path -LiteralPath $IiProfile) { . $IiProfile }
     # <<< illogical-impulse <<<
     ```
+
+    No console clássico (o Windows PowerShell aberto sem o Windows Terminal), o perfil também
+    troca a fonte daquela janela para a JetBrainsMono Nerd Font, aplica as cores do ii, mantém a
+    janela abaixo da barra do ii e, quando a transparência do ii está ligada, deixa a janela um
+    pouco translúcida. Isso só vale enquanto a janela estiver aberta.
 - **Instalar o PowerShell 7** (desligada por padrão): `winget install Microsoft.PowerShell`. Ele
   é instalado para todos os usuários, então o Windows pede permissão de administrador.
 - **Instalar o FFmpeg** (desligada por padrão): `winget install --scope user Gyan.FFmpeg`, a
@@ -112,9 +117,11 @@ tarefas se oculta automaticamente.
   funcionando. Quando o ii fecha ou trava, os apps voltam a falar direto com o Explorer. Enquanto
   o ii roda, ferramentas que ajustam a barra de tarefas procurando-a pela classe da janela podem
   não encontrá-la.
-- **Fundo da área de trabalho:** o papel de parede do ii e os widgets dele (relógio, clima) ficam
-  dentro da área de trabalho do Windows, atrás dos ícones, em vez de numa janela própria
-  (Configurações > Fundo desliga isso). A pasta e os ícones da sua área de trabalho não mudam.
+- **Fundo da área de trabalho:** o papel de parede do ii fica dentro da área de trabalho do
+  Windows, atrás dos ícones, em vez de numa janela própria (Configurações > Fundo desliga isso).
+  Os widgets dele (relógio, clima) também ficam dentro da área de trabalho, junto dos ícones, e
+  dá para arrastá-los; fora deles, os cliques vão para os ícones. A pasta e os ícones da sua área
+  de trabalho não mudam.
 - **Papel de parede e cores:** na primeira vez que abre, o ii usa o papel de parede atual do
   Windows sem mudá-lo. Quando você escolhe um papel de parede ou alterna entre claro e escuro no
   ii, ele aplica o mesmo no Windows: o papel de parede da área de trabalho e o modo claro/escuro
@@ -149,6 +156,12 @@ tarefas se oculta automaticamente.
   avisos também.
 - **Áreas de trabalho virtuais:** os workspaces do ii são as áreas de trabalho virtuais do
   Windows. Ir para um workspace que ainda não existe cria uma nova área de trabalho.
+- **Tiling** (desligado até você ligar em Configurações > Interface > Windows tiling): o ii
+  organiza as janelas de cada área de trabalho virtual e monitor como o layout dwindle do
+  Hyprland, movendo e redimensionando as janelas, e os atalhos dele (Win+Alt+Espaço solta uma
+  janela, Win+\ inverte uma divisão, Win+; e Win+' mudam o tamanho de uma divisão) valem para
+  elas. Diálogos, janelas de tamanho fixo, janelas de apps rodando como administrador e os apps
+  que você listar lá ficam soltos. Desligar devolve cada janela para onde estava antes.
 - O que você muda pelos painéis do ii (volume e dispositivo de som, modo de energia, Bluetooth,
   Wi-Fi) são configurações comuns do Windows, mudadas pelas APIs do próprio Windows. O **brilho**
   é o da tela do notebook pelo Windows; num monitor externo, o ii muda o brilho do próprio
