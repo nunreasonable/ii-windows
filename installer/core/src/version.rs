@@ -1,12 +1,8 @@
-//! Release versions: "0.1.0", "v0.2.0", "1.0.0-rc.1". Only what the installer needs: parse,
-//! compare, and pull a version out of a package file name.
-
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Version {
 	pub parts: Vec<u64>,
-	/// Text after '-', if any. A pre-release sorts before the same version without one.
 	pub pre: Option<String>,
 }
 
@@ -18,7 +14,6 @@ impl Version {
 			Some((c, p)) => (c, Some(p.to_string())),
 			None => (text, None),
 		};
-		// Build metadata ("+abc") doesn't take part in ordering.
 		let core = core.split('+').next().unwrap_or(core);
 		if core.is_empty() {
 			return None;
@@ -57,14 +52,11 @@ impl Ord for Version {
 	}
 }
 
-/// Strips a leading "v" so tags and file names compare and display the same way.
 pub fn normalize(text: &str) -> String {
 	let t = text.trim();
 	t.strip_prefix('v').or_else(|| t.strip_prefix('V')).unwrap_or(t).to_string()
 }
 
-/// `true` when `candidate` is a strictly newer version than `installed`. Unparseable versions
-/// are never "newer" (the UI then offers a reinstall instead of an update).
 pub fn is_newer(candidate: &str, installed: &str) -> bool {
 	match (Version::parse(candidate), Version::parse(installed)) {
 		(Some(c), Some(i)) => c > i,
@@ -79,7 +71,6 @@ pub fn same(a: &str, b: &str) -> bool {
 	}
 }
 
-/// "ii-windows-0.2.0.zip" -> "0.2.0". Not for the setup exe ("ii-windows-setup.exe").
 pub fn from_package_name(name: &str) -> Option<String> {
 	let lower = name.to_ascii_lowercase();
 	let stem = lower.strip_suffix(".zip")?;

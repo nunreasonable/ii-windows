@@ -1,12 +1,9 @@
 "use strict";
-// The setup's UI. All the work happens in Rust (core/src/ops.rs); this file shows pages, collects
-// choices and renders the progress events the Rust side sends.
 (() => {
 	const tauri = window.__TAURI__;
 	const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
 	const listen = (ev, cb) => tauri.event.listen(ev, cb);
 
-	// Stroke icons, 24x24.
 	const ICONS = {
 		install: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>',
 		update: '<path d="M19.5 10.5A7.5 7.5 0 0 0 6 7M4.5 3.5V7.5h4"/><path d="M4.5 13.5A7.5 7.5 0 0 0 18 17M19.5 20.5v-4h-4"/>',
@@ -64,7 +61,6 @@
 		if (params) for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(v);
 		return s;
 	}
-	// A message from the Rust side: {key, params, text}.
 	function msg(m) {
 		if (!m) return "";
 		const k = `m_${m.key}`;
@@ -91,7 +87,6 @@
 		toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
 	}
 
-	// ---- pages -----------------------------------------------------------------------------
 	const ORDER = ["welcome", "readme", "options", "progress", "done"];
 
 	function showPage(name) {
@@ -114,7 +109,6 @@
 			li.classList.toggle("past", i < to);
 		});
 		if (name === "readme") requestAnimationFrame(updateReadProgress);
-		// The README takes keyboard focus so PgDn/End scroll it right away.
 		if (name === "readme") setTimeout(() => $("#readme").focus({ preventScroll: true }), 350);
 	}
 
@@ -139,7 +133,6 @@
 		if (S.page === "done") renderDone();
 	}
 
-	// ---- welcome ---------------------------------------------------------------------------
 	function actionAllowed(a) {
 		if (a === "install") return true;
 		return !!info.installed;
@@ -181,7 +174,6 @@
 		renderWelcome();
 	}
 
-	// ---- readme ----------------------------------------------------------------------------
 	function renderReadme() {
 		const el = $("#readme");
 		const top = el.scrollTop;
@@ -209,7 +201,6 @@
 		$("#readme-next").disabled = !(S.readEnd && S.readChecked);
 	}
 
-	// ---- options ---------------------------------------------------------------------------
 	function defaultOpts() {
 		if (info.installed) return { ...info.installed.options };
 		return { autostart: true, terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
@@ -412,7 +403,6 @@
 		await loadPreflight(a);
 	}
 
-	// ---- progress --------------------------------------------------------------------------
 	function renderProgressHead() {
 		const a = S.runningAction || S.action;
 		if (!a) return;
@@ -556,7 +546,6 @@
 		}
 	}
 
-	// ---- done ------------------------------------------------------------------------------
 	function noteHtml(m, kind) {
 		const path = m.params && m.params.path;
 		const btn = path && kind === "note" ? `<button type="button" class="mini-btn" data-open="${esc(path)}">${icon("folder")}${esc(t("open"))}</button>` : "";
@@ -592,7 +581,6 @@
 		return `${info.install_dir}\\setup.log`;
 	}
 
-	// ---- wiring ----------------------------------------------------------------------------
 	function wire() {
 		$("#btn-min").addEventListener("click", () => invoke("win_minimize"));
 		$("#btn-close").addEventListener("click", async () => {
@@ -665,7 +653,6 @@
 			} catch (e) { toast(String(e)); }
 		});
 
-		// A setup, not a browser: no reload, no context menu, no find/print.
 		document.addEventListener("contextmenu", (e) => { if (!e.target.closest(".readme, .log")) e.preventDefault(); });
 		document.addEventListener("keydown", (e) => {
 			const k = e.key.toLowerCase();
@@ -696,8 +683,6 @@
 		checkLatest();
 	}
 
-	// Every time it opens, the setup looks for the latest release on GitHub; when its own version
-	// is older, it fetches the newer setup and reopens with it. Without network it just goes on.
 	async function checkLatest() {
 		let latest;
 		try {

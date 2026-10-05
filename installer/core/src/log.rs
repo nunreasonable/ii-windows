@@ -1,5 +1,3 @@
-//! setup.log: every run appends to it, and every line is also shown in the UI's details view.
-
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -8,7 +6,6 @@ pub struct Log {
 	file: Mutex<Option<std::fs::File>>,
 	path: Mutex<Option<PathBuf>>,
 	sink: Box<dyn Fn(&str) + Send + Sync>,
-	/// Lines written before a file was opened, flushed into it once one is.
 	pending: Mutex<Vec<String>>,
 }
 
@@ -19,7 +16,6 @@ pub fn timestamp() -> String {
 	format!("{y:04}-{mo:02}-{d:02}T{h:02}:{mi:02}:{s:02}Z")
 }
 
-/// Compact UTC stamp for folder names: 20261002-153000.
 pub fn stamp() -> String {
 	let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
 	let (y, mo, d, h, mi, s) = civil(secs);
@@ -30,7 +26,6 @@ pub fn date_yyyymmdd() -> String {
 	stamp()[..8].to_string()
 }
 
-/// Seconds since the epoch to UTC date/time (Howard Hinnant's days-from-civil, inverted).
 fn civil(secs: i64) -> (i64, u32, u32, u32, u32, u32) {
 	let days = secs.div_euclid(86400);
 	let rem = secs.rem_euclid(86400);
@@ -52,7 +47,6 @@ impl Log {
 		Log { file: Mutex::new(None), path: Mutex::new(None), sink, pending: Mutex::new(Vec::new()) }
 	}
 
-	/// Starts (or switches) writing to `path`, appending.
 	pub fn open(&self, path: &Path) {
 		if let Some(dir) = path.parent() {
 			let _ = std::fs::create_dir_all(dir);
@@ -67,7 +61,6 @@ impl Log {
 		}
 	}
 
-	/// Stops writing to the file (e.g. before the folder holding it is deleted).
 	pub fn close(&self) {
 		*self.file.lock().unwrap() = None;
 	}

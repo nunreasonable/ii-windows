@@ -1,5 +1,3 @@
-//! The embedded READMEs, rendered to HTML for the UI.
-
 use pulldown_cmark::{html, Options, Parser};
 
 pub fn to_html(markdown: &str) -> String {
@@ -7,8 +5,6 @@ pub fn to_html(markdown: &str) -> String {
 	opts.insert(Options::ENABLE_TABLES);
 	opts.insert(Options::ENABLE_STRIKETHROUGH);
 	let mut out = String::with_capacity(markdown.len() * 2);
-	// Raw HTML in the README is passed through as-is (the only use today is a couple of
-	// invisible `<!-- TODO -->` comments); the UI's CSP blocks scripts anyway.
 	html::push_html(&mut out, Parser::new_ext(markdown, opts));
 	out
 }

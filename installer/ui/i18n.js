@@ -1,5 +1,3 @@
-// UI text in English and Brazilian Portuguese. Keys from the Rust side (step ids, message
-// keys) live here too; a message the UI doesn't know shows its English text as sent.
 window.I18N = {
 	en: {
 		app_title: "illogical-impulse Setup",

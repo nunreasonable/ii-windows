@@ -1,12 +1,3 @@
-//! The marked block ii adds to PowerShell profiles, and the byte-level edits that add or remove
-//! it without disturbing anything else in the file.
-//!
-//! Profiles come in whatever encoding the user's editor (or Windows PowerShell 5.1's
-//! `Out-File`, which defaults to UTF-16LE) left them in. UTF-16 files are decoded and re-encoded
-//! with their BOM; everything else (UTF-8 with or without BOM, or the ANSI code page) is edited as
-//! raw bytes. That's safe because the block and its markers are pure ASCII: no byte of the
-//! user's own text is ever re-encoded.
-
 pub const BEGIN: &str = "# >>> illogical-impulse >>>";
 pub const END: &str = "# <<< illogical-impulse <<<";
 
@@ -19,7 +10,6 @@ const BLOCK_LINES: [&str; 6] = [
 	END,
 ];
 
-/// The block with `nl` line endings, ending with a newline.
 pub fn block(nl: &str) -> String {
 	let mut s = BLOCK_LINES.join(nl);
 	s.push_str(nl);
@@ -30,15 +20,12 @@ pub fn block(nl: &str) -> String {
 enum Encoding {
 	Utf16Le,
 	Utf16Be,
-	/// UTF-8 (BOM or not) or ANSI: edited byte for byte.
 	Bytes,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EditError {
-	/// UTF-16 file with an odd length or unpaired surrogates: not touched.
 	Undecodable,
-	/// A begin marker without its end marker: not touched, so nothing of the user's is lost.
 	Unterminated,
 }
 
@@ -76,7 +63,6 @@ fn encode(enc: Encoding, text: &[u8]) -> Vec<u8> {
 	match enc {
 		Encoding::Bytes => text.to_vec(),
 		Encoding::Utf16Le | Encoding::Utf16Be => {
-			// Only ever produced from a String (decode) plus ASCII edits, so it's valid UTF-8.
 			let s = String::from_utf8_lossy(text);
 			let mut out = if enc == Encoding::Utf16Le { vec![0xFF, 0xFE] } else { vec![0xFE, 0xFF] };
 			for unit in s.encode_utf16() {
@@ -104,7 +90,6 @@ fn body(text: &[u8]) -> &[u8] {
 	text.strip_prefix(UTF8_BOM).unwrap_or(text)
 }
 
-/// Byte ranges [start, end) of each line, `end` including the line's own newline.
 fn lines(text: &[u8]) -> Vec<(usize, usize)> {
 	let mut out = Vec::new();
 	let mut start = 0;
@@ -151,7 +136,6 @@ fn is_blank_line(text: &[u8], range: (usize, usize)) -> bool {
 	trim_ascii(body_if_first(&text[range.0..range.1], range.0)).is_empty()
 }
 
-/// `true` if the file already has the begin marker on a line of its own.
 pub fn has_block(file: &[u8]) -> bool {
 	match decode(file) {
 		Ok((_, text)) => lines(&text).into_iter().any(|r| line_is(&text, r, BEGIN)),
@@ -159,8 +143,6 @@ pub fn has_block(file: &[u8]) -> bool {
 	}
 }
 
-/// The file with the block appended, or `Ok(None)` if a block is already there. `file` is the
-/// current content (empty for a profile that doesn't exist yet).
 pub fn add_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 	let (enc, mut text) = decode(file)?;
 	if lines(&text).into_iter().any(|r| line_is(&text, r, BEGIN)) {
@@ -171,15 +153,12 @@ pub fn add_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 		if !text.ends_with(b"\n") {
 			text.extend_from_slice(nl.as_bytes());
 		}
-		// One blank line between the user's own text and ours; remove_block takes it back.
 		text.extend_from_slice(nl.as_bytes());
 	}
 	text.extend_from_slice(block(nl).as_bytes());
 	Ok(Some(encode(enc, &text)))
 }
 
-/// The file without any marked block (all of them, should there be duplicates), or `Ok(None)`
-/// if there is none. The blank line add_block put in front of the block goes with it.
 pub fn remove_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 	let (enc, text) = decode(file)?;
 	let all = lines(&text);
@@ -194,7 +173,6 @@ pub fn remove_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 				start = all[i - 1].0;
 			}
 			let mut stop = all[j].1;
-			// A block at the very top: drop the blank line that followed it instead.
 			if all[i].0 == 0 && j + 1 < all.len() && is_blank_line(&text, all[j + 1]) {
 				stop = all[j + 1].1;
 			}
@@ -210,7 +188,6 @@ pub fn remove_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 	let mut out = Vec::with_capacity(text.len());
 	let mut pos = 0;
 	for (a, b) in remove {
-		// Never cut the UTF-8 BOM off the file.
 		let a = if a == 0 && text.starts_with(UTF8_BOM) { UTF8_BOM.len() } else { a };
 		if a > pos {
 			out.extend_from_slice(&text[pos..a]);
@@ -218,12 +195,9 @@ pub fn remove_block(file: &[u8]) -> Result<Option<Vec<u8>>, EditError> {
 		pos = pos.max(b);
 	}
 	out.extend_from_slice(&text[pos..]);
-	// A block at the end of a file that had no trailing newline before we added one: leave the
-	// user's last line as it is now (with a newline); harmless and simpler than tracking it.
 	Ok(Some(encode(enc, &out)))
 }
 
-/// Whitespace (and maybe a BOM) only: a profile that add_block created and remove_block emptied.
 pub fn is_blank(file: &[u8]) -> bool {
 	match decode(file) {
 		Ok((_, text)) => trim_all(body(&text)).is_empty(),
@@ -300,7 +274,6 @@ if (Test-Path -LiteralPath $IiProfile) { . $IiProfile }\r\n\
 
 	#[test]
 	fn keeps_line_endings_and_non_ascii_bytes() {
-		// ANSI (Windows-1252) "Olá" plus LF endings.
 		let original: &[u8] = b"Write-Host 'Ol\xe1'\n";
 		let added = add_block(original).unwrap().unwrap();
 		assert!(added.starts_with(original));
@@ -341,7 +314,6 @@ if (Test-Path -LiteralPath $IiProfile) { . $IiProfile }\r\n\
 		);
 		let top = format!("{b}\r\nafter\r\n");
 		assert_eq!(String::from_utf8(remove_block(top.as_bytes()).unwrap().unwrap()).unwrap(), "after\r\n");
-		// The VM's profile: the block is the whole file, added by hand.
 		assert!(remove_block(b.as_bytes()).unwrap().unwrap().is_empty());
 	}
 
@@ -353,7 +325,6 @@ if (Test-Path -LiteralPath $IiProfile) { . $IiProfile }\r\n\
 		let broken = format!("x\n{BEGIN}\nstuff\n");
 		assert_eq!(remove_block(broken.as_bytes()), Err(EditError::Unterminated));
 		assert_eq!(remove_block(b"nothing here\n").unwrap(), None);
-		// A marker inside a longer line is not a marker.
 		assert!(!has_block(format!("Write-Host '{BEGIN}'\n").as_bytes()));
 	}
 }

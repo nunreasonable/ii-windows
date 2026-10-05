@@ -1,6 +1,3 @@
-//! File-system helpers: robust delete (antivirus scanners and Explorer hold files for a moment),
-//! copy, mirror, and the move-aside swap of a directory's entries with rollback.
-
 use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -31,7 +28,6 @@ fn clear_readonly_tree(path: &Path) {
 	}
 }
 
-/// Deletes a file or a whole directory, retrying a few times. Missing is success.
 pub fn remove_any(path: &Path) -> io::Result<()> {
 	let mut last = None;
 	for attempt in 0..6 {
@@ -86,8 +82,6 @@ pub fn copy_dir(src: &Path, dst: &Path) -> io::Result<u64> {
 	Ok(n)
 }
 
-/// Makes `dst` an exact copy of `src` in place: copies everything over and deletes what `src`
-/// doesn't have, except names in `keep` (matched at any depth, case-insensitively).
 pub fn mirror_dir(src: &Path, dst: &Path, keep: &[&str]) -> io::Result<()> {
 	std::fs::create_dir_all(dst)?;
 	let mut present = HashSet::new();
@@ -133,10 +127,6 @@ pub fn dir_size(path: &Path) -> u64 {
 	total
 }
 
-/// Moves a directory's entries aside and the staged ones in, so it can be undone.
-///
-/// `target` itself is never renamed: a terminal or Explorer window sitting in it would make
-/// that fail. Only its entries move, each one a same-volume rename.
 pub struct Swap {
 	pub target: PathBuf,
 	pub previous: PathBuf,
@@ -146,9 +136,6 @@ pub struct Swap {
 }
 
 impl Swap {
-	/// Replaces every entry of `target` with the entries of `staging`, except the `keep` names
-	/// already in `target` that `staging` doesn't have (the installer's own files). Old entries
-	/// go to `previous` until `commit()` deletes them or `rollback()` puts them back.
 	pub fn run(staging: &Path, target: &Path, previous: &Path, keep: &[&str]) -> io::Result<Swap> {
 		remove_any(previous)?;
 		std::fs::create_dir_all(previous)?;
@@ -189,7 +176,6 @@ impl Swap {
 		}
 	}
 
-	/// Puts the old entries back (best effort; the caller logs what it can't).
 	pub fn rollback(&mut self) -> Vec<String> {
 		let mut problems = Vec::new();
 		for name in self.moved_in.drain(..).rev() {

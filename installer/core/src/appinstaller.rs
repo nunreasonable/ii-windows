@@ -1,8 +1,3 @@
-//! Looks up and downloads winget itself (the App Installer package) from the latest
-//! microsoft/winget-cli release on GitHub, for the Windows 10 systems that don't have it yet.
-//! Reuses release.rs's HTTP/JSON and download helpers; the actual install
-//! (`Add-AppxPackage -DependencyPath ...`) is done by `win::install_appx_bundle`.
-
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -11,12 +6,8 @@ use crate::release::{self, Error};
 
 pub const REPO: &str = "microsoft/winget-cli";
 
-/// Asset names on a winget-cli release that this setup needs.
 const MSIXBUNDLE_NAME: &str = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle";
 const DEPENDENCIES_ZIP_NAME: &str = "DesktopAppInstaller_Dependencies.zip";
-/// Holds the msixbundle's bare SHA-256 hex digest (uppercase, nothing else) on releases that
-/// carry it. Not guaranteed forever: its absence isn't an error, since Windows checks the
-/// package's Microsoft signature on install either way.
 const SHA_TXT_NAME: &str = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.txt";
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,7 +23,6 @@ pub struct WingetCliRelease {
 	pub html_url: String,
 	pub msixbundle: Asset,
 	pub dependencies_zip: Asset,
-	/// `None` on a release that doesn't carry `Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.txt`.
 	pub sha_txt: Option<Asset>,
 }
 
@@ -49,8 +39,6 @@ fn asset(json: &serde_json::Value, name: &str) -> Option<Asset> {
 	})
 }
 
-/// Picks the msixbundle, the dependencies zip and the (optional) checksum file out of a release
-/// object of the GitHub REST API.
 pub fn parse_release(json: &serde_json::Value) -> Result<WingetCliRelease, Error> {
 	let tag = json.get("tag_name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
 	let html_url = json.get("html_url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
@@ -60,13 +48,10 @@ pub fn parse_release(json: &serde_json::Value) -> Result<WingetCliRelease, Error
 	Ok(WingetCliRelease { tag, html_url, msixbundle, dependencies_zip, sha_txt })
 }
 
-/// The newest published release of microsoft/winget-cli.
 pub fn latest() -> Result<WingetCliRelease, Error> {
 	parse_release(&release::latest_release_json(REPO)?)
 }
 
-/// Pulls the dependency packages under `x64/` out of the dependencies zip (it also has
-/// `arm64/` and `x86/`, which this setup never needs) into `dest`. Returns their paths.
 pub fn extract_x64_dependencies(zip_path: &Path, dest: &Path) -> Result<Vec<PathBuf>, Error> {
 	let file = std::fs::File::open(zip_path)?;
 	let mut zip = zip::ZipArchive::new(file).map_err(|e| Error::Integrity(format!("dependencies zip: {e}")))?;
@@ -82,7 +67,6 @@ pub fn extract_x64_dependencies(zip_path: &Path, dest: &Path) -> Result<Vec<Path
 		if bytes.len() < 4 || !bytes[..4].eq_ignore_ascii_case(b"x64/") {
 			continue;
 		}
-		// The 4 bytes just matched are all ASCII, so byte offset 4 is a char boundary.
 		let base = &name[4..];
 		if base.is_empty() || base.contains('/') {
 			continue;
@@ -104,7 +88,6 @@ mod tests {
 
 	#[test]
 	fn release_json() {
-		// Shaped like an actual microsoft/winget-cli release (assets trimmed to what matters).
 		let json: serde_json::Value = serde_json::from_str(
 			r#"{
 			"tag_name": "v1.29.380", "html_url": "https://github.com/microsoft/winget-cli/releases/tag/v1.29.380",

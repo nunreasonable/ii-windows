@@ -1,29 +1,17 @@
-//! Where everything lives. Built from the per-user roots so tests can point it at a temp dir.
-
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Paths {
-	/// %LOCALAPPDATA%
 	pub local: PathBuf,
-	/// %APPDATA%
 	pub roaming: PathBuf,
 	pub temp: PathBuf,
-	/// The per-user Start menu "Programs" folder.
 	pub start_menu: PathBuf,
-	/// %LOCALAPPDATA%\ii-windows: program files + the installer's own files.
 	pub install_dir: PathBuf,
-	/// %LOCALAPPDATA%\quickshell
 	pub quickshell: PathBuf,
-	/// %LOCALAPPDATA%\quickshell\ii: the ii config `qsw.exe -c ii` loads.
 	pub ii_config: PathBuf,
-	/// %LOCALAPPDATA%\quickshell\State\user\generated\colors.json
 	pub colors: PathBuf,
-	/// %LOCALAPPDATA%\illogical-impulse: the user's own settings (config.json, ...).
 	pub settings: PathBuf,
-	/// %LOCALAPPDATA%\Microsoft\Windows\Fonts
 	pub user_fonts: PathBuf,
-	/// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\illogical-impulse
 	pub wt_fragment: PathBuf,
 }
 
@@ -78,16 +66,12 @@ impl Paths {
 	pub fn default_colors(&self) -> PathBuf {
 		self.ii_config.join("defaults").join("windows").join("colors.json")
 	}
-	/// Quickshell's own folders under %LOCALAPPDATA%\quickshell that ii's runs create.
 	pub fn quickshell_dirs(&self) -> Vec<PathBuf> {
 		["ii", "State", "cache", "run"].iter().map(|d| self.quickshell.join(d)).collect()
 	}
-	/// Qt's GenericCacheLocation (%LOCALAPPDATA%\cache): Quickshell keeps copied images there
-	/// (`quickshell\clipboard`), and ii its wallpaper thumbnails (`thumbnails`).
 	pub fn generic_cache(&self) -> PathBuf {
 		self.local.join("cache")
 	}
-	/// ii's temp root (%TEMP%\quickshell, Directories.tempRoot).
 	pub fn ii_temp(&self) -> PathBuf {
 		self.temp.join("quickshell")
 	}
