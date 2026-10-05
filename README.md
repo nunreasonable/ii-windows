@@ -3,7 +3,7 @@
         <source media="(prefers-color-scheme: dark)" srcset="assets/illogical-impulse-for-windows-transparent.png">
         <img src="assets/illogical-impulse-for-windows.png" alt="illogical-impulse for Windows" width="560">
     </picture>
-    <h3>【 end_4's illogical-impulse, ported to Windows 11 】</h3>
+    <h3>【 end_4's illogical-impulse, ported to Windows 10 and 11 】</h3>
 </div>
 
 <div align="center">
@@ -27,9 +27,9 @@
 <details>
   <summary>What this is/isn't</summary>
 
-  - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 11
-  - Bar, sidebars, launcher, notifications, cheatsheet, settings app and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
-  - It lives next to Explorer: the Windows taskbar and tray are still there (hidden until you touch the bottom edge of the screen)
+  - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
+  - Bar with the system tray, sidebars, launcher, notifications, cheatsheet, settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
+  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's wallpaper and widgets sit inside the desktop, behind your icons
   - NOT a tiling window manager and NOT a Windows replacement: windows are still Windows' own, and ii's workspaces are Windows' virtual desktops
 
 </details>
@@ -38,10 +38,11 @@
   <summary>How the port works</summary>
 
   - **Quickshell for Windows**: a fork of Quickshell with a Windows backend. Panels are AppBars, input masks come from a low-level mouse hook, global shortcuts from `RegisterHotKey` plus a keyboard hook (for the lone Windows key), and the `Quickshell.Hyprland` module is backed by a window tracker and Windows' virtual desktops
-  - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light as a gamma ramp, and so on, behind the same QML APIs ii already uses
+  - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
+  - **Helpers**: [SongRec](https://github.com/marin-m/SongRec)'s recognizer for music recognition and [MicroTeX](https://github.com/NanoMichael/MicroTeX) for LaTeX in the AI chat, both built for Windows
   - **ii for Windows**: a fork of ii where the services keep their public properties and swap only the implementation, so most modules are untouched
   - **Colors**: `matugen.exe` with ii's own template, so the palette from a wallpaper is the same as on Linux. Windows' wallpaper and light/dark mode follow what you pick in ii, and its accent color follows the palette
-  - Quickshell, matugen and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM with a passed-through GPU
+  - Quickshell (based on upstream 0.3.1), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM
 
 </details>
 
@@ -59,16 +60,19 @@
     - `Win` alone = search
     - `Win`+`Enter` = terminal
   - Needs Windows 10 version 2004 or newer (22H2 recommended) or Windows 11 (build 22000 or
-    newer). winget is needed for the optional terminal tools
+    newer). winget is needed for the optional terminal tools and FFmpeg; on Windows 10 without it, the setup can install it
+  - Every time it opens, the setup checks GitHub for a newer release and updates itself first
 
 </details>
 
 <details>
   <summary>What works</summary>
 
-  - **Tested on Windows 11 25H2** (in the VM): bar, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, wallpaper selector and Material colors, virtual desktops as workspaces, taskbar on hover, terminal theming, and the setup (install, update, repair, uninstall)
-  - **Built on Windows' own APIs but barely tested**: audio, media controls, Bluetooth, Wi-Fi, battery and brightness (the test VM has no Bluetooth, Wi-Fi, battery or laptop screen)
-  - **Not on Windows (yet)**: ii's lock screen (`Win`+`L` uses Windows' own), translation, music recognition, LaTeX rendering, the EasyEffects and WARP toggles, and ii's system tray (the tray stays in Windows' taskbar). Screen recording needs `ffmpeg` on your PATH
+  - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, and the setup (install, update, self-update, repair, uninstall)
+  - **Tested on Windows 10 22H2** (in a VM): the shell starts and runs, virtual desktops, taskbar on hover, blur, the PowerShell terminal fallback and software brightness
+  - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
+  - **Built on Windows' own APIs but barely tested**: audio, media controls, Bluetooth, Wi-Fi, battery, laptop brightness and music recognition (the VMs have no Bluetooth, Wi-Fi, battery or laptop screen, and no song was played to recognize)
+  - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects and WARP toggles
 
 </details>
 
@@ -81,6 +85,9 @@
   | [ii for Windows](https://github.com/nunreasonable/dots-hyprland/tree/ii-windows) | The shell itself: bar, sidebars, settings and the rest |
   | [matugen](https://github.com/InioX/matugen) | Material You palette from the wallpaper |
   | [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor) | Switching and creating Windows virtual desktops |
+  | [SongRec](https://github.com/marin-m/SongRec) | Music recognition (its recognizer, built for Windows) |
+  | [MicroTeX](https://github.com/NanoMichael/MicroTeX) | LaTeX formulas in the AI chat |
+  | [FFmpeg](https://ffmpeg.org) | Optional, installed by the setup with winget if you want it |
   | [Oh My Posh](https://ohmyposh.dev), [Starship](https://starship.rs), [eza](https://github.com/eza-community/eza) | Optional terminal look, installed by the setup with winget |
   | [Tauri](https://tauri.app) | The setup's window |
 
@@ -109,6 +116,8 @@ All of the design and nearly all of the shell are other people's work. This repo
  - [@outfoxxed](https://github.com/outfoxxed) and the contributors of [Quickshell](https://quickshell.outfoxxed.me), the toolkit underneath it all
  - [minimal-05/quickshell-macos](https://github.com/minimal-05/quickshell-macos), whose macOS port of Quickshell and ii showed this could be done
  - [InioX](https://github.com/InioX) for [matugen](https://github.com/InioX/matugen), [Ciantic](https://github.com/Ciantic) for [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor), and Google's [material-color-utilities](https://github.com/material-foundation/material-color-utilities), ported for the terminal colors
+ - [marin-m](https://github.com/marin-m) for [SongRec](https://github.com/marin-m/SongRec) and [NanoMichael](https://github.com/NanoMichael) for [MicroTeX](https://github.com/NanoMichael/MicroTeX)
+ - [RetroBar](https://github.com/dremin/RetroBar) and [ManagedShell](https://github.com/cairoshell/ManagedShell), whose way of sharing the tray with Explorer the Windows tray follows
  - The Qt Project, and the fonts and icons ii ships with: JetBrains Mono and Nerd Fonts, Rubik, Readex Pro, Space Grotesk, Google Sans Flex, Material Symbols and GNOME's Adwaita icons
 
 <div align="center">
@@ -118,5 +127,5 @@ All of the design and nearly all of the shell are other people's work. This repo
 
 - This repo (the setup and the packaging scripts) is GPL-3.0, like ii. See [LICENSE](LICENSE)
 - The forks keep their upstream licenses: Quickshell for Windows is LGPL-3.0 and ii for Windows is GPL-3.0
-- The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT) and fonts under the SIL Open Font License and Apache-2.0. The setup's README lists them all
+- The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT), SongRec's recognizer (GPL-3.0-or-later, source in [tools/songrec](tools/songrec)), MicroTeX (MIT, build in [tools/microtex](tools/microtex)), the Visual C++ runtime and fonts under the SIL Open Font License and Apache-2.0. The setup's README lists them all
 - Copying: go ahead, just follow the licenses, like upstream asks
