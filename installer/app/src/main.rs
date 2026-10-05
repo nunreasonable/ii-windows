@@ -410,6 +410,12 @@ fn win_close(window: tauri::WebviewWindow, state: tauri::State<'_, AppState>) ->
 
 #[tauri::command]
 fn ready(window: tauri::WebviewWindow) {
+	// Tauri's center() uses the whole monitor; a bar or the taskbar may cover the top of that.
+	if let (Ok(hwnd), Ok(size)) = (window.hwnd(), window.outer_size()) {
+		if let Some((x, y)) = win::centered_in_work_area(hwnd.0 as isize, size.width as i32, size.height as i32) {
+			let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+		}
+	}
 	let _ = window.show();
 	let _ = window.set_focus();
 }

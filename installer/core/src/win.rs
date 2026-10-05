@@ -436,6 +436,23 @@ pub fn delete_generic_credential(target: &str) -> std::io::Result<bool> {
 	}
 }
 
+/// Where a window of `width` x `height` (physical pixels) centered in the work area of the
+/// monitor `hwnd` is on goes: the monitor minus the taskbar and app bars (ii's own bar included),
+/// so the window doesn't end up under them on a small screen. Kept on screen if it's too big.
+pub fn centered_in_work_area(hwnd: isize, width: i32, height: i32) -> Option<(i32, i32)> {
+	use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST};
+
+	let monitor = unsafe { MonitorFromWindow(HWND(hwnd as *mut _), MONITOR_DEFAULTTONEAREST) };
+	let mut info = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+	if !unsafe { GetMonitorInfoW(monitor, &mut info) }.as_bool() {
+		return None;
+	}
+	let work = info.rcWork;
+	let x = work.left + ((work.right - work.left - width) / 2).max(0);
+	let y = work.top + ((work.bottom - work.top - height) / 2).max(0);
+	Some((x, y))
+}
+
 pub fn broadcast_setting_change(area: &str) {
 	let w = wide(area);
 	let mut result = 0usize;
