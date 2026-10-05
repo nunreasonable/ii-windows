@@ -1,0 +1,10 @@
+# Stand-in for gettext-rs: the real crate links libintl, which isn't available for MSVC.
+[package]
+name = "gettext-rs"
+version = "0.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+name = "gettextrs"

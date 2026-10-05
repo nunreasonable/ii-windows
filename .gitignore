@@ -8,3 +8,6 @@
 *.ppm
 /quickshell-shims/
 /wt-*/
+/tools/songrec/upstream/
+/tools/songrec/bin/
+/tools/songrec/songrec-win/target/

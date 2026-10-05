@@ -73,6 +73,27 @@ else
 	echo "warning: no matugen.exe (toolchain/matugen.exe) - Windows wallpaper theming will fail" >&2
 fi
 
+# songrec.exe (SongRec's recognizer, GPL-3.0-or-later) for ii's music recognition; its source is
+# tools/songrec (build with tools/songrec/build.sh). FsUtils.findExecutable finds it next to qs.exe.
+if [ -f "$IIW/tools/songrec/bin/songrec.exe" ]; then
+	cp -f "$IIW/tools/songrec/bin/songrec.exe" "$D/"
+	mkdir -p "$D/licenses/songrec"
+	cp -f "$IIW/tools/songrec/bin/COPYING" "$IIW/tools/songrec/bin/SOURCE.txt" "$D/licenses/songrec/"
+else
+	echo "warning: no tools/songrec/bin/songrec.exe - music recognition will be unavailable" >&2
+fi
+
+# LaTeX.exe (MicroTeX, MIT, Qt/SVG headless CLI from tools/microtex/build.sh) and its res/ for
+# the AI chat's LaTeX rendering. It runs on the Qt DLLs deploy.sh already staged for qs.exe.
+if [ -f "$IIW/toolchain/microtex/LaTeX.exe" ]; then
+	cp -f "$IIW/toolchain/microtex/LaTeX.exe" "$D/"
+	rm -rf "$D/res" && cp -r "$IIW/toolchain/microtex/res" "$D/res"
+	mkdir -p "$D/licenses/microtex"
+	cp -rf "$IIW"/toolchain/microtex/licenses/. "$D/licenses/microtex/"
+else
+	echo "warning: no toolchain/microtex/LaTeX.exe - LaTeX rendering in the AI chat will be unavailable" >&2
+fi
+
 # The ii config itself (the vm job mirrors it to %LOCALAPPDATA%\quickshell\ii).
 rm -rf "$D/config/ii"
 mkdir -p "$D/config"

@@ -1,0 +1,47 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7879205..6c14048 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -159,17 +159,31 @@ if (QT)
+     target_link_libraries(LaTeX PRIVATE
+             Qt${QT_VERSION_MAJOR}::Gui
+             )
+-    add_executable(LaTeXQtSample
+-            src/samples/qt_texwidget.cpp
+-            src/samples/qt_mainwindow.cpp
+-            src/samples/qt_main.cpp
+-            )
+-    target_link_libraries(LaTeXQtSample PRIVATE
+-            Qt${QT_VERSION_MAJOR}::Widgets
+-            Qt${QT_VERSION_MAJOR}::PrintSupport
+-            LaTeX)
+-    set_target_properties(LaTeXQtSample PROPERTIES OUTPUT_NAME LaTeX)
+-    set_target_properties(LaTeXQtSample PROPERTIES AUTOMOC ON)
++    if (WIN32 AND NOT LATEX_QT_GUI_SAMPLE)
++        # ii-windows: no gtkmm/cairomm on Windows, so the `-headless` CLI that
++        # ii/services/LatexRenderer.qml spawns is this Qt+QSvgGenerator build instead of
++        # LaTeXGtkSample. See src/samples/qt_headless_main.cpp.
++        find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Svg REQUIRED)
++        add_executable(LaTeXQtHeadless
++                src/samples/qt_headless_main.cpp
++                )
++        target_link_libraries(LaTeXQtHeadless PRIVATE
++                Qt${QT_VERSION_MAJOR}::Svg
++                LaTeX)
++        set_target_properties(LaTeXQtHeadless PROPERTIES OUTPUT_NAME LaTeX)
++    else ()
++        add_executable(LaTeXQtSample
++                src/samples/qt_texwidget.cpp
++                src/samples/qt_mainwindow.cpp
++                src/samples/qt_main.cpp
++                )
++        target_link_libraries(LaTeXQtSample PRIVATE
++                Qt${QT_VERSION_MAJOR}::Widgets
++                Qt${QT_VERSION_MAJOR}::PrintSupport
++                LaTeX)
++        set_target_properties(LaTeXQtSample PROPERTIES OUTPUT_NAME LaTeX)
++        set_target_properties(LaTeXQtSample PROPERTIES AUTOMOC ON)
++    endif ()
+ elseif (SKIA)
+     message(STATUS, "Cross platform build using Qt and Skia for rendering")
+     target_compile_definitions(LaTeX PUBLIC -DBUILD_SKIA -DSK_GL)
