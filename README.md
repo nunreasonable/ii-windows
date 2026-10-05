@@ -30,7 +30,7 @@
   - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
   - Bar with the system tray, sidebars, launcher, notifications, cheatsheet, settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
   - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's wallpaper and widgets sit inside the desktop, behind your icons
-  - NOT a tiling window manager and NOT a Windows replacement: windows are still Windows' own, and ii's workspaces are Windows' virtual desktops
+  - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>
 
@@ -38,6 +38,7 @@
   <summary>How the port works</summary>
 
   - **Quickshell for Windows**: a fork of Quickshell with a Windows backend. Panels are AppBars, input masks come from a low-level mouse hook, global shortcuts from `RegisterHotKey` plus a keyboard hook (for the lone Windows key), and the `Quickshell.Hyprland` module is backed by a window tracker and Windows' virtual desktops
+  - **Tiling**: an optional dwindle layout in the Windows backend, one per virtual desktop and monitor, driven by the same dispatchers ii's keybinds already use (`togglefloating`, `togglesplit`, `movewindow`, `splitratio`...)
   - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
   - **Helpers**: [SongRec](https://github.com/marin-m/SongRec)'s recognizer for music recognition and [MicroTeX](https://github.com/NanoMichael/MicroTeX) for LaTeX in the AI chat, both built for Windows
   - **ii for Windows**: a fork of ii where the services keep their public properties and swap only the implementation, so most modules are untouched
@@ -69,7 +70,7 @@
   <summary>What works</summary>
 
   - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, and the setup (install, update, self-update, repair, uninstall)
-  - **Tested on Windows 10 22H2** (in a VM): the shell starts and runs, virtual desktops, taskbar on hover, blur, the PowerShell terminal fallback and software brightness
+  - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, and the setup with Windows Terminal, the terminal tools and FFmpeg
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
   - **Built on Windows' own APIs but barely tested**: audio, media controls, Bluetooth, Wi-Fi, battery, laptop brightness and music recognition (the VMs have no Bluetooth, Wi-Fi, battery or laptop screen, and no song was played to recognize)
   - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects and WARP toggles

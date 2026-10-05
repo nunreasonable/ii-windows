@@ -132,3 +132,17 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Robustez:** corrida do `CaptureHandle`, espera sem limite do `captureScreen`, toasts fantasmas, perfil de Wi-Fi com nome diferente do SSID.
 - **Instalador:** ao abrir consulta o último release; se for mais novo que ele mesmo, baixa o `ii-windows-setup.exe` do release, confere com o `digest` SHA-256 do GitHub e reabre (`--relaunched --session --no-self-update --after <pid>`). Pacote local mais velho perde para o release. Testado com um release falso servido de dentro da VM.
 - **Merge com problema achado só em execução:** duas frentes criaram o mesmo sinal `desktopActionInvoked` em `Notifications.qml`; o `qmlformat` não pega isso, e o ii não abria. Para merges grandes de QML, testar rodando.
+
+## 0.4.0 (2026-10-05): limitações conhecidas
+
+- **Como foi feito:** workflow com 4 frentes (tiling, bandeja, widgets do desktop, prompt do conhost) e revisores; integração, testes e correções por mim na VM `win10` (sem GPU). Depois, um agente para o tradutor de tela.
+- **Tiling nativo** (`tiling.{hpp,cpp}`, `tiling_layout.{hpp,cpp}`, singleton `Tiling`): dwindle do Hyprland por (desktop virtual, monitor), sem GlazeWM. Desligado por padrão (`windowsPort.tiling` no config, seção "Windows tiling" nas Configurações). Testado: layout abaixo da barra, desligar devolve as janelas ao lugar. **Bug corrigido:** ao ligar com janelas já abertas, todas as divisões saíam lado a lado (boxes vazios na inserção).
+- **Bandeja no Win10:** ícones de apps abertos antes do ii ganham a mensagem de callback pelas toolbars do Explorer ou por `TaskbarCreated` direcionado. A 1024 px a barra do ii esconde a bandeja (upstream), então o clique foi visto só no log. **Bug corrigido:** o gancho reagia a eventos de janela do Explorer (WinEvent de show/foreground) subindo para `HWND_TOPMOST` no meio do processamento da AppBar, e a barra perdia a reserva de espaço; o gancho voltou a se reposicionar só pelo timer de 100 ms. `TaskbarCreated` não vai mais para janelas do Explorer.
+- **Widgets do desktop:** janela própria filha do dono da `SHELLDLL_DefView`, acima dela; a máscara vira a região da janela. Testado: relógio arrastável (com posicionamento "free") e ícones clicáveis.
+- **Tradutor de tela:** o OCR devolve linhas com retângulo e cores; cada parágrafo traduzido aparece no lugar. O fundo congelado é o screenshot (o `ScreencopyView` capturava a própria janela preta). Esc fecha: painéis `OnDemand` pegam o foco 50 ms depois de aparecer, como no Hyprland.
+- **Conhost:** o profile troca a fonte da janela para JetBrainsMono NF, põe as 16 cores do ii na paleta (com fundo e texto do OSC 10/11 nos slots que o conhost usa como padrão), encaixa a janela na área útil e a deixa translúcida se a transparência do ii estiver ligada. Ícones do Oh My Posh trocados por equivalentes do plano 0. O magenta escuro fica invisível no próprio Windows PowerShell (divide o slot 5 com o fundo).
+- **Crash do `VirtualDesktopAccessor.dll` do Win10** (`GetCurrentDesktopNumber` lendo nulo): chamadas protegidas por SEH; em falha, `RestartVirtualDesktopAccessor` uma vez por minuto, senão registro + atalhos.
+- **Instância única:** atalhos, Run e lançamentos do setup usam `-n` (`--no-duplicate`).
+- **Tema:** o `MaterialThemeLoader` tenta de novo quando lê o `colors.json` pela metade; o tema do terminal decide claro/escuro pelo próprio arquivo.
+- **Rótulo:** "Swap" virou "WinPageFile" no Windows.
+- **Comentários:** saíram do código; as explicações ficam em `notes/comments.md`, só local.
