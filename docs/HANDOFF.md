@@ -149,3 +149,17 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Capa do álbum (achado no bare metal):** o `PlayerControl` copiava com `curl.exe` a capa que o backend já grava como `file:///`, e o cache do backend fixava "sem capa" para a faixa quando a capa chegava depois do título. As duas coisas foram corrigidas, e o worker relê as propriedades enquanto o título vier vazio. O Media Player do Windows 10 às vezes nunca publica o título (só a capa).
 - **Bare metal do usuário:** pastas Área de Trabalho/Documentos/Imagens ficaram apontando para `OneDrive` depois que o WinUtil removeu o OneDrive (erro 362 no perfil do PowerShell). Problema da instalação; o setup ainda não detecta isso.
 - **Comentários:** saíram do código; as explicações ficam em `notes/comments.md`, só local.
+
+## Próxima release (combinado em 2026-10-05)
+
+- Testado pelo usuário no bare metal: **Wi-Fi e Bluetooth funcionam** (README já atualizado, falta publicar).
+- **Clima:** `Weather.getData()` saía logo no Windows, então os widgets de clima nunca carregavam. Corrigido com `XMLHttpRequest` para o wttr.in (commit local no `windows` do ii, **não testado**: as VMs estavam desligadas).
+- A fazer, combinado como lista da próxima release:
+  - visualizador de áudio do controle de mídia sem `cava` (loopback WASAPI + FFT);
+  - seletor de cor (o `hyprpicker`) nativo;
+  - detecção de janelas no recorte de tela sem OpenCV (retângulos do tracker);
+  - aviso antes de desligar (winget instalando);
+  - game mode e Cloudflare WARP (`warp-cli` existe no Windows);
+  - setup detectar Documentos/Área de Trabalho/Imagens apontando para um OneDrive removido;
+  - atualizar o `docs/PORTING.md`, que ainda marca coisas prontas como "todo".
+

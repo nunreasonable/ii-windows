@@ -72,7 +72,8 @@
   - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, and the setup (install, update, self-update, repair, uninstall)
   - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, and the setup with Windows Terminal, the terminal tools and FFmpeg
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
-  - **Built on Windows' own APIs but barely tested**: audio, media controls, Bluetooth, Wi-Fi, battery, laptop brightness and music recognition (the VMs have no Bluetooth, Wi-Fi, battery or laptop screen, and no song was played to recognize)
+  - **Tested on real hardware**: Wi-Fi and Bluetooth
+  - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize)
   - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects and WARP toggles
 
 </details>
