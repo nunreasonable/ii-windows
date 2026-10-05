@@ -693,6 +693,30 @@
 		showPage("welcome");
 		if (page && actionAllowed(page)) setTimeout(() => showPage("readme"), 450);
 		requestAnimationFrame(() => invoke("ready"));
+		checkLatest();
+	}
+
+	// Every time it opens, the setup looks for the latest release on GitHub; when its own version
+	// is older, it fetches the newer setup and reopens with it. Without network it just goes on.
+	async function checkLatest() {
+		let latest;
+		try {
+			latest = await invoke("check_latest");
+		} catch (e) {
+			return;
+		}
+		if (!latest || !latest.setup_newer) return;
+		const note = $("#welcome-note");
+		const next = $("#welcome-next");
+		const wasDisabled = next.disabled;
+		next.disabled = true;
+		note.textContent = t("self_updating", { version: latest.version });
+		try {
+			await invoke("self_update");
+		} catch (e) {
+			note.textContent = t("self_update_failed", { error: String(e) });
+			next.disabled = wasDisabled;
+		}
 	}
 
 	init().catch((e) => {

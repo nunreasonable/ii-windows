@@ -10,7 +10,7 @@ use iiw_setup_core::manifest::{Manifest, Options};
 use iiw_setup_core::ops::{self, Action, Ctx, Preflight, RunOptions, Source};
 use iiw_setup_core::paths::Paths;
 use iiw_setup_core::progress::{Event, Msg, Reporter};
-use iiw_setup_core::{package, readme, win, SETUP_EXE};
+use iiw_setup_core::{package, readme, release, version, win, SETUP_EXE};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -26,6 +26,9 @@ struct Args {
 	relaunched: bool,
 	session: Option<PathBuf>,
 	origin: Option<PathBuf>,
+	/// Started by an older setup that updated itself: wait for it to exit first.
+	after: Option<u32>,
+	no_self_update: bool,
 }
 
 fn parse_args() -> Args {
@@ -50,6 +53,8 @@ fn parse_args() -> Args {
 			"--relaunched" => a.relaunched = true,
 			"--session" => a.session = it.next().map(PathBuf::from),
 			"--origin" => a.origin = it.next().map(PathBuf::from),
+			"--after" => a.after = it.next().and_then(|p| p.to_string_lossy().parse().ok()),
+			"--no-self-update" => a.no_self_update = true,
 			_ => {}
 		}
 	}
@@ -92,6 +97,8 @@ struct AppState {
 	cancel: Arc<AtomicBool>,
 	sources: Mutex<Vec<(Action, Source)>>,
 	lang_pt: bool,
+	/// The latest release, as check_latest found it.
+	latest: Mutex<Option<release::ReleaseInfo>>,
 }
 
 #[derive(Serialize)]
@@ -206,16 +213,79 @@ async fn preflight(
 	.map_err(|e| e.to_string())
 }
 
+#[derive(Serialize)]
+struct LatestInfo {
+	version: Option<String>,
+	/// A newer setup is on GitHub and this one may replace itself with it.
+	setup_newer: bool,
+	error: Option<String>,
+}
+
+/// Looks up the latest release when the window opens.
+#[tauri::command]
+async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, String> {
+	let found = tauri::async_runtime::spawn_blocking(release::latest).await.map_err(|e| e.to_string())?;
+	let release = match found {
+		Ok(r) => r,
+		Err(e) => return Ok(LatestInfo { version: None, setup_newer: false, error: Some(e.to_string()) }),
+	};
+	// Not when told which package to use (tests, offline installs) or when an update just ran.
+	let may_update = !state.args.no_self_update && state.args.package.is_none();
+	let setup_newer = may_update
+		&& !release.setup_url.is_empty()
+		&& !release.setup_sha256.is_empty()
+		&& version::is_newer(&release.version, SETUP_VERSION);
+	let version = Some(release.version.clone());
+	*state.latest.lock().unwrap() = Some(release);
+	Ok(LatestInfo { version, setup_newer, error: None })
+}
+
+/// Downloads the latest release's setup, checks it against the SHA-256 GitHub publishes for it,
+/// starts it with this run's arguments and closes this one.
+#[tauri::command]
+async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
+	let Some(release) = state.latest.lock().unwrap().clone() else { return Err("no release".into()) };
+	let paths = state.paths.clone();
+	let page = state.args.page.clone();
+	let origin = state.args.origin.clone().or_else(|| state.self_exe.parent().map(Path::to_path_buf));
+	tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+		// Its own session folder, which the new setup deletes when it closes, like a relaunch.
+		let session = new_session_dir(&paths);
+		let exe = session.join(SETUP_EXE);
+		let got = release::download(&release.setup_url, &exe, release.setup_size, &mut |_, _| {}, &|| false)
+			.map_err(|e| e.to_string())?;
+		if !got.eq_ignore_ascii_case(&release.setup_sha256) {
+			let _ = std::fs::remove_dir_all(&session);
+			return Err(format!("the downloaded setup's SHA-256 is {got}, GitHub says {}", release.setup_sha256));
+		}
+		let mut cmd = std::process::Command::new(&exe);
+		if let Some(p) = page {
+			cmd.arg(format!("--{p}"));
+		}
+		cmd.arg("--relaunched").arg("--session").arg(&session).arg("--no-self-update");
+		cmd.arg("--after").arg(std::process::id().to_string());
+		if let Some(dir) = origin {
+			cmd.arg("--origin").arg(dir);
+		}
+		cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
+	})
+	.await
+	.map_err(|e| e.to_string())??;
+	app.exit(0);
+	Ok(())
+}
+
 /// Finds the package for an action (offline, latest release, or the installed version's
 /// release for a repair) and remembers it for `start`.
 #[tauri::command]
 async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Source, Msg> {
 	let offline = state.offline.clone();
+	let explicit = state.args.package.is_some();
 	let want = match action {
 		Action::Repair => Manifest::load(&state.paths.manifest()).ok().flatten().map(|m| m.version),
 		_ => None,
 	};
-	let src = tauri::async_runtime::spawn_blocking(move || ops::resolve_source(offline.as_deref(), want.as_deref()))
+	let src = tauri::async_runtime::spawn_blocking(move || ops::resolve_source(offline.as_deref(), explicit, want.as_deref()))
 		.await
 		.map_err(|e| Msg::new("internal", e.to_string()))??;
 	let mut cache = state.sources.lock().unwrap();
@@ -370,6 +440,11 @@ fn main() {
 		return;
 	}
 
+	// An older setup that just updated itself to this one may not have closed yet.
+	if let Some(pid) = args.after {
+		win::wait_exit(pid, std::time::Duration::from_secs(15));
+	}
+
 	let _instance = match win::single_instance("Local\\ii-windows-setup") {
 		Some(h) => h,
 		None => {
@@ -409,6 +484,7 @@ fn main() {
 		cancel: Arc::new(AtomicBool::new(false)),
 		sources: Mutex::new(Vec::new()),
 		lang_pt: win::ui_language_is_portuguese(),
+		latest: Mutex::new(None),
 	};
 	let webview_data = session.join("webview");
 
@@ -418,6 +494,8 @@ fn main() {
 			info,
 			preflight,
 			source,
+			check_latest,
+			self_update,
 			start,
 			cancel,
 			launch,

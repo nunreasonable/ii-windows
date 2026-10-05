@@ -114,12 +114,21 @@ fn msg_from_winget_release_error(e: &release::Error) -> Msg {
 
 /// The package to use: the offline one if given, else the latest GitHub release (or, for a
 /// repair, the release of `want_version`).
-pub fn resolve_source(offline: Option<&Path>, want_version: Option<&str>) -> R<Source> {
+/// `explicit` is true when the offline package was asked for (--package): it's used as is. A
+/// package that just sits next to the setup gives way to a newer release on GitHub.
+pub fn resolve_source(offline: Option<&Path>, explicit: bool, want_version: Option<&str>) -> R<Source> {
 	if let Some(p) = offline {
 		let info =
 			package::inspect(p).map_err(|e| Msg::new("package_invalid", e.to_string()).with("error", e.to_string()))?;
 		let use_it = want_version.is_none_or(|v| version::same(v, &info.version));
 		if use_it {
+			if !explicit && want_version.is_none() {
+				if let Ok(release) = release::latest() {
+					if version::is_newer(&release.version, &info.version) {
+						return Ok(Source::Github { release });
+					}
+				}
+			}
 			return Ok(Source::Offline { path: p.to_path_buf(), version: info.version, size: info.file_size });
 		}
 	}

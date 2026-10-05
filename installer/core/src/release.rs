@@ -22,6 +22,11 @@ pub struct ReleaseInfo {
 	pub zip_url: String,
 	pub zip_size: u64,
 	pub sha_url: String,
+	/// The release's ii-windows-setup.exe, and the SHA-256 GitHub publishes for it (its asset
+	/// "digest"); empty when the release has none.
+	pub setup_url: String,
+	pub setup_size: u64,
+	pub setup_sha256: String,
 }
 
 #[derive(Debug)]
@@ -109,6 +114,13 @@ pub fn parse_release(json: &serde_json::Value) -> Result<ReleaseInfo, Error> {
 	let url =
 		|a: &serde_json::Value| a.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
 	let version = version::from_package_name(&zip_name).filter(|_| ver.is_empty()).unwrap_or(ver);
+	let setup = find(crate::SETUP_EXE);
+	let setup_sha256 = setup
+		.and_then(|a| a.get("digest"))
+		.and_then(|v| v.as_str())
+		.and_then(|d| d.strip_prefix("sha256:"))
+		.map(str::to_ascii_lowercase)
+		.unwrap_or_default();
 	Ok(ReleaseInfo {
 		version,
 		tag: tag.clone(),
@@ -118,6 +130,9 @@ pub fn parse_release(json: &serde_json::Value) -> Result<ReleaseInfo, Error> {
 		zip_url: url(zip),
 		zip_size: zip.get("size").and_then(|v| v.as_u64()).unwrap_or(0),
 		sha_url: url(sha),
+		setup_url: setup.map(url).unwrap_or_default(),
+		setup_size: setup.and_then(|a| a.get("size")).and_then(|v| v.as_u64()).unwrap_or(0),
+		setup_sha256,
 	})
 }
 
