@@ -11,13 +11,15 @@ administrador, a não ser para o PowerShell 7 opcional.
 
 ## O que é instalado, e onde
 
-- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 240 MB): o Quickshell
+- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 250 MB): o Quickshell
   (`qs.exe`, `qsw.exe`), as bibliotecas do Qt, as fontes e os ícones que o ii usa, o
   `matugen.exe` (gera a paleta de cores a partir do papel de parede) e a
   `VirtualDesktopAccessor.dll` (duas versões: uma para o Windows 11 e uma para o Windows 10, em
   `win10`) e as DLLs do runtime do Microsoft Visual C++ de que o programa precisa
   (`msvcp140*.dll`, `vcruntime140*.dll`), só nessa pasta: nada é instalado nas pastas do próprio
-  Windows. Uma cópia deste instalador também fica lá, junto com o
+  Windows. Também o `songrec.exe` (reconhece músicas, do SongRec) e o `LaTeX.exe` com a pasta
+  `res` (desenha fórmulas no chat de IA, do MicroTeX), com as licenças deles em `licenses`. Uma
+  cópia deste instalador também fica lá, junto com o
   `install-manifest.json` (o registro de tudo que este instalador mudou, usado para desfazer) e o
   `setup.log`.
 - **Os arquivos do próprio ii** vão para `%LOCALAPPDATA%\quickshell\ii`. Eles são substituídos a
@@ -104,6 +106,15 @@ tarefas se oculta automaticamente.
 - **Barra de tarefas:** por padrão a barra de tarefas do Windows fica escondida e aparece quando
   o ponteiro encosta na borda de baixo da tela. Para isso, o ii liga a ocultação automática da
   barra enquanto roda (se ela estava desligada) e a desliga de novo quando fecha.
+- **Bandeja do sistema:** a barra do ii mostra os ícones que os apps põem na área de
+  notificação. Para isso, enquanto roda, o ii põe uma janela escondida na frente da bandeja do
+  Explorer: os apps falam com ela, e ela repassa tudo ao Explorer, cuja bandeja continua
+  funcionando. Quando o ii fecha ou trava, os apps voltam a falar direto com o Explorer. Enquanto
+  o ii roda, ferramentas que ajustam a barra de tarefas procurando-a pela classe da janela podem
+  não encontrá-la.
+- **Fundo da área de trabalho:** o papel de parede do ii e os widgets dele (relógio, clima) ficam
+  dentro da área de trabalho do Windows, atrás dos ícones, em vez de numa janela própria
+  (Configurações > Fundo desliga isso). A pasta e os ícones da sua área de trabalho não mudam.
 - **Papel de parede e cores:** na primeira vez que abre, o ii usa o papel de parede atual do
   Windows sem mudá-lo. Quando você escolhe um papel de parede ou alterna entre claro e escuro no
   ii, ele aplica o mesmo no Windows: o papel de parede da área de trabalho e o modo claro/escuro
@@ -120,6 +131,17 @@ tarefas se oculta automaticamente.
   as imagens copiadas são salvas em `%LOCALAPPDATA%\cache\quickshell\clipboard` e apagadas
   quando o ii fecha. O que os apps marcam para ficar fora do histórico (como senhas de
   gerenciadores de senha) não entra.
+- **Gravação de tela:** o ii grava com a captura de tela e o codificador de vídeo do próprio
+  Windows (Media Foundation), na sua pasta Vídeos ou no caminho que você escolher; nenhum programa
+  extra é necessário. "Com som" grava o que sai nos alto-falantes, não o microfone. No Windows 10,
+  o Windows desenha uma borda amarela em volta do que está sendo capturado.
+- **Tradução:** o tradutor da barra lateral esquerda do ii (desligado até você ligar nas
+  Configurações) e o tradutor de tela mandam o texto a traduzir para o serviço gratuito de tradução
+  do Google (translate.googleapis.com). O tradutor de tela primeiro lê o texto da tela com o
+  reconhecimento de texto do próprio Windows, no computador.
+- **Reconhecimento de música:** quando você liga, o ii grava alguns segundos do que sai nos
+  alto-falantes (ou do microfone, se você escolher) e manda uma impressão digital do áudio para os
+  servidores do Shazam para identificar a música, como o SongRec faz no Linux.
 - **Chaves de API:** se você salvar uma chave de API no painel de IA do ii, ela fica no
   Gerenciador de Credenciais do Windows, numa credencial chamada `illogical-impulse`.
 - **Notificações:** o ii lê as notificações que o Windows mostra (pelo acesso a notificações que
@@ -186,6 +208,11 @@ arquivos do programa e os arquivos do próprio ii, mantém as suas configuraçõ
 - É preciso o Windows 10 versão 2004 ou mais nova (build 19041; 22H2, build 19045, recomendada)
   ou o Windows 11 (build 22000 ou mais nova). O winget (Instalador de Aplicativo) é necessário
   para as ferramentas de terminal e para o FFmpeg.
+- Toda vez que abre, o instalador procura o último release no GitHub. Se ele mesmo for mais
+  velho, baixa o instalador mais novo desse release, confere com o SHA-256 que o GitHub publica
+  para ele e reabre com ele (não quando aberto com `--package`). Um pacote ao lado do instalador
+  mais velho que o último release é deixado de lado pelo mais novo. Sem internet, ele segue com o
+  que tem.
 - O log do instalador é `%LOCALAPPDATA%\ii-windows\setup.log`. Enquanto roda, o instalador
   guarda os arquivos temporários dele (o download, os dados de navegador da janela) em
   `%TEMP%\ii-windows-setup-...` e os apaga alguns segundos depois de fechar.
@@ -256,5 +283,10 @@ O próprio ii também muda um pouco no Windows 10:
   Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da Microsoft), as fontes
   JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk e Google Sans Flex (SIL Open Font
   License), Material Symbols (Apache-2.0) e os ícones Adwaita (CC-BY-SA 3.0 / LGPL-3.0).
+- `songrec.exe`: o reconhecedor do SongRec (GPL-3.0 ou posterior). O código-fonte é o SongRec
+  0.7.5 ([github.com/marin-m/SongRec](https://github.com/marin-m/SongRec)) mais a interface de
+  linha de comando para Windows em `tools/songrec` deste projeto.
+- `LaTeX.exe`: MicroTeX (MIT), com o tinyxml2 (zlib) e as fontes em `res` sob as licenças delas
+  (algumas GPL-3.0), todas em `licenses\microtex`.
 - Este instalador é feito com o Tauri (MIT / Apache-2.0) e mostra o texto na fonte Rubik (SIL
   Open Font License).

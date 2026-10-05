@@ -11,12 +11,14 @@ except for the optional PowerShell 7.
 
 ## What gets installed, and where
 
-- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 240 MB): Quickshell (`qs.exe`,
+- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 250 MB): Quickshell (`qs.exe`,
   `qsw.exe`), the Qt libraries, the fonts and icons ii uses, `matugen.exe` (makes the color
   palette from your wallpaper), `VirtualDesktopAccessor.dll` (two builds: one for Windows 11,
   one for Windows 10 in `win10`) and the Microsoft Visual C++ runtime DLLs the program needs
   (`msvcp140*.dll`, `vcruntime140*.dll`), kept in that folder only: nothing is installed in
-  Windows' own folders. A copy of this setup is kept
+  Windows' own folders. Also `songrec.exe` (recognizes music, from SongRec) and `LaTeX.exe` with
+  its `res` folder (draws formulas in the AI chat, from MicroTeX), with their licenses in
+  `licenses`. A copy of this setup is kept
   there too, plus `install-manifest.json` (the record of everything this setup changed, used to
   undo it) and `setup.log`.
 - **ii's own files** go to `%LOCALAPPDATA%\quickshell\ii`. They are replaced on every install,
@@ -98,6 +100,14 @@ light or dark mode, the accent color and whether the taskbar hides automatically
 - **Taskbar:** by default the Windows taskbar is hidden and shows up when the pointer touches
   the bottom of the screen. For that, ii turns on the taskbar's auto-hide while it runs (if it
   was off) and turns it back off when it closes.
+- **System tray:** ii's bar shows the icons apps put in the notification area. For that, while ii
+  runs, it puts a hidden window in front of Explorer's tray: apps talk to it, and it passes
+  everything on to Explorer, whose own tray keeps working. When ii closes or crashes, apps talk to
+  Explorer directly again. While ii runs, taskbar tweaking tools that look for the taskbar by its
+  window class may not find it.
+- **Desktop background:** ii's wallpaper and its widgets (clock, weather) are placed inside the
+  Windows desktop, behind your desktop icons, instead of being a window of their own (Settings >
+  Background can switch this off). Your desktop folder and icons aren't changed.
 - **Wallpaper and colors:** on its first start ii uses your current Windows wallpaper without
   changing it. When you pick a wallpaper or switch light/dark mode in ii, it sets the same in
   Windows: the desktop wallpaper and Windows' light/dark mode. The Windows **accent color** ii
@@ -112,6 +122,17 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   of Windows' own history. Text stays in memory only and is gone when ii closes; copied images
   are saved in `%LOCALAPPDATA%\cache\quickshell\clipboard` and deleted when ii closes. What apps
   mark to be left out of clipboard history (like passwords from password managers) isn't kept.
+- **Screen recording:** ii records with Windows' own screen capture and video encoder (Media
+  Foundation) into your Videos folder, or the save path you set; no extra program is needed. "With
+  sound" records what your speakers play, not the microphone. On Windows 10, Windows draws a
+  yellow border around what is being captured.
+- **Translation:** the translator in ii's left sidebar (off until you turn it on in Settings) and
+  the screen translator send the text to translate to Google's free translation service
+  (translate.googleapis.com). The screen translator first reads the text on screen with Windows'
+  own on-device text recognition.
+- **Music recognition:** when you turn it on, ii records a few seconds of what your speakers play
+  (or the microphone, if you choose it) and sends an audio fingerprint to Shazam's servers to
+  identify the song, like SongRec does on Linux.
 - **API keys:** if you save an API key in ii's AI panel, it is kept in Windows Credential
   Manager, in a credential called `illogical-impulse`.
 - **Notifications:** ii reads the notifications Windows shows (through the notification access
@@ -173,6 +194,11 @@ replaces the program files and ii's own files, keeps your settings, and restarts
 - You need Windows 10 version 2004 or newer (build 19041; 22H2, build 19045, recommended) or
   Windows 11 (build 22000 or newer). winget (App Installer) is needed for the terminal tools and
   for FFmpeg.
+- Every time it opens, the setup looks for the latest release on GitHub. If the setup itself is
+  older, it downloads the newer setup from that release, checks it against the SHA-256 GitHub
+  publishes for it, and reopens with it (not when started with `--package`). A package sitting
+  next to the setup that is older than the latest release is skipped for the newer one. Without
+  network it carries on with what it has.
 - The setup's log is `%LOCALAPPDATA%\ii-windows\setup.log`. While it runs, the setup keeps its
   temporary files (the download, its window's browser data) in `%TEMP%\ii-windows-setup-...`
   and deletes them a few seconds after it closes.
@@ -238,5 +264,10 @@ ii itself also differs a little on Windows 10:
   files under Microsoft's license terms), the fonts JetBrainsMono Nerd Font, Rubik, Readex Pro,
   Space Grotesk and Google Sans Flex (SIL Open Font License), Material Symbols (Apache-2.0) and
   Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
+- `songrec.exe`: SongRec's recognizer (GPL-3.0-or-later). Its source is SongRec 0.7.5
+  ([github.com/marin-m/SongRec](https://github.com/marin-m/SongRec)) plus the Windows front end
+  in this project's `tools/songrec`.
+- `LaTeX.exe`: MicroTeX (MIT), with tinyxml2 (zlib) and the fonts in `res` under their own
+  licenses (some GPL-3.0), all in `licenses\microtex`.
 - This setup is built with Tauri (MIT / Apache-2.0) and shows text in Rubik (SIL Open Font
   License).
