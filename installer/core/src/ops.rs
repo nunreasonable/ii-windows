@@ -987,8 +987,8 @@ fn remove_fonts(ctx: &mut Ctx, m: &mut Manifest, step: &str) -> Vec<PathBuf> {
 }
 
 /// Should this run try to install winget itself first? Only on Windows 10 (winget isn't built
-/// into it) when it isn't there yet, the "Terminal setup" option is on, and the user didn't turn
-/// the "Install winget" toggle off.
+/// into it) when it isn't there yet, the "Terminal setup" or "Install FFmpeg" option is on, and
+/// the user didn't turn the "Install winget" toggle off.
 fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
 	(opts.terminal || opts.ffmpeg)
 		&& run.install_winget
@@ -997,10 +997,11 @@ fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
 }
 
 /// Downloads the latest microsoft/winget-cli release and installs it (App Installer) for the
-/// current user, before the terminal tools step that needs winget. Any failure here (network, a
-/// missing asset, a bad checksum, Add-AppxPackage) is only a warning: `install_tools` runs right
-/// after this regardless, finds winget still missing, warns again and skips the terminal tools
-/// exactly as it does today without this step. Nothing here fails the whole install.
+/// current user, before the terminal tools and/or FFmpeg steps that need winget. Any failure
+/// here (network, a missing asset, a bad checksum, Add-AppxPackage) is only a warning:
+/// `install_tools`/`install_ffmpeg` run right after this regardless, find winget still missing,
+/// warn again and skip the terminal tools/FFmpeg exactly as they do today without this step.
+/// Nothing here fails the whole install.
 fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
 	ctx.begin("winget");
 	let dir = ctx.scratch.join("winget");
