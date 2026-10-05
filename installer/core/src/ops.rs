@@ -1,6 +1,3 @@
-//! Install, update, repair and uninstall, step by step. Every change goes into the manifest as
-//! soon as it's made, so an interrupted run can still be undone.
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -19,7 +16,6 @@ use crate::{appinstaller, profile, ttf, version, win};
 
 type R<T> = Result<T, Msg>;
 
-/// Entries of the install dir that belong to the installer, not to the package.
 const KEEP: [&str; 6] =
 	[crate::MANIFEST, crate::LOG, "restore", "backup", crate::SETUP_EXE, "install-manifest.json.tmp"];
 
@@ -37,24 +33,15 @@ pub enum Action {
 pub struct RunOptions {
 	pub options: Options,
 	pub launch: bool,
-	/// Install/Repair, when the "Terminal setup" option is on: on Windows 10, if winget isn't
-	/// there yet, download and install it (App Installer) first, before the terminal tools step.
-	/// Ignored when winget is already there, or this is Windows 11.
 	pub install_winget: bool,
-	/// Uninstall: winget-uninstall the terminal tools this installer installed.
 	pub remove_tools: bool,
-	/// Uninstall: also PowerShell 7, if this installer installed it.
 	pub remove_pwsh7: bool,
-	/// Uninstall: also FFmpeg, if this installer installed it.
 	pub remove_ffmpeg: bool,
 	pub keep_settings: bool,
-	/// Uninstall: put back the wallpaper, light/dark mode, accent color and taskbar auto-hide.
 	pub restore_look: bool,
-	/// Update: reinstall even when the release isn't newer.
 	pub force: bool,
 }
 
-/// Where the package comes from.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Source {
@@ -94,8 +81,6 @@ pub fn msg_from_release_error(e: &release::Error) -> Msg {
 	}
 }
 
-/// Like `msg_from_release_error`, worded for the winget-cli release this setup downloads App
-/// Installer from, not the ii-windows one.
 fn msg_from_winget_release_error(e: &release::Error) -> Msg {
 	match e {
 		release::Error::NotFound => Msg::new("winget_no_release", "No winget-cli release was found on GitHub"),
@@ -112,10 +97,6 @@ fn msg_from_winget_release_error(e: &release::Error) -> Msg {
 	}
 }
 
-/// The package to use: the offline one if given, else the latest GitHub release (or, for a
-/// repair, the release of `want_version`).
-/// `explicit` is true when the offline package was asked for (--package): it's used as is. A
-/// package that just sits next to the setup gives way to a newer release on GitHub.
 pub fn resolve_source(offline: Option<&Path>, explicit: bool, want_version: Option<&str>) -> R<Source> {
 	if let Some(p) = offline {
 		let info =
@@ -139,15 +120,11 @@ pub fn resolve_source(offline: Option<&Path>, explicit: bool, want_version: Opti
 	rel.map(|release| Source::Github { release }).map_err(|e| msg_from_release_error(&e))
 }
 
-// ---------------------------------------------------------------------------------------------
-
 pub struct Ctx<'a> {
 	pub paths: Paths,
 	pub reporter: &'a dyn Reporter,
 	pub log: &'a Log,
-	/// This run's temp folder (downloads, wallpaper copies); deleted when the setup exits.
 	pub scratch: PathBuf,
-	/// The running setup exe (copied into the install dir).
 	pub self_exe: PathBuf,
 	pub setup_version: String,
 	warnings: Vec<Msg>,
@@ -225,8 +202,6 @@ impl<'a> Ctx<'a> {
 	fn finish(&mut self, result: R<()>, can_launch: bool) -> bool {
 		let ok = result.is_ok();
 		if self.log.path().is_none() {
-			// Nothing was installed (the run failed before the install dir existed): keep the
-			// log in the temp folder instead.
 			let p = self.paths.temp.join(format!("ii-windows-setup-{}.log", log::stamp()));
 			self.log.open(&p);
 			self.notes.push(
@@ -261,13 +236,9 @@ fn mb(bytes: u64) -> String {
 	}
 }
 
-// ---------------------------------------------------------------------------------------------
-// Preflight (read-only)
-
 #[derive(Debug, Clone, Serialize)]
 pub struct Check {
 	pub id: String,
-	/// "ok", "info", "warn" or "error" (error blocks the action).
 	pub level: String,
 	pub msg: Msg,
 }
@@ -277,11 +248,8 @@ pub struct Preflight {
 	pub checks: Vec<Check>,
 	pub windows_build: u32,
 	pub winget: bool,
-	/// `wt.exe` reachable on PATH. Windows 11 normally has it already; Windows 10 may not, in
-	/// which case the "Terminal setup" option also installs it.
 	pub windows_terminal_present: bool,
 	pub pwsh: Option<PathBuf>,
-	/// `ffmpeg.exe` reachable on PATH (winget or otherwise).
 	pub ffmpeg_present: Option<PathBuf>,
 	pub exec_policy_current_user: Option<String>,
 	pub exec_policy_effective: Option<String>,
@@ -300,8 +268,6 @@ pub fn ii_processes(paths: &Paths) -> (Vec<win::Proc>, Vec<win::Proc>) {
 	all.into_iter().partition(|p| win::path_in(&p.path, &paths.install_dir))
 }
 
-/// What the options page shows before anything runs. `needed` is the disk space the action
-/// needs on the %LOCALAPPDATA% volume.
 pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffmpeg: bool) -> Preflight {
 	let mut checks = Vec::new();
 	let (build, display) = win::windows_build();
@@ -447,10 +413,6 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffm
 	}
 }
 
-// ---------------------------------------------------------------------------------------------
-// Shared steps
-
-/// Downloads/verifies (or checks the offline package) and inspects it.
 fn obtain_package(ctx: &mut Ctx, source: &Source) -> R<PackageInfo> {
 	match source {
 		Source::Offline { path, .. } => {
@@ -552,9 +514,6 @@ fn obtain_package(ctx: &mut Ctx, source: &Source) -> R<PackageInfo> {
 	}
 }
 
-/// Closes ii if it runs from the install dir: politely through `qs kill` (so it restores the
-/// taskbar on its way out), then forcibly if it doesn't exit. Nothing else is touched.
-/// Returns whether anything was running.
 fn stop_ii(ctx: &mut Ctx, manifest: Option<&Manifest>) -> bool {
 	ctx.begin("stop");
 	let (mine, _) = ii_processes(&ctx.paths);
@@ -580,8 +539,6 @@ fn stop_ii(ctx: &mut Ctx, manifest: Option<&Manifest>) -> bool {
 		}
 	}
 	if forced {
-		// ii didn't get to undo its hover-only taskbar: show the taskbars and, if ii is the one
-		// that turned auto-hide on, turn it back off.
 		win::show_taskbars();
 		if let Some(pre) = manifest.and_then(|m| m.pre_install.as_ref()) {
 			if pre.taskbar_autohide == Some(false) && win::taskbar_autohide() == Some(true) {
@@ -631,8 +588,6 @@ fn record_pre_install(ctx: &mut Ctx) -> PreInstall {
 	pre
 }
 
-/// Unpacks the package and swaps it into the install dir. The returned Swap is committed by
-/// the caller once the config is in place too.
 fn install_files(ctx: &mut Ctx, pkg: &PackageInfo) -> R<Swap> {
 	ctx.begin("files");
 	let staging = ctx.paths.staging();
@@ -675,7 +630,6 @@ fn install_files(ctx: &mut Ctx, pkg: &PackageInfo) -> R<Swap> {
 		ctx.fail("files", &m);
 		m
 	})?;
-	// Dev-only folders a package might carry; never part of an install.
 	let _ = fsops::remove_any(&staging.join("testconfigs"));
 	for script in ["install.ps1", "uninstall.ps1"] {
 		let _ = fsops::remove_any(&staging.join(script));
@@ -697,8 +651,6 @@ fn install_files(ctx: &mut Ctx, pkg: &PackageInfo) -> R<Swap> {
 	Ok(swap)
 }
 
-/// The ii config (`%LOCALAPPDATA%\quickshell\ii`) replaced by the package's `config\ii`; the
-/// old copy stays aside until the run commits.
 struct ConfigSwap {
 	old: Option<PathBuf>,
 }
@@ -729,8 +681,6 @@ fn install_config(ctx: &mut Ctx) -> R<ConfigSwap> {
 	fsops::copy_dir(&src, &fresh).map_err(|e| fail(ctx, e.to_string()))?;
 	let had_old = live.exists();
 	if had_old && fsops::rename_retry(&live, &old).is_err() {
-		// Something holds the folder open (a terminal in it, another Quickshell watching it):
-		// keep a copy for rollback and update it in place instead.
 		ctx.info("   ii config folder is in use; updating it in place");
 		fsops::copy_dir(&live, &old).map_err(|e| fail(ctx, e.to_string()))?;
 		if let Err(e) = fsops::mirror_dir(&fresh, &live, &[]) {
@@ -862,8 +812,6 @@ fn set_autostart(ctx: &mut Ctx, m: &mut Manifest, on: bool) {
 		let current = win::get_string(win::RUN_KEY, name);
 		let wanted = run_command(&ctx.paths);
 		if m.items.run_value.is_none() {
-			// A value pointing into our own install dir is a leftover of an earlier install,
-			// not something of the user's to put back later.
 			let previous =
 				current.filter(|v| !v.to_lowercase().contains(&ctx.paths.install_dir.to_string_lossy().to_lowercase()));
 			m.items.run_value = Some(RunValue { name: name.into(), previous, set: false });
@@ -893,8 +841,6 @@ fn set_autostart(ctx: &mut Ctx, m: &mut Manifest, on: bool) {
 		ctx.skip("autostart", Msg::new("autostart_not_set", "not starting with Windows"));
 	}
 }
-
-// --- Terminal ---------------------------------------------------------------------------------
 
 fn package_fonts(p: &Paths) -> Vec<PathBuf> {
 	let mut v: Vec<PathBuf> = std::fs::read_dir(p.install_dir.join("fonts"))
@@ -995,9 +941,6 @@ fn remove_fonts(ctx: &mut Ctx, m: &mut Manifest, step: &str) -> Vec<PathBuf> {
 	leftover
 }
 
-/// Should this run try to install winget itself first? Only on Windows 10 (winget isn't built
-/// into it) when it isn't there yet, the "Terminal setup" or "Install FFmpeg" option is on, and
-/// the user didn't turn the "Install winget" toggle off.
 fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
 	(opts.terminal || opts.ffmpeg)
 		&& run.install_winget
@@ -1005,12 +948,6 @@ fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
 		&& (19041..22000).contains(&win::windows_build().0)
 }
 
-/// Downloads the latest microsoft/winget-cli release and installs it (App Installer) for the
-/// current user, before the terminal tools and/or FFmpeg steps that need winget. Any failure
-/// here (network, a missing asset, a bad checksum, Add-AppxPackage) is only a warning:
-/// `install_tools`/`install_ffmpeg` run right after this regardless, find winget still missing,
-/// warn again and skip the terminal tools/FFmpeg exactly as they do today without this step.
-/// Nothing here fails the whole install.
 fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
 	ctx.begin("winget");
 	let dir = ctx.scratch.join("winget");
@@ -1235,10 +1172,6 @@ fn install_pwsh7(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 }
 
-/// FFmpeg is optional and standalone (not part of "Terminal setup"): ii is getting a native
-/// recorder, so this is only a fallback recorder and a convenience `ffmpeg`/`ffprobe` CLI.
-/// Gyan.FFmpeg has no declared Scope (it's a `zip`/`portable` installer, the same shape as the
-/// eza package above), so `--scope user` installs it per user like the rest of TERMINAL_TOOLS.
 fn install_ffmpeg(ctx: &mut Ctx, m: &mut Manifest) {
 	ctx.begin("ffmpeg");
 	let Some(winget) = win::winget_exe() else {
@@ -1405,7 +1338,6 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 }
 
-/// Takes the marked block out of every profile the manifest knows. Returns backup copies made.
 fn remove_profile_blocks(ctx: &mut Ctx, m: &mut Manifest, step: &str, backup_root: &Path) {
 	let records = std::mem::take(&mut m.items.profiles);
 	if records.is_empty() {
@@ -1436,7 +1368,7 @@ fn remove_profile_blocks(ctx: &mut Ctx, m: &mut Manifest, step: &str, backup_roo
 				let res = if rec.created_file && profile::is_blank(&new) {
 					fsops::remove_any(&path).map(|_| {
 						if let Some(d) = &rec.created_dir {
-							let _ = std::fs::remove_dir(d); // only if empty
+							let _ = std::fs::remove_dir(d);
 						}
 					})
 				} else {
@@ -1530,8 +1462,6 @@ pub fn launch_ii(paths: &Paths) -> std::io::Result<u32> {
 	win::spawn_detached(&paths.qsw_exe(), &["-n", "-c", "ii"], &paths.install_dir)
 }
 
-/// Program files + config, with rollback if the config part fails. On a fresh install that
-/// fails, everything the run created goes away again.
 fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
 	let mut swap = match install_files(ctx, pkg) {
 		Ok(s) => s,
@@ -1641,9 +1571,6 @@ fn source_steps(source: &Source) -> Vec<&'static str> {
 		Source::Github { .. } => vec!["download", "verify"],
 	}
 }
-
-// ---------------------------------------------------------------------------------------------
-// The four actions
 
 pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 	let existing = Manifest::load(&ctx.paths.manifest()).ok().flatten();
@@ -1842,8 +1769,6 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 	ctx.finish(result, !run.launch)
 }
 
-/// Files that couldn't be deleted now (a font a running program holds): deleted by a hidden
-/// cmd.exe a few seconds after the setup closes, together with the setup's temp folder.
 fn schedule_leftovers(ctx: &mut Ctx, files: &[PathBuf]) {
 	if files.is_empty() {
 		return;
@@ -1886,7 +1811,6 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 	}
 	plan.extend(["ii_data", "files"]);
 	ctx.plan(&plan);
-	// The install dir (and setup.log in it) is about to go: this run logs to the temp folder.
 	let log_path = ctx.paths.temp.join(format!("ii-windows-uninstall-{}.log", log::stamp()));
 	ctx.log.open(&log_path);
 	ctx.info(format!("ii-windows setup {} - uninstall {} ({:?})", ctx.setup_version, m.version, run));
@@ -1905,8 +1829,6 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 			}
 		}
 		if let Some(key) = m.items.uninstall_key.clone() {
-			// Removed last, with the files; until then a failed uninstall can be retried from
-			// Apps & features.
 			ctx.info(format!("   Apps & features entry {key} is removed at the end"));
 		}
 		save(ctx, &m);
@@ -1989,8 +1911,6 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 					ctx.progress("tools", 1.0, None);
 				}
 			}
-			// After the winget tools (winget itself still needs to be there for those): remove
-			// App Installer last, only if this setup installed it.
 			if run.remove_tools && app_installer_ours {
 				ctx.info(format!("   Get-AppxPackage -Name {} | Remove-AppxPackage", crate::APP_INSTALLER_NAME));
 				match win::remove_appx_package(crate::APP_INSTALLER_NAME) {
@@ -2086,8 +2006,6 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 				}
 			}
 		}
-		// %LOCALAPPDATA%\quickshell itself only if nothing else (another Quickshell config) is
-		// left in it.
 		if std::fs::read_dir(&ctx.paths.quickshell).is_ok_and(|mut rd| rd.next().is_none()) {
 			let _ = std::fs::remove_dir(&ctx.paths.quickshell);
 		}
@@ -2096,7 +2014,6 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		{
 			let _ = std::fs::remove_dir(ctx.paths.generic_cache());
 		}
-		// The AI sidebar's API keys (KeyringStorage.qml), a generic credential.
 		if !run.keep_settings {
 			match win::delete_generic_credential(crate::CREDENTIAL_TARGET) {
 				Ok(true) => ctx.info(format!("   removed the {} credential", crate::CREDENTIAL_TARGET)),
@@ -2151,7 +2068,6 @@ fn restore_look(ctx: &mut Ctx, m: &Manifest) {
 		ctx.skip("restore", Msg::new("nothing_recorded", "nothing was recorded at install time"));
 		return;
 	};
-	// Taskbar first: ii is closed now, so whatever it is now is what Windows will keep.
 	win::show_taskbars();
 	if let Some(autohide) = pre.taskbar_autohide {
 		if win::taskbar_autohide() != Some(autohide) {
@@ -2206,8 +2122,6 @@ fn restore_look(ctx: &mut Ctx, m: &Manifest) {
 	}
 }
 
-/// Run by the app when its window closes: deletes this run's temp folder (and any file listed
-/// for deletion) from a hidden cmd.exe once the setup and WebView2 have exited.
 pub fn schedule_cleanup(scratch: &Path, extra_dirs: &[PathBuf]) {
 	let mut targets: Vec<String> = Vec::new();
 	if let Ok(text) = std::fs::read_to_string(scratch.join("delete-after-exit.txt")) {
@@ -2220,7 +2134,6 @@ pub fn schedule_cleanup(scratch: &Path, extra_dirs: &[PathBuf]) {
 	}
 	let body = targets.join(" & ");
 	let check = format!("if not exist \"{}\" exit", scratch.display());
-	// Up to ~20 s: WebView2's processes let go of their data folder a moment after we exit.
 	let line = format!("for /l %i in (1,1,10) do (ping -n 3 127.0.0.1 >nul & {body} & {check})");
 	let _ = win::spawn_cmd_raw(&line);
 }

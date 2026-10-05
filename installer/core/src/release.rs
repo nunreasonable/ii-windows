@@ -1,6 +1,3 @@
-//! GitHub releases of nunreasonable/ii-windows: find the package for a version, download it and
-//! check it against its published SHA-256.
-
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
@@ -22,8 +19,6 @@ pub struct ReleaseInfo {
 	pub zip_url: String,
 	pub zip_size: u64,
 	pub sha_url: String,
-	/// The release's ii-windows-setup.exe, and the SHA-256 GitHub publishes for it (its asset
-	/// "digest"); empty when the release has none.
 	pub setup_url: String,
 	pub setup_size: u64,
 	pub setup_sha256: String,
@@ -31,10 +26,8 @@ pub struct ReleaseInfo {
 
 #[derive(Debug)]
 pub enum Error {
-	/// No such release (404), e.g. nothing published yet.
 	NotFound,
 	Network(String),
-	/// The release exists but doesn't carry a package + .sha256 pair.
 	NoPackage(String),
 	Integrity(String),
 	Io(std::io::Error),
@@ -95,7 +88,6 @@ fn get_json(url: &str) -> Result<serde_json::Value, Error> {
 	serde_json::from_str(&body).map_err(|e| Error::Network(format!("bad JSON from GitHub: {e}")))
 }
 
-/// Picks the package and its checksum out of a release object of the GitHub REST API.
 pub fn parse_release(json: &serde_json::Value) -> Result<ReleaseInfo, Error> {
 	let tag = json.get("tag_name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
 	let ver = version::normalize(&tag);
@@ -104,7 +96,6 @@ pub fn parse_release(json: &serde_json::Value) -> Result<ReleaseInfo, Error> {
 		assets.iter().find(|a| a.get("name").and_then(|n| n.as_str()).is_some_and(|n| n.eq_ignore_ascii_case(name)))
 	};
 	let wanted = format!("ii-windows-{ver}.zip");
-	// The exact name first; else any ii-windows-<version>.zip (tags and file names could drift).
 	let zip = find(&wanted).or_else(|| {
 		assets.iter().find(|a| a.get("name").and_then(|n| n.as_str()).and_then(version::from_package_name).is_some())
 	});
@@ -136,8 +127,6 @@ pub fn parse_release(json: &serde_json::Value) -> Result<ReleaseInfo, Error> {
 	})
 }
 
-/// Testing hook: a URL of a JSON document shaped like GitHub's release object, used instead of
-/// the GitHub API (for trying the download path before a release exists, or against a mirror).
 pub const RELEASE_JSON_ENV: &str = "IIW_SETUP_RELEASE_JSON";
 
 fn override_release() -> Option<Result<ReleaseInfo, Error>> {
@@ -145,14 +134,10 @@ fn override_release() -> Option<Result<ReleaseInfo, Error>> {
 	Some(get_json(url.trim()).and_then(|j| parse_release(&j)))
 }
 
-/// The "latest" (non-draft, non-prerelease) release JSON of any repo on GitHub. Pulled out of
-/// `latest()` so other lookups (e.g. microsoft/winget-cli, in `appinstaller.rs`) can reuse the
-/// same HTTP/JSON handling.
 pub(crate) fn latest_release_json(repo: &str) -> Result<serde_json::Value, Error> {
 	get_json(&format!("https://api.github.com/repos/{repo}/releases/latest"))
 }
 
-/// The newest published (non-draft, non-prerelease) release.
 pub fn latest() -> Result<ReleaseInfo, Error> {
 	if let Some(r) = override_release() {
 		return r;
@@ -160,7 +145,6 @@ pub fn latest() -> Result<ReleaseInfo, Error> {
 	parse_release(&latest_release_json(REPO)?)
 }
 
-/// The release of one version, tagged "v<version>" or "<version>".
 pub fn for_version(ver: &str) -> Result<ReleaseInfo, Error> {
 	if let Some(r) = override_release() {
 		return r.and_then(|rel| if version::same(&rel.version, ver) { Ok(rel) } else { Err(Error::NotFound) });
@@ -177,7 +161,6 @@ pub fn for_version(ver: &str) -> Result<ReleaseInfo, Error> {
 	Err(last)
 }
 
-/// "<hex>  name", "<hex> *name" or a bare "<hex>". Returns the lowercase digest.
 pub fn parse_sha256_file(text: &str, file_name: &str) -> Result<String, Error> {
 	let mut lone = None;
 	for line in text.lines() {
@@ -231,8 +214,6 @@ pub fn fetch_text(url: &str) -> Result<String, Error> {
 	}
 }
 
-/// Streams `url` into `dest`, calling `progress(done, total)` as it goes. `cancel` is polled
-/// between chunks. Returns the SHA-256 of what was written.
 pub fn download(
 	url: &str,
 	dest: &Path,

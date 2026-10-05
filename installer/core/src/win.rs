@@ -1,7 +1,3 @@
-//! Thin wrappers over the Windows APIs the installer uses. Everything is per user (HKCU,
-//! %LOCALAPPDATA%); the only machine-wide action, PowerShell 7, goes through winget and its UAC
-//! prompt.
-
 use std::ffi::OsStr;
 use std::io::Read;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -66,10 +62,6 @@ fn pwstr_to_string(p: PWSTR) -> String {
 	s
 }
 
-// ---------------------------------------------------------------------------------------------
-// COM, folders, system info
-
-/// COM for the current thread (shortcuts, wallpaper). Uninitialized when dropped.
 pub struct Com(bool);
 
 impl Com {
@@ -112,12 +104,10 @@ pub fn windows_build() -> (u32, String) {
 
 pub fn ui_language_is_portuguese() -> bool {
 	let lang = unsafe { windows::Win32::Globalization::GetUserDefaultUILanguage() };
-	// PRIMARYLANGID: low 10 bits. LANG_PORTUGUESE = 0x16.
 	lang & 0x3ff == 0x16
 }
 
 pub fn free_space(path: &Path) -> Option<u64> {
-	// The closest existing ancestor: the folder itself may not exist yet.
 	let mut p = path.to_path_buf();
 	while !p.exists() {
 		p = p.parent()?.to_path_buf();
@@ -128,9 +118,6 @@ pub fn free_space(path: &Path) -> Option<u64> {
 	Some(free)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Processes
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Proc {
 	pub pid: u32,
@@ -138,8 +125,6 @@ pub struct Proc {
 	pub path: PathBuf,
 }
 
-/// Running processes whose image name is one of `names` (case-insensitive), with their full
-/// image path when Windows lets us read it.
 pub fn find_processes(names: &[&str]) -> Vec<Proc> {
 	let mut out = Vec::new();
 	let Ok(snap) = (unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) }) else { return out };
@@ -168,12 +153,11 @@ fn image_path(pid: u32) -> Option<PathBuf> {
 	Some(PathBuf::from(std::ffi::OsString::from_wide(&buf[..len as usize])))
 }
 
-/// `true` once the process is gone (or was never there).
 pub fn wait_exit(pid: u32, timeout: Duration) -> bool {
 	let Ok(h) = (unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, pid) }) else { return true };
 	let r = unsafe { WaitForSingleObject(h, timeout.as_millis() as u32) };
 	let _ = unsafe { CloseHandle(h) };
-	r.0 == 0 // WAIT_OBJECT_0
+	r.0 == 0
 }
 
 pub fn terminate(pid: u32) -> bool {
@@ -186,7 +170,6 @@ pub fn terminate(pid: u32) -> bool {
 	ok
 }
 
-/// Case-insensitive "is `path` inside `dir`".
 pub fn path_in(path: &Path, dir: &Path) -> bool {
 	let p = path.to_string_lossy().to_lowercase().replace('/', "\\");
 	let mut d = dir.to_string_lossy().to_lowercase().replace('/', "\\");
@@ -201,9 +184,6 @@ pub fn same_path(a: &Path, b: &Path) -> bool {
 	n(a) == n(b)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Child processes
-
 #[derive(Debug, Clone)]
 pub struct Output {
 	pub code: Option<i32>,
@@ -216,7 +196,6 @@ impl Output {
 	pub fn success(&self) -> bool {
 		self.code == Some(0) && !self.timed_out
 	}
-	/// Both streams, with winget's spinner and progress-bar noise taken out, for the log.
 	pub fn text(&self) -> String {
 		let mut s = String::new();
 		for part in [&self.stdout, &self.stderr] {
@@ -241,13 +220,9 @@ fn decode_output(bytes: &[u8]) -> String {
 	String::from_utf8_lossy(b).replace('\u{8}', "")
 }
 
-/// Runs a program without a console window, stdin closed, and kills it if it outlives
-/// `timeout` (only that child: it's ours).
 pub fn run(exe: &Path, args: &[&str], timeout: Duration) -> std::io::Result<Output> {
 	let mut child = Command::new(exe)
 		.args(args)
-		// A Process-scope policy (powershell -ExecutionPolicy Bypass) leaks to children through
-		// this variable; what the setup asks PowerShell must be the user's own settings.
 		.env_remove("PSExecutionPolicyPreference")
 		.stdin(Stdio::null())
 		.stdout(Stdio::piped())
@@ -284,8 +259,6 @@ pub fn run(exe: &Path, args: &[&str], timeout: Duration) -> std::io::Result<Outp
 	Ok(Output { code: status.and_then(|s| s.code()), stdout, stderr, timed_out })
 }
 
-/// The PATH a new sign-in would get (user + machine from the registry), plus the current one:
-/// tools winget just installed aren't in this process's PATH yet.
 pub fn fresh_path_dirs() -> Vec<PathBuf> {
 	let mut dirs = Vec::new();
 	let expand = |s: String| -> String {
@@ -330,13 +303,10 @@ pub fn find_on_path(exe_name: &str) -> Option<PathBuf> {
 	fresh_path_dirs().into_iter().map(|d| d.join(exe_name)).find(|p| p.is_file())
 }
 
-/// Is `wt.exe` reachable the same way launching it would find it (PATH, which includes the
-/// per-user WindowsApps alias folder)? Windows 11 normally has it; Windows 10 may not.
 pub fn windows_terminal_present() -> bool {
 	find_on_path("wt.exe").is_some()
 }
 
-/// Starts a GUI program on its own, not tied to this process.
 pub fn spawn_detached(exe: &Path, args: &[&str], cwd: &Path) -> std::io::Result<u32> {
 	let child = Command::new(exe)
 		.args(args)
@@ -349,8 +319,6 @@ pub fn spawn_detached(exe: &Path, args: &[&str], cwd: &Path) -> std::io::Result<
 	Ok(child.id())
 }
 
-/// Starts `cmd.exe /c <line>` with the line passed verbatim (cmd doesn't follow the C runtime's
-/// quoting rules that std's argument escaping produces).
 pub fn spawn_cmd_raw(line: &str) -> std::io::Result<()> {
 	let system = std::env::var_os("SystemRoot").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
 	Command::new(system.join(r"System32\cmd.exe"))
@@ -368,9 +336,6 @@ pub fn shell_open(target: &str) -> bool {
 	let r = unsafe { ShellExecuteW(None, &HSTRING::from("open"), &t, PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL) };
 	r.0 as isize > 32
 }
-
-// ---------------------------------------------------------------------------------------------
-// Registry (HKCU unless noted)
 
 pub fn hkcu() -> RegKey {
 	RegKey::predef(HKEY_CURRENT_USER)
@@ -394,7 +359,6 @@ pub fn set_string(path: &str, name: &str, value: &str) -> std::io::Result<()> {
 	k.set_value(name, &value)
 }
 
-/// Deletes a value; missing is success.
 pub fn delete_value(path: &str, name: &str) -> std::io::Result<()> {
 	match hkcu().open_subkey_with_flags(path, KEY_WRITE) {
 		Ok(k) => match k.delete_value(name) {
@@ -407,7 +371,6 @@ pub fn delete_value(path: &str, name: &str) -> std::io::Result<()> {
 	}
 }
 
-/// Puts a DWORD back to what it was: the old value, or no value at all.
 pub fn restore_dword(path: &str, name: &str, value: Option<u32>) -> std::io::Result<()> {
 	match value {
 		Some(v) => set_dword(path, name, v),
@@ -423,7 +386,6 @@ pub fn delete_tree(path: &str) -> std::io::Result<()> {
 	}
 }
 
-/// Deletes a generic Credential Manager entry. Ok(false) if there was none.
 pub fn delete_generic_credential(target: &str) -> std::io::Result<bool> {
 	use windows::Win32::Foundation::ERROR_NOT_FOUND;
 	use windows::Win32::Security::Credentials::{CredDeleteW, CRED_TYPE_GENERIC};
@@ -436,9 +398,6 @@ pub fn delete_generic_credential(target: &str) -> std::io::Result<bool> {
 	}
 }
 
-/// Where a window of `width` x `height` (physical pixels) centered in the work area of the
-/// monitor `hwnd` is on goes: the monitor minus the taskbar and app bars (ii's own bar included),
-/// so the window doesn't end up under them on a small screen. Kept on screen if it's too big.
 pub fn centered_in_work_area(hwnd: isize, width: i32, height: i32) -> Option<(i32, i32)> {
 	use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST};
 
@@ -483,9 +442,6 @@ pub fn broadcast_font_change() {
 		)
 	};
 }
-
-// ---------------------------------------------------------------------------------------------
-// Shortcuts, Apps & features
 
 pub fn create_shortcut(
 	lnk: &Path,
@@ -546,9 +502,6 @@ pub fn write_uninstall_entry(e: &UninstallEntry) -> std::io::Result<String> {
 	Ok(path)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Taskbar
-
 const ABS_AUTOHIDE: u32 = 0x1;
 const ABS_ALWAYSONTOP: u32 = 0x2;
 
@@ -566,8 +519,6 @@ pub fn set_taskbar_autohide(on: bool) {
 	unsafe { SHAppBarMessage(ABM_SETSTATE, &mut data) };
 }
 
-/// Shows every taskbar window again. ii hides them in its hover-only mode and shows them on
-/// exit; this covers an ii that was stopped without getting the chance.
 pub fn show_taskbars() {
 	unsafe extern "system" fn each(hwnd: HWND, _: LPARAM) -> windows::core::BOOL {
 		let mut cls = [0u16; 64];
@@ -580,9 +531,6 @@ pub fn show_taskbars() {
 	}
 	let _ = unsafe { EnumWindows(Some(each), LPARAM(0)) };
 }
-
-// ---------------------------------------------------------------------------------------------
-// Theme and wallpaper
 
 pub fn read_dword_hkcu(path: &str, name: &str) -> Option<u32> {
 	get_dword(path, name)
@@ -609,8 +557,6 @@ fn image_ext(path: &Path) -> &'static str {
 	}
 }
 
-/// The wallpaper as Windows shows it now, with a copy of each picture in `backup_dir`
-/// (relative names in the result). Copies over 64 MB are skipped.
 pub fn record_wallpaper(backup_dir: &Path, install_dir: &Path) -> Result<WallpaperState, String> {
 	let mut state = WallpaperState {
 		background_type: get_dword(WALLPAPERS_KEY, "BackgroundType"),
@@ -661,9 +607,6 @@ fn in_themes_cache(path: &str, roaming: &Path) -> bool {
 	path_in(Path::new(path), &roaming.join(r"Microsoft\Windows\Themes"))
 }
 
-/// Puts the recorded wallpaper back. Pictures still at their original place are used from
-/// there; others from the install-time copy (via `scratch`, since Windows only keeps a
-/// transcoded cache). Returns notes about what couldn't be restored exactly.
 pub fn restore_wallpaper(
 	state: &WallpaperState,
 	install_dir: &Path,
@@ -710,7 +653,6 @@ pub fn restore_wallpaper(
 				failures += 1;
 				continue;
 			};
-			// A monitor that's gone since install: nothing to put back there.
 			let target = current.iter().find(|c| c.eq_ignore_ascii_case(&m.monitor)).cloned();
 			let monitor = match (&target, current.len()) {
 				(Some(t), _) => HSTRING::from(t.as_str()),
@@ -725,8 +667,6 @@ pub fn restore_wallpaper(
 			notes.push(format!("{failures} wallpaper picture(s) could not be put back"));
 		}
 	}
-	// Windows now points WallPaper at our temporary copy; when the original setting was its own
-	// cache file (which now holds the restored picture again), point it back there.
 	if let Some(reg) = &state.registry_path {
 		if in_themes_cache(reg, roaming)
 			&& state.monitors.iter().all(|m| m.path.eq_ignore_ascii_case(reg) || m.path.is_empty())
@@ -740,11 +680,6 @@ pub fn restore_wallpaper(
 	Ok(notes)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Fonts
-
-/// Is a font with this file name, or this registry name, already installed for the user or the
-/// machine?
 pub fn font_present(paths: &Paths, file_name: &str, registry_name: &str) -> bool {
 	if paths.user_fonts.join(file_name).exists() {
 		return true;
@@ -771,8 +706,6 @@ pub fn font_present(paths: &Paths, file_name: &str, registry_name: &str) -> bool
 	false
 }
 
-/// Registers a per-user font: HKCU Fonts value (full path, which is what makes it load at
-/// every sign-in) plus AddFontResource for the current session.
 pub fn register_font(file: &Path, registry_name: &str) -> std::io::Result<()> {
 	set_string(FONTS_KEY, registry_name, &file.display().to_string())?;
 	let w = wide(file.as_os_str());
@@ -782,7 +715,6 @@ pub fn register_font(file: &Path, registry_name: &str) -> std::io::Result<()> {
 
 pub fn unregister_font(file: &Path, registry_name: &str) -> std::io::Result<()> {
 	let w = wide(file.as_os_str());
-	// AddFontResource counts; take off every reference this session holds.
 	for _ in 0..8 {
 		if !unsafe { RemoveFontResourceW(PCWSTR(w.as_ptr())) }.as_bool() {
 			break;
@@ -790,9 +722,6 @@ pub fn unregister_font(file: &Path, registry_name: &str) -> std::io::Result<()> 
 	}
 	delete_value(FONTS_KEY, registry_name)
 }
-
-// ---------------------------------------------------------------------------------------------
-// PowerShell
 
 pub fn powershell_exe() -> PathBuf {
 	let system = std::env::var_os("SystemRoot").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
@@ -808,8 +737,6 @@ pub fn pwsh_exe() -> Option<PathBuf> {
 	p.is_file().then_some(p)
 }
 
-/// Runs a PowerShell snippet (passed as -EncodedCommand, so no quoting issues) and returns its
-/// output, read as UTF-8.
 pub fn ps(exe: &Path, script: &str, timeout: Duration) -> std::io::Result<Output> {
 	let full = format!(
 		"$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false); {script}"
@@ -833,7 +760,6 @@ fn base64(data: &[u8]) -> String {
 	out
 }
 
-/// `$PROFILE` (CurrentUserCurrentHost) as that shell sees it: OneDrive can move Documents.
 pub fn profile_path(exe: &Path) -> Result<PathBuf, String> {
 	let out = ps(exe, "$PROFILE.CurrentUserCurrentHost", Duration::from_secs(60)).map_err(|e| e.to_string())?;
 	let line = out.stdout.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or_default().to_string();
@@ -843,10 +769,6 @@ pub fn profile_path(exe: &Path) -> Result<PathBuf, String> {
 	Ok(PathBuf::from(line))
 }
 
-/// Windows PowerShell 5.1's execution policy for one scope ("Undefined" if unset), or with
-/// `scope` = None the one a newly started Windows PowerShell gets: the first defined of the
-/// Group Policy, CurrentUser and LocalMachine scopes, else Restricted (the client default).
-/// The Process scope is left out: it belongs to whoever started this setup.
 pub fn exec_policy(scope: Option<&str>) -> Option<String> {
 	let script = "Get-ExecutionPolicy -List | ForEach-Object { '{0}={1}' -f $_.Scope, $_.ExecutionPolicy }";
 	let out = ps(&powershell_exe(), script, Duration::from_secs(60)).ok()?;
@@ -877,8 +799,6 @@ pub fn set_exec_policy_current_user(value: &str) -> Result<(), String> {
 	if !allowed.iter().any(|a| a.eq_ignore_ascii_case(value)) {
 		return Err(format!("unexpected execution policy {value}"));
 	}
-	// A Group Policy setting wins over CurrentUser and makes the cmdlet throw even though it
-	// stored the value; reading it back below is what decides success.
 	let script = format!(
 		"try {{ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy {value} -Force }} catch {{ Write-Output \"note: $($_.Exception.Message)\" }}"
 	);
@@ -891,13 +811,9 @@ pub fn set_exec_policy_current_user(value: &str) -> Result<(), String> {
 	}
 }
 
-/// Policies under which Windows PowerShell runs a local, unsigned profile script.
 pub fn policy_allows_profiles(policy: &str) -> bool {
 	["RemoteSigned", "Unrestricted", "Bypass"].iter().any(|p| p.eq_ignore_ascii_case(policy))
 }
-
-// ---------------------------------------------------------------------------------------------
-// winget
 
 pub fn winget_exe() -> Option<PathBuf> {
 	let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from)?;
@@ -913,8 +829,6 @@ pub fn winget_version(exe: &Path) -> Option<String> {
 	out.success().then(|| out.stdout.trim().to_string())
 }
 
-/// `Some(true)` if winget lists the package as installed (any scope), `None` if winget itself
-/// failed in a way that says nothing about the package.
 pub fn winget_installed(exe: &Path, id: &str) -> Option<bool> {
 	let out = run(
 		exe,
@@ -928,7 +842,6 @@ pub fn winget_installed(exe: &Path, id: &str) -> Option<bool> {
 	if out.success() {
 		return Some(out.stdout.to_lowercase().contains(&id.to_lowercase()));
 	}
-	// APPINSTALLER_CLI_ERROR_NO_APPLICATIONS_FOUND
 	match out.code {
 		Some(c) if c as u32 == 0x8A15_0014 => Some(false),
 		_ => None,
@@ -947,7 +860,6 @@ pub fn winget_install(exe: &Path, id: &str, user_scope: bool) -> Result<Output, 
 		stderr: e.to_string(),
 		timed_out: false,
 	})?;
-	// APPINSTALLER_CLI_ERROR_PACKAGE_ALREADY_INSTALLED counts as done.
 	if out.success() || out.code.map(|c| c as u32) == Some(0x8A15_002B) {
 		Ok(out)
 	} else {
@@ -971,18 +883,10 @@ pub fn winget_uninstall(exe: &Path, id: &str) -> Result<Output, Output> {
 	}
 }
 
-// ---------------------------------------------------------------------------------------------
-// App Installer itself (winget's own package), via Add-AppxPackage
-
-/// Quotes a path for a PowerShell single-quoted string literal (doubles embedded `'`, which is
-/// how a literal single quote is escaped inside one).
 fn ps_quote(s: &str) -> String {
 	format!("'{}'", s.replace('\'', "''"))
 }
 
-/// `Add-AppxPackage -Path <msixbundle> -DependencyPath <dependency_paths>`: installs App
-/// Installer (winget) for the current user. No administrator permission is needed; Windows
-/// checks the package's Microsoft signature as part of this.
 pub fn install_appx_bundle(msixbundle: &Path, dependency_paths: &[PathBuf]) -> std::io::Result<Output> {
 	let deps = dependency_paths.iter().map(|p| ps_quote(&p.display().to_string())).collect::<Vec<_>>().join(",");
 	let script =
@@ -990,8 +894,6 @@ pub fn install_appx_bundle(msixbundle: &Path, dependency_paths: &[PathBuf]) -> s
 	ps(&powershell_exe(), &script, Duration::from_secs(600))
 }
 
-/// `Get-AppxPackage -Name <name> | Remove-AppxPackage`: removes a per-user Appx package. No
-/// administrator permission is needed; finding nothing to remove is success.
 pub fn remove_appx_package(name: &str) -> std::io::Result<Output> {
 	let script = format!("Get-AppxPackage -Name {} | Remove-AppxPackage", ps_quote(name));
 	ps(&powershell_exe(), &script, Duration::from_secs(120))
@@ -1013,15 +915,8 @@ mod tests {
 	}
 }
 
-// ---------------------------------------------------------------------------------------------
-// WebView2
-
 const WEBVIEW2_CLIENT_KEY: &str = r"Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
 
-/// The Evergreen WebView2 Runtime (what Tauri's window needs): the registry `pv` value under
-/// any of the three places its installer writes it, present, non-empty and not "0.0.0.0" (what
-/// the value holds for a moment while the runtime is still installing). Windows 11 always has
-/// it; Windows 10 may not.
 pub fn webview2_present() -> bool {
 	let candidates = [
 		(HKEY_LOCAL_MACHINE, format!(r"SOFTWARE\WOW6432Node\{WEBVIEW2_CLIENT_KEY}")),
@@ -1040,10 +935,6 @@ pub fn webview2_present() -> bool {
 	})
 }
 
-// ---------------------------------------------------------------------------------------------
-// Single instance, message box
-
-/// Holds a named mutex for the life of the process; `None` if another setup already holds it.
 pub fn single_instance(name: &str) -> Option<windows::Win32::Foundation::HANDLE> {
 	use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
 	use windows::Win32::System::Threading::CreateMutexW;
@@ -1060,7 +951,6 @@ pub fn message_box(title: &str, text: &str) {
 	unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from(title), MB_OK | MB_ICONINFORMATION) };
 }
 
-/// Like `message_box`, but Yes/No; `true` is Yes.
 pub fn message_box_yes_no(title: &str, text: &str) -> bool {
 	use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, IDYES, MB_ICONQUESTION, MB_YESNO};
 	(unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from(title), MB_YESNO | MB_ICONQUESTION) }) == IDYES

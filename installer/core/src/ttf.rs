@@ -1,6 +1,3 @@
-//! Reads a TrueType/OpenType font's full name (name ID 4), which is what Windows uses for the
-//! value name under `...\CurrentVersion\Fonts` ("<full name> (TrueType)").
-
 fn be16(d: &[u8], at: usize) -> Option<u16> {
 	Some(u16::from_be_bytes([*d.get(at)?, *d.get(at + 1)?]))
 }
@@ -9,7 +6,6 @@ fn be32(d: &[u8], at: usize) -> Option<u32> {
 	Some(u32::from_be_bytes([*d.get(at)?, *d.get(at + 1)?, *d.get(at + 2)?, *d.get(at + 3)?]))
 }
 
-/// Full font name, preferring the Windows/Unicode US-English record.
 pub fn full_name(data: &[u8]) -> Option<String> {
 	let num_tables = be16(data, 4)? as usize;
 	let mut name_off = None;
@@ -53,7 +49,6 @@ pub fn full_name(data: &[u8]) -> Option<String> {
 	best.map(|(_, s)| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
-/// The registry value name Windows' own font installer would use for this file.
 pub fn registry_value_name(data: &[u8], file_name: &str) -> String {
 	let base =
 		full_name(data).unwrap_or_else(|| file_name.rsplit_once('.').map(|(s, _)| s).unwrap_or(file_name).to_string());

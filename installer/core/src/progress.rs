@@ -1,5 +1,3 @@
-//! What the operations tell the UI while they run.
-
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -14,8 +12,6 @@ pub enum Status {
 	Failed,
 }
 
-/// A message the UI translates by `key`; `params` fill its placeholders. `text` is the English
-/// version, used in the log and when the UI doesn't know the key.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct Msg {
 	pub key: String,
@@ -36,7 +32,6 @@ impl Msg {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
-	/// The steps this run will go through, in order (ids the UI has labels for).
 	Plan {
 		steps: Vec<String>,
 	},

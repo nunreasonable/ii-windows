@@ -1,14 +1,9 @@
-//! The release package: `ii-windows-<version>.zip`, laid out like `dist/ii-windows` (qs.exe,
-//! qsw.exe, the Qt runtime, fonts\, icons\, qml\, config\ii\, ...) plus a VERSION file and,
-//! when built by tools/release.sh, the setup exe itself.
-
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::version;
 
-/// Files a package must have for the installer to accept it.
 pub const REQUIRED: [&str; 3] = ["qsw.exe", "qs.exe", "config/ii/shell.qml"];
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -18,7 +13,6 @@ pub struct PackageInfo {
 	pub file_size: u64,
 	pub unpacked_size: u64,
 	pub files: usize,
-	/// "ii-windows/" when everything sits in one top-level folder, else "".
 	#[serde(skip)]
 	pub prefix: String,
 	pub has_setup_exe: bool,
@@ -68,7 +62,6 @@ fn common_prefix(names: &[String]) -> String {
 	}
 }
 
-/// Reads the zip's directory (no extraction) and checks it's an ii-windows package.
 pub fn inspect(path: &Path) -> Result<PackageInfo, Error> {
 	let file = File::open(path)?;
 	let file_size = file.metadata()?.len();
@@ -117,7 +110,6 @@ pub fn inspect(path: &Path) -> Result<PackageInfo, Error> {
 	})
 }
 
-/// Unpacks into `dest` (which must not exist yet), calling `progress(bytes_done, bytes_total)`.
 pub fn extract(
 	info: &PackageInfo,
 	dest: &Path,
@@ -133,7 +125,6 @@ pub fn extract(
 			return Err(Error::Cancelled);
 		}
 		let mut entry = zip.by_index(i)?;
-		// enclosed_name() refuses absolute paths and "..": nothing lands outside `dest`.
 		let Some(rel) = entry.enclosed_name() else {
 			return Err(Error::Invalid(format!("unsafe path in package: {}", entry.name())));
 		};
@@ -169,7 +160,6 @@ pub fn extract(
 	Ok(())
 }
 
-/// The newest `ii-windows-<version>.zip` in `dir`, if any (the offline source next to the exe).
 pub fn find_offline(dir: &Path) -> Option<PathBuf> {
 	let mut best: Option<(version::Version, PathBuf)> = None;
 	for entry in std::fs::read_dir(dir).ok()?.flatten() {

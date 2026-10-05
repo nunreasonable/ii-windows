@@ -1,4 +1,3 @@
-// The ii-windows setup: a Tauri window over iiw_setup_core. Windows only.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::{Path, PathBuf};
@@ -26,7 +25,6 @@ struct Args {
 	relaunched: bool,
 	session: Option<PathBuf>,
 	origin: Option<PathBuf>,
-	/// Started by an older setup that updated itself: wait for it to exit first.
 	after: Option<u32>,
 	no_self_update: bool,
 }
@@ -66,8 +64,6 @@ fn new_session_dir(paths: &Paths) -> PathBuf {
 	paths.temp.join(format!("ii-windows-setup-{}-{:x}", std::process::id(), nanos))
 }
 
-/// The copy in the install dir can't replace or delete its own folder while it runs, so it
-/// starts a copy of itself from the temp folder and exits.
 fn relaunch_from_temp(exe: &Path, paths: &Paths) -> bool {
 	let session = new_session_dir(paths);
 	if std::fs::create_dir_all(&session).is_err() {
@@ -97,7 +93,6 @@ struct AppState {
 	cancel: Arc<AtomicBool>,
 	sources: Mutex<Vec<(Action, Source)>>,
 	lang_pt: bool,
-	/// The latest release, as check_latest found it.
 	latest: Mutex<Option<release::ReleaseInfo>>,
 }
 
@@ -216,12 +211,10 @@ async fn preflight(
 #[derive(Serialize)]
 struct LatestInfo {
 	version: Option<String>,
-	/// A newer setup is on GitHub and this one may replace itself with it.
 	setup_newer: bool,
 	error: Option<String>,
 }
 
-/// Looks up the latest release when the window opens.
 #[tauri::command]
 async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, String> {
 	let found = tauri::async_runtime::spawn_blocking(release::latest).await.map_err(|e| e.to_string())?;
@@ -229,7 +222,6 @@ async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, S
 		Ok(r) => r,
 		Err(e) => return Ok(LatestInfo { version: None, setup_newer: false, error: Some(e.to_string()) }),
 	};
-	// Not when told which package to use (tests, offline installs) or when an update just ran.
 	let may_update = !state.args.no_self_update && state.args.package.is_none();
 	let setup_newer = may_update
 		&& !release.setup_url.is_empty()
@@ -240,8 +232,6 @@ async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, S
 	Ok(LatestInfo { version, setup_newer, error: None })
 }
 
-/// Downloads the latest release's setup, checks it against the SHA-256 GitHub publishes for it,
-/// starts it with this run's arguments and closes this one.
 #[tauri::command]
 async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
 	let Some(release) = state.latest.lock().unwrap().clone() else { return Err("no release".into()) };
@@ -249,7 +239,6 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 	let page = state.args.page.clone();
 	let origin = state.args.origin.clone().or_else(|| state.self_exe.parent().map(Path::to_path_buf));
 	tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
-		// Its own session folder, which the new setup deletes when it closes, like a relaunch.
 		let session = new_session_dir(&paths);
 		let exe = session.join(SETUP_EXE);
 		let got = release::download(&release.setup_url, &exe, release.setup_size, &mut |_, _| {}, &|| false)
@@ -275,8 +264,6 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 	Ok(())
 }
 
-/// Finds the package for an action (offline, latest release, or the installed version's
-/// release for a repair) and remembers it for `start`.
 #[tauri::command]
 async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Source, Msg> {
 	let offline = state.offline.clone();
@@ -376,8 +363,6 @@ fn open_url(url: String) -> bool {
 	url.starts_with("https://") && win::shell_open(&url)
 }
 
-/// Opens a file or folder the setup told the user about (logs, backups): only under the
-/// user's local app data or temp folder.
 #[tauri::command]
 fn open_path(state: tauri::State<'_, AppState>, path: String) -> bool {
 	let p = PathBuf::from(&path);
@@ -388,7 +373,6 @@ fn open_path(state: tauri::State<'_, AppState>, path: String) -> bool {
 	if p.is_dir() {
 		win::shell_open(&path)
 	} else {
-		// Show it selected in Explorer rather than running whatever handles the extension.
 		let _ = std::process::Command::new("explorer.exe").arg(format!("/select,{path}")).spawn();
 		true
 	}
@@ -410,7 +394,6 @@ fn win_close(window: tauri::WebviewWindow, state: tauri::State<'_, AppState>) ->
 
 #[tauri::command]
 fn ready(window: tauri::WebviewWindow) {
-	// Tauri's center() uses the whole monitor; a bar or the taskbar may cover the top of that.
 	if let (Ok(hwnd), Ok(size)) = (window.hwnd(), window.outer_size()) {
 		if let Some((x, y)) = win::centered_in_work_area(hwnd.0 as isize, size.width as i32, size.height as i32) {
 			let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
@@ -421,9 +404,6 @@ fn ready(window: tauri::WebviewWindow) {
 }
 
 fn main() {
-	// Tauri's window needs the WebView2 Runtime; without it `.build()` below fails and
-	// `.expect(...)` would just make this exe vanish with no message. Windows 11 always has the
-	// runtime; Windows 10 may not, so check first and point the user at Microsoft's installer.
 	if !win::webview2_present() {
 		let pt = win::ui_language_is_portuguese();
 		let title = "illogical-impulse Setup";
@@ -446,7 +426,6 @@ fn main() {
 		return;
 	}
 
-	// An older setup that just updated itself to this one may not have closed yet.
 	if let Some(pid) = args.after {
 		win::wait_exit(pid, std::time::Duration::from_secs(15));
 	}
@@ -462,7 +441,6 @@ fn main() {
 	let session = args.session.clone().unwrap_or_else(|| new_session_dir(&paths));
 	let _ = std::fs::create_dir_all(&session);
 
-	// Offline source: --package, else a package next to the exe that was started.
 	let origin = args.origin.clone().or_else(|| self_exe.parent().map(Path::to_path_buf));
 	let mut offline_error = None;
 	if let Some(p) = &args.package {

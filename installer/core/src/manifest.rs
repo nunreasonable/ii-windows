@@ -1,6 +1,3 @@
-//! `%LOCALAPPDATA%\ii-windows\install-manifest.json`: what the installer did and what Windows
-//! looked like before, so uninstall can undo exactly that and nothing else.
-
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -9,16 +6,10 @@ pub const SCHEMA: u32 = 1;
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Options {
-	/// HKCU Run value starting ii at sign-in.
 	pub autostart: bool,
-	/// Fonts + Oh My Posh/Starship/eza + the profile block.
 	pub terminal: bool,
-	/// PowerShell 7 through winget (machine-wide, UAC).
 	pub pwsh7: bool,
-	/// Set-ExecutionPolicy -Scope CurrentUser RemoteSigned for Windows PowerShell 5.1.
 	pub exec_policy: bool,
-	/// FFmpeg (Gyan.FFmpeg) through winget, per user. Optional: ii's own recorder can fall back
-	/// to it, and it's handy to have on its own. Off by default.
 	pub ffmpeg: bool,
 }
 
@@ -26,7 +17,6 @@ pub struct Options {
 #[serde(default)]
 pub struct RunValue {
 	pub name: String,
-	/// What the value held before the installer wrote it (restored instead of deleted).
 	pub previous: Option<String>,
 	pub set: bool,
 }
@@ -48,13 +38,10 @@ pub struct WingetPackage {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct ProfileEdit {
-	/// "powershell" (Windows PowerShell 5.1) or "pwsh" (PowerShell 7).
 	pub shell: String,
 	pub path: PathBuf,
-	/// The profile file didn't exist and the installer created it (and maybe its folder).
 	pub created_file: bool,
 	pub created_dir: Option<PathBuf>,
-	/// The block was added by the installer (false: it was already there).
 	pub block_added: bool,
 	pub backup: Option<PathBuf>,
 }
@@ -69,7 +56,6 @@ pub struct AppInstaller {
 #[serde(default)]
 pub struct ExecPolicyChange {
 	pub changed: bool,
-	/// The CurrentUser scope value before ("Undefined" when it had none).
 	pub previous: String,
 }
 
@@ -84,8 +70,6 @@ pub struct Items {
 	pub profiles: Vec<ProfileEdit>,
 	pub exec_policy: Option<ExecPolicyChange>,
 	pub colors_seeded: bool,
-	/// winget (App Installer) itself, installed by this setup on Windows 10 (it isn't a winget
-	/// package, so it's not in `winget` above). `None`: this setup didn't install it.
 	pub app_installer: Option<AppInstaller>,
 }
 
@@ -94,9 +78,6 @@ pub struct Items {
 pub struct MonitorWallpaper {
 	pub monitor: String,
 	pub path: String,
-	/// Copy of the picture taken at install time, relative to the install dir. Windows keeps
-	/// only a transcoded cache of some wallpapers, and that cache is overwritten when ii sets a
-	/// new one, so the original can't be found again later.
 	pub backup: Option<String>,
 }
 
@@ -107,9 +88,7 @@ pub struct WallpaperState {
 	pub position: Option<i32>,
 	pub background_color: Option<u32>,
 	pub slideshow: bool,
-	/// HKCU\...\Explorer\Wallpapers BackgroundType: 0 picture, 1 solid color, 2 slideshow, 3 spotlight.
 	pub background_type: Option<u32>,
-	/// HKCU\Control Panel\Desktop WallPaper.
 	pub registry_path: Option<String>,
 }
 
@@ -124,12 +103,8 @@ pub struct PreInstall {
 	pub colorization_color: Option<u32>,
 	pub colorization_afterglow: Option<u32>,
 	pub wallpaper: Option<WallpaperState>,
-	/// Whether %LOCALAPPDATA%\cache and its `thumbnails` folder were there before ii, so
-	/// uninstall only removes them if ii made them (None: not recorded, leave them).
 	pub generic_cache_existed: Option<bool>,
 	pub thumbnails_existed: Option<bool>,
-	/// ii was running from somewhere else while this was recorded, so the taskbar values may be
-	/// the ones ii sets while it runs rather than the user's own.
 	pub other_instance_running: bool,
 }
 
@@ -140,7 +115,6 @@ pub struct Manifest {
 	pub product: String,
 	pub version: String,
 	pub setup_version: String,
-	/// "installing" while an install is in progress, "installed" after.
 	pub state: String,
 	pub source: String,
 	pub installed_at: String,
@@ -173,8 +147,6 @@ impl Manifest {
 		}
 	}
 
-	/// Written to a temp file first and renamed over the old one, so a crash mid-write never
-	/// leaves a truncated manifest behind.
 	pub fn save(&self, path: &Path) -> std::io::Result<()> {
 		if let Some(dir) = path.parent() {
 			std::fs::create_dir_all(dir)?;
@@ -206,7 +178,6 @@ mod tests {
 		m.save(&path).unwrap();
 		let back = Manifest::load(&path).unwrap().unwrap();
 		assert_eq!(back, m);
-		// Older/newer installers may add fields; loading must not fail on them.
 		std::fs::write(&path, br#"{"version":"0.2.0","future":{"x":1},"options":{"autostart":true}}"#).unwrap();
 		let partial = Manifest::load(&path).unwrap().unwrap();
 		assert_eq!(partial.version, "0.2.0");

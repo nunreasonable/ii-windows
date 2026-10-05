@@ -1,4 +1,3 @@
-/* ii's Material You dark palette (defaults/windows/colors.json) */
 @font-face {
 	font-family: "Rubik";
 	src: url("fonts/Rubik-VF.ttf") format("truetype");
@@ -65,7 +64,6 @@ svg .fill { fill: currentColor; stroke: none; }
 
 #app { height: 100%; display: flex; flex-direction: column; }
 
-/* ---- title bar ------------------------------------------------------------------------- */
 .titlebar {
 	height: 46px;
 	display: flex;
@@ -114,7 +112,6 @@ svg .fill { fill: currentColor; stroke: none; }
 .titlebar-btn:hover { background: var(--surface-high); color: var(--on-surface); }
 .titlebar-btn.close:hover { background: #c42b1c; color: #fff; }
 
-/* ---- layout ---------------------------------------------------------------------------- */
 .body { flex: 1; display: flex; min-height: 0; padding: 0 12px 12px 0; }
 
 .rail {
@@ -224,7 +221,6 @@ h2 { font-size: 22px; }
 .page-footer { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 16px; flex: none; min-height: 60px; }
 .footer-note { flex: 1; color: var(--on-surface-variant); font-size: 12.5px; }
 
-/* ---- buttons --------------------------------------------------------------------------- */
 .btn {
 	height: 42px;
 	padding: 0 22px;
@@ -259,7 +255,6 @@ h2 { font-size: 22px; }
 	outline-offset: 2px;
 }
 
-/* ---- welcome --------------------------------------------------------------------------- */
 .hero { display: flex; align-items: center; gap: 24px; margin: 6px 0 22px; }
 .hero-logo { position: relative; width: 104px; height: 104px; flex: none; }
 .hero-logo img { width: 104px; height: 104px; position: relative; animation: float 6s ease-in-out infinite; filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.45)); }
@@ -359,7 +354,6 @@ h2 { font-size: 22px; }
 .action-check svg { width: 14px; height: 14px; stroke-width: 3; }
 .action.selected .action-check { opacity: 1; transform: none; }
 
-/* ---- readme ---------------------------------------------------------------------------- */
 .readme-wrap { flex: 1; min-height: 0; position: relative; }
 .readme {
 	height: 100%;
@@ -437,7 +431,6 @@ h2 { font-size: 22px; }
 .checkbox.ready .box { animation: nudge 0.6s var(--ease-emph); }
 @keyframes nudge { 30% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(188, 195, 255, 0.2); } }
 
-/* ---- options --------------------------------------------------------------------------- */
 .card {
 	background: var(--surface);
 	border-radius: var(--r-l);
@@ -512,7 +505,6 @@ h2 { font-size: 22px; }
 
 .loading { display: flex; align-items: center; gap: 10px; color: var(--on-surface-variant); font-size: 13px; }
 
-/* ---- spinners and progress ------------------------------------------------------------- */
 .spinner { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--primary); border-right-color: transparent; animation: spin 0.8s linear infinite; flex: none; }
 .spinner.big { width: 26px; height: 26px; border-width: 3px; border-color: var(--on-primary-container); border-right-color: transparent; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -573,7 +565,6 @@ h2 { font-size: 22px; }
 	max-height: 100%;
 }
 
-/* ---- done ------------------------------------------------------------------------------ */
 .done-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; margin: 4px 0 18px; flex: none; }
 .done-badge {
 	width: 76px;
@@ -616,7 +607,6 @@ h2 { font-size: 22px; }
 .mini-btn svg { width: 14px; height: 14px; }
 .mini-btn:hover { background: var(--surface-highest); }
 
-/* ---- toast ----------------------------------------------------------------------------- */
 .toast {
 	position: fixed;
 	left: 50%;

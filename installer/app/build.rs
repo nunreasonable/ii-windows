@@ -1,6 +1,4 @@
 fn main() {
-	// The setup's version is the repo's VERSION file (the same one tools/release.sh stamps on
-	// the package), so the two can't drift.
 	let version = std::fs::read_to_string("../../VERSION")
 		.map(|v| v.trim().to_string())
 		.unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
