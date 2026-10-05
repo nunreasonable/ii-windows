@@ -145,4 +145,7 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Instância única:** atalhos, Run e lançamentos do setup usam `-n` (`--no-duplicate`).
 - **Tema:** o `MaterialThemeLoader` tenta de novo quando lê o `colors.json` pela metade; o tema do terminal decide claro/escuro pelo próprio arquivo.
 - **Rótulo:** "Swap" virou "WinPageFile" no Windows.
+- **Barra de tarefas (achado no bare metal):** abrir um app mostrava a barra do Explorer por até 2 s (o timer de reesconder). Agora um WinEvent `EVENT_OBJECT_SHOW` no processo do Explorer reesconde na hora (no máximo 10 por segundo). Medido na VM: de "até 2 s" para no máximo ~20 ms em 3 aberturas.
+- **Capa do álbum (achado no bare metal):** o `PlayerControl` copiava com `curl.exe` a capa que o backend já grava como `file:///`, e o cache do backend fixava "sem capa" para a faixa quando a capa chegava depois do título. As duas coisas foram corrigidas, e o worker relê as propriedades enquanto o título vier vazio. O Media Player do Windows 10 às vezes nunca publica o título (só a capa).
+- **Bare metal do usuário:** pastas Área de Trabalho/Documentos/Imagens ficaram apontando para `OneDrive` depois que o WinUtil removeu o OneDrive (erro 362 no perfil do PowerShell). Problema da instalação; o setup ainda não detecta isso.
 - **Comentários:** saíram do código; as explicações ficam em `notes/comments.md`, só local.
