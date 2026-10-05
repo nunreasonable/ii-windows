@@ -212,7 +212,7 @@
 	// ---- options ---------------------------------------------------------------------------
 	function defaultOpts() {
 		if (info.installed) return { ...info.installed.options };
-		return { autostart: true, terminal: true, pwsh7: false, exec_policy: false };
+		return { autostart: true, terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
 	}
 
 	function switchRow(id, iconName, title, desc, checked, { disabled = false, extra = "", extraCls = "info", caution = false } = {}) {
@@ -286,6 +286,8 @@
 			else if (policyEff) { policyExtra = esc(t("o_policy_now", { p: `${pf.exec_policy_current_user || "Undefined"} (${policyEff})` })); policyCls = "warn"; }
 			if (policyDisabled) o.exec_policy = false;
 			if (pwshPresent && !(info.installed && info.installed.pwsh7_ours)) o.pwsh7 = false;
+			const ffmpegPresent = pf && pf.ffmpeg_present;
+			if (ffmpegPresent && !(info.installed && info.installed.ffmpeg_ours)) o.ffmpeg = false;
 			const win10NoWinget = !!(pf && !pf.winget && pf.windows_build >= 19041 && pf.windows_build < 22000);
 			if (!win10NoWinget) S.installWinget = true;
 			let terminalExtra = "", terminalExtraCls = "warn";
@@ -295,11 +297,14 @@
 				terminalExtra = esc(t("o_terminal_wt"));
 				terminalExtraCls = "info";
 			}
+			let ffmpegExtra = "", ffmpegExtraCls = "warn";
+			if (pf && !pf.winget && !(win10NoWinget && S.installWinget)) ffmpegExtra = esc(t("o_ffmpeg_nowinget"));
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
 				${switchRow("autostart", "power", t("o_autostart"), esc(t("o_autostart_desc")), o.autostart)}
 				${switchRow("terminal", "terminal", t("o_terminal"), esc(t("o_terminal_desc")), o.terminal, { extra: terminalExtra, extraCls: terminalExtraCls })}
-				${win10NoWinget && o.terminal ? switchRow("install_winget", "box", t("o_install_winget"), esc(t("o_install_winget_desc")), S.installWinget) : ""}
+				${win10NoWinget && (o.terminal || o.ffmpeg) ? switchRow("install_winget", "box", t("o_install_winget"), esc(t("o_install_winget_desc")), S.installWinget) : ""}
 				${switchRow("pwsh7", "pwsh", t("o_pwsh7"), esc(t("o_pwsh7_desc")), o.pwsh7, { disabled: !!pwshPresent, extra: pwshPresent ? esc(t("o_pwsh7_present")) : "", extraCls: "ok" })}
+				${switchRow("ffmpeg", "box", t("o_ffmpeg"), esc(t("o_ffmpeg_desc")), o.ffmpeg, { disabled: !!ffmpegPresent, extra: ffmpegPresent ? esc(t("o_ffmpeg_present")) : ffmpegExtra, extraCls: ffmpegPresent ? "ok" : ffmpegExtraCls })}
 				${switchRow("exec_policy", "shield", t("o_policy"), esc(t("o_policy_desc")).replace("Set-ExecutionPolicy -Scope CurrentUser RemoteSigned", "<code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>"), o.exec_policy, { disabled: policyDisabled, extra: policyExtra, extraCls: policyCls, caution: true })}
 				${switchRow("launch", "rocket", t("o_launch"), esc(t("o_launch_desc")), S.launch)}
 			</div>`;
@@ -326,11 +331,12 @@
 			html += checksCard(a);
 		} else if (a === "uninstall") {
 			const inst = info.installed;
-			if (!S.uopts) S.uopts = { remove_tools: inst.tools.length > 0, remove_pwsh7: inst.pwsh7_ours, keep_settings: false, restore_look: inst.has_pre_install };
+			if (!S.uopts) S.uopts = { remove_tools: inst.tools.length > 0, remove_pwsh7: inst.pwsh7_ours, remove_ffmpeg: inst.ffmpeg_ours, keep_settings: false, restore_look: inst.has_pre_install };
 			const u = S.uopts;
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
 				${switchRow("remove_tools", "terminal", t("u_tools"), esc(inst.tools.length ? inst.tools.join(", ") : t("u_tools_none")), u.remove_tools, { disabled: !inst.tools.length })}
 				${inst.pwsh7_ours ? switchRow("remove_pwsh7", "pwsh", t("u_pwsh7"), esc(t("u_pwsh7_desc")), u.remove_pwsh7) : ""}
+				${inst.ffmpeg_ours ? switchRow("remove_ffmpeg", "box", t("u_ffmpeg"), esc(t("u_ffmpeg_desc")), u.remove_ffmpeg) : ""}
 				${switchRow("keep_settings", "sliders", t("u_keep"), esc(t("u_keep_desc", { p: info.settings_dir })), u.keep_settings)}
 				${switchRow("restore_look", "palette", t("u_restore"), esc(inst.has_pre_install ? t("u_restore_desc") : t("u_restore_none")), u.restore_look, { disabled: !inst.has_pre_install })}
 			</div>`;
@@ -364,7 +370,7 @@
 		else if (id === "install_winget") S.installWinget = checked;
 		else if (S.action === "uninstall") S.uopts[id] = checked;
 		else S.opts[id] = checked;
-		if (id === "terminal" || id === "force" || id === "install_winget") renderOptions();
+		if (id === "terminal" || id === "ffmpeg" || id === "force" || id === "install_winget") renderOptions();
 		else updateGo();
 	}
 
@@ -388,8 +394,9 @@
 		if (src && src.value) size = src.value.kind === "offline" ? src.value.size : src.value.release.zip_size;
 		const neededMb = Math.ceil((size || 100 * 1048576) * 2.6 / 1048576) + 64;
 		const terminal = action === "install" ? (S.opts || defaultOpts()).terminal : !!(info.installed && info.installed.options.terminal);
+		const ffmpeg = action === "install" ? (S.opts || defaultOpts()).ffmpeg : !!(info.installed && info.installed.options.ffmpeg);
 		try {
-			const value = await invoke("preflight", { action, terminal, neededMb });
+			const value = await invoke("preflight", { action, terminal, ffmpeg, neededMb });
 			S.preflight[action] = { value };
 		} catch (e) {
 			S.preflight[action] = { value: { checks: [{ id: "internal", level: "error", msg: { key: "internal", text: String(e), params: { error: String(e) } } }], blocked: true } };
@@ -527,6 +534,7 @@
 			install_winget: S.installWinget !== false,
 			remove_tools: !!(S.uopts && S.uopts.remove_tools),
 			remove_pwsh7: !!(S.uopts && S.uopts.remove_pwsh7),
+			remove_ffmpeg: !!(S.uopts && S.uopts.remove_ffmpeg),
 			keep_settings: !!(S.uopts && S.uopts.keep_settings),
 			restore_look: !!(S.uopts && S.uopts.restore_look),
 			force: S.force,

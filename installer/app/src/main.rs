@@ -103,6 +103,7 @@ struct InstalledInfo {
 	options: Options,
 	tools: Vec<String>,
 	pwsh7_ours: bool,
+	ffmpeg_ours: bool,
 	fonts: usize,
 	profiles: Vec<String>,
 	exec_policy_changed: bool,
@@ -143,8 +144,15 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		Err(e) => (None, Some(e.to_string())),
 	};
 	let installed = manifest.map(|m| InstalledInfo {
-		tools: m.items.winget.iter().map(|w| w.id.clone()).filter(|id| id != iiw_setup_core::PWSH_WINGET_ID).collect(),
+		tools: m
+			.items
+			.winget
+			.iter()
+			.map(|w| w.id.clone())
+			.filter(|id| id != iiw_setup_core::PWSH_WINGET_ID && id != iiw_setup_core::FFMPEG_WINGET_ID)
+			.collect(),
 		pwsh7_ours: m.has_winget(iiw_setup_core::PWSH_WINGET_ID),
+		ffmpeg_ours: m.has_winget(iiw_setup_core::FFMPEG_WINGET_ID),
 		fonts: m.items.fonts.len(),
 		profiles: m.items.profiles.iter().map(|p| p.path.display().to_string()).collect(),
 		exec_policy_changed: m.items.exec_policy.as_ref().is_some_and(|c| c.changed),
@@ -186,12 +194,13 @@ async fn preflight(
 	state: tauri::State<'_, AppState>,
 	action: Action,
 	terminal: bool,
+	ffmpeg: bool,
 	needed_mb: u64,
 ) -> Result<Preflight, String> {
 	let paths = state.paths.clone();
 	tauri::async_runtime::spawn_blocking(move || {
 		let _com = win::Com::init();
-		ops::preflight(&paths, action, needed_mb.max(1) << 20, terminal)
+		ops::preflight(&paths, action, needed_mb.max(1) << 20, terminal, ffmpeg)
 	})
 	.await
 	.map_err(|e| e.to_string())

@@ -43,6 +43,13 @@ pub const TERMINAL_TOOLS: [(&str, &str); 4] = [
 	("Microsoft.WindowsTerminal", "wt"),
 ];
 pub const PWSH_WINGET_ID: &str = "Microsoft.PowerShell";
+/// FFmpeg, offered as a standalone winget install (like PowerShell 7 above), off by default: ii
+/// is getting its own native recorder, so this is only a fallback and a convenience for users
+/// who want the `ffmpeg`/`ffprobe` CLI. Gyan.FFmpeg's manifest is a `zip`/`portable` installer
+/// with no declared Scope, which winget installs per user with `--scope user` the same way as
+/// the TERMINAL_TOOLS above (eza is the same shape of package).
+pub const FFMPEG_WINGET_ID: &str = "Gyan.FFmpeg";
+pub const FFMPEG_CMD: &str = "ffmpeg";
 /// App Installer's Appx package name (not its package family name below) - used to remove it
 /// with `Get-AppxPackage -Name ... | Remove-AppxPackage` on uninstall.
 pub const APP_INSTALLER_NAME: &str = "Microsoft.DesktopAppInstaller";

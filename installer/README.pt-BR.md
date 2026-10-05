@@ -76,6 +76,17 @@ tarefas se oculta automaticamente.
     ```
 - **Instalar o PowerShell 7** (desligada por padrão): `winget install Microsoft.PowerShell`. Ele
   é instalado para todos os usuários, então o Windows pede permissão de administrador.
+- **Instalar o FFmpeg** (desligada por padrão): `winget install --scope user Gyan.FFmpeg`, a
+  versão do `ffmpeg`, `ffplay` e `ffprobe` do [gyan.dev](https://www.gyan.dev/ffmpeg/). O ii vai
+  ganhar o próprio gravador de tela nativo; esta opção é um gravador alternativo que ele pode usar
+  no lugar, e o comando `ffmpeg` também é útil por conta própria. É uma opção separada da
+  *Configuração do terminal* (não precisa dela ligada), mas ainda precisa do winget: sem ele, esta
+  opção é pulada do mesmo jeito que as ferramentas de terminal, e no Windows 10 a mesma opção de
+  instalar o winget primeiro (veja *winget* em "Windows 10" abaixo) o instala para esta opção
+  também, se qualquer uma das duas precisar. O Gyan.FFmpeg é um pacote `zip`/portátil sem escopo
+  de instalação declarado, então o winget o instala por usuário, do mesmo jeito que o Oh My Posh,
+  o Starship e o eza acima (com os mesmos `--accept-package-agreements`/`--accept-source-agreements`).
+  A desinstalação o remove só se foi este instalador que o instalou, assim como o PowerShell 7.
 - **Permitir que o Windows PowerShell 5.1 rode scripts de perfil** (desligada por padrão): roda
   `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. É uma **configuração de segurança**:
   deixa o Windows PowerShell 5.1 rodar scripts guardados neste computador, enquanto scripts
@@ -134,9 +145,9 @@ A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
   em `%TEMP%`, e a desinstalação diz onde);
 - volta a política de execução do PowerShell, se este instalador a mudou;
 - desinstala com o winget as ferramentas de terminal que este instalador instalou (uma opção,
-  ligada por padrão; o PowerShell 7 também, se foi este instalador que o instalou), depois remove
-  o próprio winget (`Remove-AppxPackage`) se foi este instalador que o instalou no Windows 10, e
-  remove as fontes que ele instalou;
+  ligada por padrão; o PowerShell 7 e o FFmpeg também, cada um como sua própria opção, se foi
+  este instalador que os instalou), depois remove o próprio winget (`Remove-AppxPackage`) se foi
+  este instalador que o instalou no Windows 10, e remove as fontes que ele instalou;
 - apaga a pasta do fragmento do Windows Terminal, `%LOCALAPPDATA%\ii-windows`, as pastas do ii em
   `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
   e `%TEMP%\quickshell`, e também `%LOCALAPPDATA%\cache\thumbnails` se essa pasta não existia
@@ -174,7 +185,7 @@ arquivos do programa e os arquivos do próprio ii, mantém as suas configuraçõ
   se você o baixou do link abaixo.
 - É preciso o Windows 10 versão 2004 ou mais nova (build 19041; 22H2, build 19045, recomendada)
   ou o Windows 11 (build 22000 ou mais nova). O winget (Instalador de Aplicativo) é necessário
-  para as ferramentas de terminal.
+  para as ferramentas de terminal e para o FFmpeg.
 - O log do instalador é `%LOCALAPPDATA%\ii-windows\setup.log`. Enquanto roda, o instalador
   guarda os arquivos temporários dele (o download, os dados de navegador da janela) em
   `%TEMP%\ii-windows-setup-...` e os apaga alguns segundos depois de fechar.
@@ -194,20 +205,20 @@ O ii-windows também instala no Windows 10 versão 2004 ou mais nova (build 1904
   caixa de mensagem, antes de qualquer outra coisa, oferecendo abrir a página de download do
   WebView2 da Microsoft, e depois fecha.
 - O **winget** (Instalador de Aplicativo) também não vem com o Windows 10; ele costuma chegar
-  depois, pela Microsoft Store. Se a opção *Configuração do terminal* estiver ligada e o winget
-  não for encontrado, este instalador pode instalá-lo primeiro, antes das ferramentas de
-  terminal abaixo: uma opção dentro dessa, ligada por padrão, baixa o pacote do Instalador de
-  Aplicativo e as dependências dele (cerca de 300 MB juntos) da versão mais nova do
-  [microsoft/winget-cli](https://github.com/microsoft/winget-cli) no GitHub, e o instala para o
-  seu usuário com `Add-AppxPackage` - sem precisar de permissão de administrador. Algumas
-  versões do winget-cli publicam o SHA-256 do msixbundle ao lado dele; quando isso existe, é
-  conferido antes de instalar, e este instalador avisa; quando não existe, este instalador não
-  inventa uma verificação própria, já que o Windows confere a assinatura da Microsoft do pacote
-  ao instalar, de qualquer jeito. Desligar essa opção pula essa etapa (como antes: as
-  ferramentas de terminal também são puladas). A desinstalação o remove com
+  depois, pela Microsoft Store. Se a *Configuração do terminal* ou o *Instalar o FFmpeg*
+  estiverem ligados e o winget não for encontrado, este instalador pode instalá-lo primeiro,
+  antes das ferramentas de terminal e do FFmpeg abaixo: uma opção mostrada ao lado dessas, ligada
+  por padrão, baixa o pacote do Instalador de Aplicativo e as dependências dele (cerca de 300 MB
+  juntos) da versão mais nova do [microsoft/winget-cli](https://github.com/microsoft/winget-cli)
+  no GitHub, e o instala para o seu usuário com `Add-AppxPackage` - sem precisar de permissão de
+  administrador. Algumas versões do winget-cli publicam o SHA-256 do msixbundle ao lado dele;
+  quando isso existe, é conferido antes de instalar, e este instalador avisa; quando não existe,
+  este instalador não inventa uma verificação própria, já que o Windows confere a assinatura da
+  Microsoft do pacote ao instalar, de qualquer jeito. Desligar essa opção pula essa etapa (como
+  antes: as ferramentas de terminal e o FFmpeg também são pulados). A desinstalação o remove com
   `Remove-AppxPackage`, só se foi este instalador que o instalou. Um download ou instalação que
-  falhe aqui é um aviso, não um instalador que falhou: as ferramentas de terminal são então
-  puladas, exatamente como quando o winget nunca foi encontrado.
+  falhe aqui é um aviso, não um instalador que falhou: as ferramentas de terminal e o FFmpeg são
+  então pulados, exatamente como quando o winget nunca foi encontrado.
 - O **Windows Terminal** não vem com o Windows 10. Se a opção *Configuração do terminal* estiver
   ligada e o `wt.exe` não for encontrado (e o winget também não listar ele como instalado), este
   instalador o instala com `winget install --scope user Microsoft.WindowsTerminal`, do mesmo
@@ -227,8 +238,8 @@ O próprio ii também muda um pouco no Windows 10:
   cantos arredondados um pouco serrilhados.
 - **Terminal:** os atalhos de terminal abrem o Windows Terminal, ou o Windows PowerShell onde o
   Windows Terminal não está instalado. Sem o winget (Instalador de Aplicativo, que nem todo
-  Windows 10 tem), as ferramentas de terminal, o Windows Terminal e o PowerShell 7 não podem ser
-  instalados e são pulados.
+  Windows 10 tem), as ferramentas de terminal, o Windows Terminal, o PowerShell 7 e o FFmpeg não
+  podem ser instalados e são pulados.
 
 ## Código-fonte e licenças
 

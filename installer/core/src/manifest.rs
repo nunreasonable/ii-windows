@@ -17,6 +17,9 @@ pub struct Options {
 	pub pwsh7: bool,
 	/// Set-ExecutionPolicy -Scope CurrentUser RemoteSigned for Windows PowerShell 5.1.
 	pub exec_policy: bool,
+	/// FFmpeg (Gyan.FFmpeg) through winget, per user. Optional: ii's own recorder can fall back
+	/// to it, and it's handy to have on its own. Off by default.
+	pub ffmpeg: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

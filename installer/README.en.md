@@ -70,6 +70,16 @@ light or dark mode, the accent color and whether the taskbar hides automatically
     ```
 - **Install PowerShell 7** (off by default): `winget install Microsoft.PowerShell`. It is
   installed for all users, so Windows asks for administrator permission.
+- **Install FFmpeg** (off by default): `winget install --scope user Gyan.FFmpeg`, the `ffmpeg`,
+  `ffplay` and `ffprobe` build from [gyan.dev](https://www.gyan.dev/ffmpeg/). ii is getting its
+  own native screen recorder; this is a fallback it can use instead, and the `ffmpeg` command is
+  handy to have on its own. It is a separate option from *Terminal setup* (it doesn't need that
+  option on), but it still needs winget: without it, this is skipped the same way the terminal
+  tools are, and on Windows 10 the same winget-bootstrap toggle (see *winget* under "Windows 10"
+  below) installs winget for this too, if either option needs it. Gyan.FFmpeg is a `zip`/portable
+  package with no declared install scope, so winget installs it per user, same as Oh My Posh,
+  Starship and eza above (with the same `--accept-package-agreements`/`--accept-source-agreements`).
+  Uninstall removes it only if this setup installed it, the same as PowerShell 7.
 - **Allow Windows PowerShell 5.1 to run profile scripts** (off by default): runs
   `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. This is a **security setting**: it lets
   Windows PowerShell 5.1 run scripts stored on this computer, while scripts downloaded from the
@@ -125,9 +135,9 @@ Uninstall reads `install-manifest.json` and undoes what it lists:
   saved in `%TEMP%`, and the uninstall tells you where);
 - puts the PowerShell execution policy back, if this setup changed it;
 - uninstalls with winget the terminal tools this setup installed (an option, on by default;
-  PowerShell 7 too, if this setup installed it), then removes winget itself
-  (`Remove-AppxPackage`) if this setup installed it on Windows 10, and removes the fonts it
-  installed;
+  PowerShell 7 and FFmpeg too, each as its own option, if this setup installed them), then
+  removes winget itself (`Remove-AppxPackage`) if this setup installed it on Windows 10, and
+  removes the fonts it installed;
 - deletes the Windows Terminal fragment folder, `%LOCALAPPDATA%\ii-windows`, ii's folders in
   `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
   and `%TEMP%\quickshell`, plus `%LOCALAPPDATA%\cache\thumbnails` if that folder wasn't there
@@ -161,7 +171,8 @@ replaces the program files and ii's own files, keeps your settings, and restarts
   protected your PC"; *More info → Run anyway* starts it. Do that only if you got it from the
   link below.
 - You need Windows 10 version 2004 or newer (build 19041; 22H2, build 19045, recommended) or
-  Windows 11 (build 22000 or newer). winget (App Installer) is needed for the terminal tools.
+  Windows 11 (build 22000 or newer). winget (App Installer) is needed for the terminal tools and
+  for FFmpeg.
 - The setup's log is `%LOCALAPPDATA%\ii-windows\setup.log`. While it runs, the setup keeps its
   temporary files (the download, its window's browser data) in `%TEMP%\ii-windows-setup-...`
   and deletes them a few seconds after it closes.
@@ -179,18 +190,19 @@ recommended), next to Windows 11. A few things work differently there:
   always has it; if it's missing on Windows 10, the setup shows a message box, before anything
   else, offering to open Microsoft's WebView2 download page, then closes.
 - **winget** (App Installer) isn't built into Windows 10 either; it usually arrives later through
-  the Microsoft Store. If the *Terminal setup* option is on and winget can't be found, this
-  setup can install it first, before the terminal tools below: a toggle in that option, on by
-  default, downloads the App Installer package and its dependencies (about 300 MB together) from
-  the latest release of [microsoft/winget-cli](https://github.com/microsoft/winget-cli) on
-  GitHub, and installs it for your user with `Add-AppxPackage` - no administrator permission.
-  Some winget-cli releases publish the msixbundle's SHA-256 next to it; when that's there, it's
-  checked before installing, and this setup says so; when it isn't, this setup doesn't invent a
-  check of its own, since Windows checks the package's own Microsoft signature on install anyway.
-  Turning the toggle off skips this (same as before: the terminal tools are skipped too).
-  Uninstall removes it with `Remove-AppxPackage`, only if this setup installed it. A failed
-  download or install here is a warning, not a failed setup: the terminal tools are then skipped
-  exactly as they are when winget was never found.
+  the Microsoft Store. If *Terminal setup* or *Install FFmpeg* is on and winget can't be found,
+  this setup can install it first, before the terminal tools and FFmpeg below: a toggle shown
+  next to those options, on by default, downloads the App Installer package and its dependencies
+  (about 300 MB together) from the latest release of
+  [microsoft/winget-cli](https://github.com/microsoft/winget-cli) on GitHub, and installs it for
+  your user with `Add-AppxPackage` - no administrator permission. Some winget-cli releases
+  publish the msixbundle's SHA-256 next to it; when that's there, it's checked before installing,
+  and this setup says so; when it isn't, this setup doesn't invent a check of its own, since
+  Windows checks the package's own Microsoft signature on install anyway. Turning the toggle off
+  skips this (same as before: the terminal tools and FFmpeg are skipped too). Uninstall removes
+  it with `Remove-AppxPackage`, only if this setup installed it. A failed download or install
+  here is a warning, not a failed setup: the terminal tools and FFmpeg are then skipped exactly
+  as they are when winget was never found.
 - **Windows Terminal** isn't built into Windows 10. If the *Terminal setup* option is on and
   `wt.exe` can't be found (and winget doesn't already list it installed), this setup installs it
   with `winget install --scope user Microsoft.WindowsTerminal`, the same way as Oh My Posh,
@@ -208,7 +220,7 @@ ii itself also differs a little on Windows 10:
   jagged.
 - **Terminal:** the terminal shortcuts open Windows Terminal, or Windows PowerShell where Windows
   Terminal isn't installed. Without winget (App Installer, which not every Windows 10 has), the
-  terminal tools, Windows Terminal and PowerShell 7 can't be installed and are skipped.
+  terminal tools, Windows Terminal, PowerShell 7 and FFmpeg can't be installed and are skipped.
 
 ## Source code and licenses
 

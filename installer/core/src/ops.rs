@@ -45,6 +45,8 @@ pub struct RunOptions {
 	pub remove_tools: bool,
 	/// Uninstall: also PowerShell 7, if this installer installed it.
 	pub remove_pwsh7: bool,
+	/// Uninstall: also FFmpeg, if this installer installed it.
+	pub remove_ffmpeg: bool,
 	pub keep_settings: bool,
 	/// Uninstall: put back the wallpaper, light/dark mode, accent color and taskbar auto-hide.
 	pub restore_look: bool,
@@ -270,6 +272,8 @@ pub struct Preflight {
 	/// which case the "Terminal setup" option also installs it.
 	pub windows_terminal_present: bool,
 	pub pwsh: Option<PathBuf>,
+	/// `ffmpeg.exe` reachable on PATH (winget or otherwise).
+	pub ffmpeg_present: Option<PathBuf>,
 	pub exec_policy_current_user: Option<String>,
 	pub exec_policy_effective: Option<String>,
 	pub running_in_install_dir: Vec<win::Proc>,
@@ -289,7 +293,7 @@ pub fn ii_processes(paths: &Paths) -> (Vec<win::Proc>, Vec<win::Proc>) {
 
 /// What the options page shows before anything runs. `needed` is the disk space the action
 /// needs on the %LOCALAPPDATA% volume.
-pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> Preflight {
+pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffmpeg: bool) -> Preflight {
 	let mut checks = Vec::new();
 	let (build, display) = win::windows_build();
 	if build >= 22000 {
@@ -323,15 +327,24 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> 
 	}
 
 	let winget = win::winget_exe().is_some_and(|w| win::winget_version(&w).is_some());
-	if matches!(action, Action::Install | Action::Repair) && terminal {
+	if matches!(action, Action::Install | Action::Repair) && (terminal || ffmpeg) {
 		if winget {
 			checks.push(check("winget", "ok", Msg::new("winget_ok", "winget is available")));
 		} else {
-			checks.push(check(
-				"winget",
-				"warn",
-				Msg::new("winget_missing", "winget (App Installer) was not found: the terminal tools will be skipped"),
-			));
+			if terminal {
+				checks.push(check(
+					"winget",
+					"warn",
+					Msg::new("winget_missing", "winget (App Installer) was not found: the terminal tools will be skipped"),
+				));
+			}
+			if ffmpeg {
+				checks.push(check(
+					"winget_ffmpeg",
+					"warn",
+					Msg::new("winget_missing_ffmpeg", "winget (App Installer) was not found: FFmpeg will be skipped"),
+				));
+			}
 		}
 	}
 
@@ -402,6 +415,7 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> 
 	}
 
 	let pwsh = win::pwsh_exe();
+	let ffmpeg_present = win::find_on_path(&format!("{}.exe", crate::FFMPEG_CMD));
 	let (cu, eff) = if matches!(action, Action::Install) {
 		(win::exec_policy(Some("CurrentUser")), win::exec_policy(None))
 	} else {
@@ -414,6 +428,7 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool) -> 
 		winget,
 		windows_terminal_present: win::windows_terminal_present(),
 		pwsh,
+		ffmpeg_present,
 		exec_policy_current_user: cu,
 		exec_policy_effective: eff,
 		running_in_install_dir: mine,
@@ -975,7 +990,7 @@ fn remove_fonts(ctx: &mut Ctx, m: &mut Manifest, step: &str) -> Vec<PathBuf> {
 /// into it) when it isn't there yet, the "Terminal setup" option is on, and the user didn't turn
 /// the "Install winget" toggle off.
 fn needs_app_installer(opts: &Options, run: &RunOptions) -> bool {
-	opts.terminal
+	(opts.terminal || opts.ffmpeg)
 		&& run.install_winget
 		&& win::winget_exe().is_none()
 		&& (19041..22000).contains(&win::windows_build().0)
@@ -1149,8 +1164,13 @@ fn install_tools(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 	ctx.progress("tools", 1.0, None);
 	if !failed {
-		let ours: Vec<String> =
-			m.items.winget.iter().filter(|p| p.id != crate::PWSH_WINGET_ID).map(|p| p.id.clone()).collect();
+		let ours: Vec<String> = m
+			.items
+			.winget
+			.iter()
+			.filter(|p| p.id != crate::PWSH_WINGET_ID && p.id != crate::FFMPEG_WINGET_ID)
+			.map(|p| p.id.clone())
+			.collect();
 		ctx.done_with(
 			"tools",
 			Msg::new(
@@ -1200,6 +1220,55 @@ fn install_pwsh7(ctx: &mut Ctx, m: &mut Manifest) {
 						out.code
 					),
 				),
+			);
+		}
+	}
+}
+
+/// FFmpeg is optional and standalone (not part of "Terminal setup"): ii is getting a native
+/// recorder, so this is only a fallback recorder and a convenience `ffmpeg`/`ffprobe` CLI.
+/// Gyan.FFmpeg has no declared Scope (it's a `zip`/`portable` installer, the same shape as the
+/// eza package above), so `--scope user` installs it per user like the rest of TERMINAL_TOOLS.
+fn install_ffmpeg(ctx: &mut Ctx, m: &mut Manifest) {
+	ctx.begin("ffmpeg");
+	let Some(winget) = win::winget_exe() else {
+		ctx.warn(
+			"ffmpeg",
+			Msg::new("winget_missing_ffmpeg", "winget (App Installer) was not found: FFmpeg was not installed"),
+		);
+		return;
+	};
+	let listed = win::winget_installed(&winget, crate::FFMPEG_WINGET_ID);
+	let on_path = win::find_on_path(&format!("{}.exe", crate::FFMPEG_CMD));
+	if listed == Some(true) || on_path.is_some() {
+		ctx.skip(
+			"ffmpeg",
+			Msg::new(
+				"ffmpeg_present",
+				format!(
+					"FFmpeg is already installed ({})",
+					on_path.map(|p| p.display().to_string()).unwrap_or_else(|| "winget list".into())
+				),
+			),
+		);
+		return;
+	}
+	ctx.info(format!("   winget install --scope user {}", crate::FFMPEG_WINGET_ID));
+	match win::winget_install(&winget, crate::FFMPEG_WINGET_ID, true) {
+		Ok(out) => {
+			ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+			if !m.has_winget(crate::FFMPEG_WINGET_ID) {
+				m.items.winget.push(WingetPackage { id: crate::FFMPEG_WINGET_ID.into(), installed_at: log::timestamp() });
+			}
+			save(ctx, m);
+			ctx.done("ffmpeg");
+		}
+		Err(out) => {
+			ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+			ctx.warn(
+				"ffmpeg",
+				Msg::new("ffmpeg_failed", format!("winget couldn't install FFmpeg (exit {:?})", out.code))
+					.with("code", format!("{:?}", out.code.map(|c| c as u32))),
 			);
 		}
 	}
@@ -1490,10 +1559,6 @@ fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous:
 	save(ctx, m);
 	if opts.terminal {
 		install_fonts(ctx, m);
-		if needs_app_installer(opts, run) {
-			install_app_installer(ctx, m);
-		}
-		install_tools(ctx, m);
 	} else if previous.terminal {
 		ctx.begin("fonts");
 		let had = !m.items.fonts.is_empty();
@@ -1503,8 +1568,17 @@ fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous:
 			ctx.done("fonts");
 		}
 	}
+	if needs_app_installer(opts, run) {
+		install_app_installer(ctx, m);
+	}
+	if opts.terminal {
+		install_tools(ctx, m);
+	}
 	if opts.pwsh7 {
 		install_pwsh7(ctx, m);
+	}
+	if opts.ffmpeg {
+		install_ffmpeg(ctx, m);
 	}
 	if opts.terminal {
 		add_profile_blocks(ctx, m);
@@ -1530,14 +1604,17 @@ fn integration_steps(opts: &Options, previous: &Options, had_policy: bool, run: 
 	if opts.terminal || previous.terminal {
 		s.push("fonts");
 	}
+	if needs_app_installer(opts, run) {
+		s.push("winget");
+	}
 	if opts.terminal {
-		if needs_app_installer(opts, run) {
-			s.push("winget");
-		}
 		s.push("tools");
 	}
 	if opts.pwsh7 {
 		s.push("pwsh7");
+	}
+	if opts.ffmpeg {
+		s.push("ffmpeg");
 	}
 	if opts.terminal || previous.terminal {
 		s.push("profiles");
@@ -1774,15 +1851,22 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 	let Some(mut m) = Manifest::load(&ctx.paths.manifest()).ok().flatten() else {
 		return ctx.finish(Err(Msg::new("not_installed", "ii-windows isn't installed by this setup")), false);
 	};
-	let tools: Vec<String> =
-		m.items.winget.iter().map(|p| p.id.clone()).filter(|id| id != crate::PWSH_WINGET_ID).collect();
+	let tools: Vec<String> = m
+		.items
+		.winget
+		.iter()
+		.map(|p| p.id.clone())
+		.filter(|id| id != crate::PWSH_WINGET_ID && id != crate::FFMPEG_WINGET_ID)
+		.collect();
 	let pwsh_ours = m.has_winget(crate::PWSH_WINGET_ID);
+	let ffmpeg_ours = m.has_winget(crate::FFMPEG_WINGET_ID);
 	let app_installer_ours = m.items.app_installer.is_some();
 	let mut plan = vec!["stop", "autostart", "shortcuts", "profiles"];
 	if m.items.exec_policy.as_ref().is_some_and(|c| c.changed) {
 		plan.push("exec_policy");
 	}
-	let had_winget_items = (run.remove_tools && !tools.is_empty()) || (run.remove_pwsh7 && pwsh_ours);
+	let had_winget_items =
+		(run.remove_tools && !tools.is_empty()) || (run.remove_pwsh7 && pwsh_ours) || (run.remove_ffmpeg && ffmpeg_ours);
 	if had_winget_items || (run.remove_tools && app_installer_ours) {
 		plan.push("tools");
 	}
@@ -1865,6 +1949,9 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 					let mut ids: Vec<String> = if run.remove_tools { tools.clone() } else { Vec::new() };
 					if run.remove_pwsh7 && pwsh_ours {
 						ids.push(crate::PWSH_WINGET_ID.into());
+					}
+					if run.remove_ffmpeg && ffmpeg_ours {
+						ids.push(crate::FFMPEG_WINGET_ID.into());
 					}
 					for (i, id) in ids.iter().enumerate() {
 						ctx.progress("tools", i as f64 / ids.len() as f64, Some(id.clone()));
