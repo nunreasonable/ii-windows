@@ -344,7 +344,7 @@ pub fn spawn_cmd_raw(line: &str) -> std::io::Result<()> {
 		.stdin(Stdio::null())
 		.stdout(Stdio::null())
 		.stderr(Stdio::null())
-		.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
+		.creation_flags(CREATE_NO_WINDOW)
 		.spawn()
 		.map(|_| ())
 }

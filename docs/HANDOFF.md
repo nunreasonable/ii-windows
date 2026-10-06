@@ -165,6 +165,7 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Fechar janelas de admin:** o `WM_CLOSE` é barrado pelo UIPI; cai para `WM_SYSCOMMAND/SC_CLOSE`. Uma janela que entra no tracker já em foco vira a ativa (Win+Q logo depois de abrir um app não fazia nada).
 - **Limitação:** com uma janela de admin em foco o hook de teclado não recebe nada; o Win+Q vai para o Windows (abre a pesquisa) e o Win+Q seguinte fecha o que estiver na frente (fechou o PowerShell do usuário no teste). Está no README.
 - **Agente da VM:** `ssh -n` nas chamadas que não leem stdin (o da win10 travou no fetch do `agent`).
+- **Setup:** a limpeza depois de fechar (`cmd` + `ping` como espera) abria uma janela do Windows Terminal na win11: `CREATE_NO_WINDOW` é ignorado junto com `DETACHED_PROCESS`, e o `ping` criava um console próprio. Agora só `CREATE_NO_WINDOW`. Atualização 0.4.0 → 0.5.0 pelo pacote local testada na win11 (SHA-256, 0 avisos, ii reaberto).
 - **Pendente:**
   - detecção de janelas no recorte de tela (não feita);
   - o `togglefloating` falhou uma vez e não repetiu;
