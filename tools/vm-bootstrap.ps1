@@ -23,7 +23,7 @@ $created = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\iiw-agent', [ref]$created)
 if (-not $created) { exit }
 while ($true) {
-	$a = ssh -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 @IIW_GW_HOST@ agent 2>$null
+	$a = ssh -n -i "$d\key" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 @IIW_GW_HOST@ agent 2>$null
 	if ($LASTEXITCODE -eq 0 -and $a) { Invoke-Expression ($a -join "`n") }
 	Start-Sleep 10
 }

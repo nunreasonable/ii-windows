@@ -4,11 +4,16 @@ $OutputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
 
 $gwHost = '@IIW_GW_HOST@'
-$sshArgs = @('-i', "$d\key", '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
+$sshArgs = @('-n', '-i', "$d\key", '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
 	'-o', 'ConnectTimeout=5', '-o', 'ServerAliveInterval=15')
 $env:IIW_GW = "ssh -i `"$d\key`" -o BatchMode=yes -o StrictHostKeyChecking=accept-new $gwHost"
 $env:IIW_ROOT = 'C:\ii-windows'
 New-Item -Force -ItemType Directory "$env:IIW_ROOT\logs", "$d\jobs" | Out-Null
+$bootFile = "$d\boot.ps1"
+if (Test-Path $bootFile) {
+	$bootText = [IO.File]::ReadAllText($bootFile)
+	if ($bootText.Contains('$a = ssh -i')) { [IO.File]::WriteAllText($bootFile, $bootText.Replace('$a = ssh -i', '$a = ssh -n -i'), $utf8) }
+}
 
 while ($true) {
 	$resp = @(& ssh.exe @sshArgs $gwHost poll 2>$null)
