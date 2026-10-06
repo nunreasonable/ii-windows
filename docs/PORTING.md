@@ -52,14 +52,11 @@ Windows, so they show the real RTX output.
 
 ## Status
 
-- Phase 0 (toolchain, VM channel) and Phase 1 (core + window backend) done and verified on the
-  RTX VM: AppBar reservation (also released on hide/exit), transparency, layers, input masks, IPC.
-- Phase 2 done: ii boots (`vm.sh ii start`), bar + right sidebar render.
-- Phase 3 merged (native backends, see the table): window tracker + virtual desktops + native
-  Quickshell.Hyprland/ToplevelManager, hotkeys (RegisterHotKey + LL hook, lone Super), focus grabs,
-  Core Audio, GSMTC, UPower/power modes, Start-menu apps + shell icons, system helpers
-  (Quickshell.Windows: session, stats, brightness, keyboard, clipboard, credentials, input, night
-  light). Still shims: SystemTray, Polkit, Pam.
+- All planned phases are done and released (0.1.0 to 0.4.0). Tested on Windows 11 25H2 in VMs (with
+  the RTX passed through and with WARP only), on a Windows 10 22H2 VM, and on real hardware (an
+  i3-13100 with its iGPU, and a bare-metal install where Wi-Fi and Bluetooth were checked).
+- Not ported on purpose: ii's lock screen (Windows' own one is used), the polkit agent (UAC),
+  EasyEffects, and Hyprland's own settings pages.
 - On Windows ii doesn't talk DDC/CI at startup: a boot-time query plus the monitor's OSD froze the
   ASUS VG259Q5A firmware. Brightness DDC only runs when the user changes it.
 - Fixed upstream bugs that only show on named pipes: chunked IPC commands left a QDataStream
@@ -70,36 +67,47 @@ Windows, so they show the real RTX output.
 
 | Linux (Quickshell / ii)                 | Windows                                                              | Status |
 |-----------------------------------------|----------------------------------------------------------------------|--------|
-| PanelWindow + WlrLayershell             | `WinPanelWindow`: AppBar, z-bands, DWM attrs, input mask via hook     | done   |
-| HyprlandFocusGrab                       | outside-click / foreground-change dismissal                          | done   |
-| GlobalShortcut + Hyprland keybinds      | RegisterHotKey + WH_KEYBOARD_LL (lone Super), `defaults/windows/keybinds.json` | todo |
-| Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor) | todo |
-| HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done   |
-| ToplevelManager                         | same window tracker                                                  | done   |
-| ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | built, needs GUI test |
-| Hyprland layer rules (blur, ignore_alpha) | `blur.cpp`: Windows.UI.Composition host-backdrop window under each panel, rounded shapes from the item tree, rules in `defaults/windows/layerrules.json` | built, needs GUI test |
-| IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done   |
-| Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done   |
-| Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done   |
-| Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT)                       | done   |
-| Services.Notifications                  | native server: `notifySend` (notify-send args) + UserNotificationListener mirror of Windows toasts | built, needs GUI test |
-| Services.SystemTray                     | empty stub (tray stays on the native taskbar)                        | todo   |
-| Services.Polkit / Pam / WlSessionLock   | inert stubs; lock = LockWorkStation                                  | todo   |
-| Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | built, needs adapter test |
-| DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | done   |
-| org.kde.kirigami (Icon only)            | QML shim                                                             | done   |
-| org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | done   |
-| nmcli (Network.qml)                     | WlanAPI + INetworkListManager                                        | built, needs VM test (worktree `net`) |
-| ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2)                                                 | done   |
-| cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | done   |
-| ydotool                                 | SendInput                                                            | done   |
-| grim/slurp/magick/tesseract             | `Screenshot.captureScreen`/`.cropToFile` (C++), `Ocr` singleton on Windows.Media.Ocr (MTA worker thread) | built, needs GUI test (worktree `region`) |
-| wf-recorder                             | `scripts/videos/record.ps1` (ffmpeg gdigrab + PID file); content-region detection (find-regions-venv.sh, OpenCV) stays off on Windows | built, needs GUI test (worktree `region`) |
-| matugen + switchwall.sh                 | matugen.exe + IDesktopWallpaper + system dark mode                   | todo   |
-| systemctl/loginctl (Session.qml)        | LockWorkStation, ExitWindowsEx, InitiateShutdownW, SetSuspendState   | done   |
-| secret-tool                             | CredRead/CredWrite                                                   | done   |
-| hyprsunset                              | gamma ramp                                                           | done   |
-| /proc (ResourceUsage)                   | GetSystemTimes, GlobalMemoryStatusEx, PDH                            | done   |
+| PanelWindow + WlrLayershell             | `WinPanelWindow`: AppBar, z-bands, DWM attrs, input mask via hook; OnDemand panels take focus when shown | done |
+| HyprlandFocusGrab                       | outside-click / foreground-change dismissal                          | done |
+| GlobalShortcut + Hyprland keybinds      | RegisterHotKey + WH_KEYBOARD_LL (lone Super), `defaults/windows/keybinds.json` | done |
+| Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor, SEH-guarded) | done |
+| Hyprland dwindle layout                 | `tiling.cpp` / `tiling_layout.cpp`, optional, per desktop and monitor | done |
+| HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done |
+| ToplevelManager                         | same window tracker                                                  | done |
+| ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | done |
+| Hyprland layer rules (blur, ignore_alpha) | `blur.cpp`: backdrop windows under each panel (Win11 host backdrop, Win10 accent strips) | done |
+| Background layer                        | `desktop_host.cpp`: wallpaper in the desktop WorkerW, widgets next to the icons view | done |
+| Windows taskbar                         | `taskbar.cpp`: auto-hide + concealed until the edge is touched       | done |
+| IdleInhibitor                           | PowerCreateRequest/PowerSetRequest                                   | done |
+| Services.Pipewire                       | Core Audio (endpoints, sessions, IPolicyConfig)                      | done |
+| Services.UPower (+PowerProfiles)        | GetSystemPowerStatus, power notifications, overlay schemes           | done |
+| Services.Mpris                          | GlobalSystemMediaTransportControls (C++/WinRT), art cached as PNG    | done |
+| Services.Notifications                  | native server + UserNotificationListener mirror of Windows toasts    | done |
+| Services.SystemTray                     | hook window in front of Explorer's Shell_TrayWnd, seeded from ITrayNotify and Explorer's tray toolbars | done |
+| Services.Polkit / Pam / WlSessionLock   | inert stubs; lock = LockWorkStation                                  | not ported (on purpose) |
+| Quickshell.Bluetooth                    | WinRT DeviceWatcher / pairing, IKsControl reconnect                  | done, tested on hardware |
+| DesktopEntries / iconPath               | FOLDERID_AppsFolder, IShellItemImageFactory provider                 | done |
+| org.kde.kirigami (Icon only)            | QML shim                                                             | done |
+| org.kde.syntaxhighlighting              | QML shim (no highlighting)                                           | done |
+| nmcli (Network.qml)                     | WlanAPI + INetworkListManager                                        | done, Wi-Fi tested on hardware |
+| ddcutil/brightnessctl                   | WMI + DDC/CI (dxva2), gamma dimming as fallback                      | done |
+| cliphist/wl-copy                        | own history via AddClipboardFormatListener                           | done |
+| ydotool                                 | SendInput                                                            | done |
+| grim/slurp/magick/tesseract             | `Screenshot.captureScreen`/`.cropToFile`, `Ocr` on Windows.Media.Ocr (lines with boxes and colors) | done |
+| wf-recorder                             | native `ScreenRecorder` (WGC + Media Foundation H.264, WASAPI loopback); ffmpeg optional | done |
+| content regions (OpenCV)                | off on Windows                                                       | not ported |
+| matugen + switchwall.sh                 | matugen.exe + IDesktopWallpaper + system dark mode                   | done |
+| systemctl/loginctl (Session.qml)        | LockWorkStation, ExitWindowsEx, InitiateShutdownW, SetSuspendState   | done |
+| secret-tool                             | CredRead/CredWrite                                                   | done |
+| hyprsunset                              | gamma ramp                                                           | done |
+| /proc (ResourceUsage)                   | GetSystemTimes, GlobalMemoryStatusEx, PDH; swap shown as "WinPageFile" | done |
+| trans (translate-shell)                 | Google's gtx endpoint through XMLHttpRequest                         | done |
+| curl wttr.in \| jq (Weather.qml)        | XMLHttpRequest to wttr.in, IP/city location (no GPS prompt)          | done, unreleased |
+| songrec                                 | `songrec.exe` (SongRec's recognizer, WASAPI loopback)                | done |
+| MicroTeX (LaTeX in AI chat)             | `LaTeX.exe` with a Qt/SVG headless CLI                               | done |
+| cava (media visualizer)                 | native WASAPI loopback + FFT                                         | in progress |
+| hyprpicker                              | native picker overlay                                                | in progress |
+| warp-cli, game mode, session warnings   | warp-cli.exe, ii's own effects, winget/msiexec + partial downloads   | in progress |
 
 ## ii files changed from upstream
 
