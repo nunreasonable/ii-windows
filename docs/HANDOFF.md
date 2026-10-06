@@ -162,4 +162,5 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - game mode e Cloudflare WARP (`warp-cli` existe no Windows);
   - setup detectar Documentos/Área de Trabalho/Imagens apontando para um OneDrive removido;
   - atualizar o `docs/PORTING.md`, que ainda marca coisas prontas como "todo".
+- **Assinatura de código (decidido em 2026-10-06):** adiada. Se o número de usuários crescer, o caminho é a SignPath Foundation (gratuita; exige build verificável no GitHub Actions, página de política de assinatura com papéis e declaração de privacidade). Nenhuma opção cala o SmartScreen de imediato desde 2024.
 
