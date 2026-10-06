@@ -214,6 +214,11 @@ replaces the program files and ii's own files, keeps your settings, and restarts
 - The setup's log is `%LOCALAPPDATA%\ii-windows\setup.log`. While it runs, the setup keeps its
   temporary files (the download, its window's browser data) in `%TEMP%\ii-windows-setup-...`
   and deletes them a few seconds after it closes.
+- The options page checks that your Documents, Desktop, Pictures and Videos folders can actually
+  be opened, not just that Windows reports a path for them. If one of them was redirected into
+  OneDrive and OneDrive was later removed, Windows keeps the folder pointing there but every
+  access to it fails; the setup shows a warning explaining which folder is affected and how to
+  point it back to its default location.
 
 ## Windows 10
 

@@ -229,6 +229,11 @@ arquivos do programa e os arquivos do próprio ii, mantém as suas configuraçõ
 - O log do instalador é `%LOCALAPPDATA%\ii-windows\setup.log`. Enquanto roda, o instalador
   guarda os arquivos temporários dele (o download, os dados de navegador da janela) em
   `%TEMP%\ii-windows-setup-...` e os apaga alguns segundos depois de fechar.
+- A página de opções verifica se as suas pastas Documentos, Área de Trabalho, Imagens e Vídeos
+  realmente podem ser abertas, não só se o Windows informa um caminho para elas. Se alguma foi
+  redirecionada para dentro do OneDrive e o OneDrive foi removido depois, o Windows continua
+  apontando a pasta para lá, mas todo acesso falha; o instalador mostra um aviso explicando qual
+  pasta foi afetada e como voltar a apontá-la para o local padrão.
 
 ## Windows 10
 

@@ -4,6 +4,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::fsops::{self, Swap};
+use crate::knownfolders::{self, KnownFolder};
 use crate::log::{self, Log};
 use crate::manifest::{
 	AppInstaller, ExecPolicyChange, Font, Manifest, Options, PreInstall, ProfileEdit, RunValue, WingetPackage,
@@ -228,6 +229,33 @@ fn io_msg(key: &str, what: impl std::fmt::Display, e: impl std::fmt::Display) ->
 	Msg::new(key, format!("{what}: {e}")).with("error", e.to_string()).with("path", what.to_string())
 }
 
+fn known_folder_checks() -> Vec<Check> {
+	let mut out = Vec::new();
+	for folder in KnownFolder::ALL {
+		let Some(path) = win::known_folder(win::known_folder_id(folder)) else { continue };
+		if let Err(e) = win::probe_folder_access(&path) {
+			out.push(check(
+				folder.check_id(),
+				"warn",
+				knownfolders::blocked_msg(folder, &path).with("error", e.to_string()),
+			));
+		}
+	}
+	out
+}
+
+fn profile_access_msg(path: impl std::fmt::Display, e: std::io::Error, shell: &str) -> Msg {
+	if knownfolders::is_cloud_provider_not_running(&e) {
+		let documents = win::known_folder(win::known_folder_id(KnownFolder::Documents))
+			.unwrap_or_else(|| PathBuf::from(path.to_string()));
+		knownfolders::blocked_msg(KnownFolder::Documents, &documents)
+			.with("shell", shell.to_string())
+			.with("error", e.to_string())
+	} else {
+		io_msg("profile_failed", path, e).with("shell", shell.to_string())
+	}
+}
+
 fn mb(bytes: u64) -> String {
 	if bytes >= 1 << 30 {
 		format!("{:.1} GB", bytes as f64 / 1_073_741_824.0)
@@ -300,6 +328,7 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffm
 			.with("build", build.to_string()),
 		));
 	}
+	checks.extend(known_folder_checks());
 
 	let winget = win::winget_exe().is_some_and(|w| win::winget_version(&w).is_some());
 	if matches!(action, Action::Install | Action::Repair) && (terminal || ffmpeg) {
@@ -1244,7 +1273,7 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 			Ok(c) => c,
 			Err(e) => {
 				failed = true;
-				ctx.warn("profiles", io_msg("profile_failed", path.display(), e).with("shell", shell));
+				ctx.warn("profiles", profile_access_msg(path.display(), e, shell));
 				continue;
 			}
 		};
@@ -1275,7 +1304,7 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 						.and_then(|_| std::fs::copy(&path, &b));
 					if let Err(e) = r {
 						failed = true;
-						ctx.warn("profiles", io_msg("profile_failed", b.display(), e).with("shell", shell));
+						ctx.warn("profiles", profile_access_msg(b.display(), e, shell));
 						continue;
 					}
 					backup = Some(b);
@@ -1314,7 +1343,7 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 					}
 					Err(e) => {
 						failed = true;
-						ctx.warn("profiles", io_msg("profile_failed", path.display(), e).with("shell", shell));
+						ctx.warn("profiles", profile_access_msg(path.display(), e, shell));
 					}
 				}
 			}
@@ -1361,7 +1390,7 @@ fn remove_profile_blocks(ctx: &mut Ctx, m: &mut Manifest, step: &str, backup_roo
 				));
 				let _ = std::fs::create_dir_all(backup_root);
 				if let Err(e) = std::fs::copy(&path, &b) {
-					ctx.warn(step, io_msg("profile_failed", b.display(), e).with("shell", rec.shell.clone()));
+					ctx.warn(step, profile_access_msg(b.display(), e, &rec.shell));
 					kept.push(rec);
 					continue;
 				}
@@ -1379,7 +1408,7 @@ fn remove_profile_blocks(ctx: &mut Ctx, m: &mut Manifest, step: &str, backup_roo
 						ctx.info(format!("   removed the block from {} (copy before: {})", path.display(), b.display()))
 					}
 					Err(e) => {
-						ctx.warn(step, io_msg("profile_failed", path.display(), e).with("shell", rec.shell.clone()));
+						ctx.warn(step, profile_access_msg(path.display(), e, &rec.shell));
 						kept.push(rec);
 					}
 				}

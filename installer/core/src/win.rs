@@ -22,9 +22,10 @@ use windows::Win32::System::Threading::{
 	PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, PROCESS_TERMINATE,
 };
 use windows::Win32::UI::Shell::{
-	DesktopWallpaper, FOLDERID_LocalAppData, FOLDERID_Programs, FOLDERID_RoamingAppData, IDesktopWallpaper,
-	IShellLinkW, SHAppBarMessage, SHGetKnownFolderPath, ShellExecuteW, ShellLink, ABM_GETSTATE, ABM_SETSTATE,
-	APPBARDATA, DESKTOP_WALLPAPER_POSITION, KF_FLAG_DEFAULT,
+	DesktopWallpaper, FOLDERID_Desktop, FOLDERID_Documents, FOLDERID_LocalAppData, FOLDERID_Pictures,
+	FOLDERID_Programs, FOLDERID_RoamingAppData, FOLDERID_Videos, IDesktopWallpaper, IShellLinkW, SHAppBarMessage,
+	SHGetKnownFolderPath, ShellExecuteW, ShellLink, ABM_GETSTATE, ABM_SETSTATE, APPBARDATA,
+	DESKTOP_WALLPAPER_POSITION, KF_FLAG_DEFAULT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
 	EnumWindows, FindWindowW, GetClassNameW, SendMessageTimeoutW, ShowWindow, HWND_BROADCAST, SMTO_ABORTIFHUNG,
@@ -34,6 +35,7 @@ use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WRITE};
 use winreg::types::FromRegValue;
 use winreg::RegKey;
 
+use crate::knownfolders::KnownFolder;
 use crate::manifest::{MonitorWallpaper, WallpaperState};
 use crate::paths::Paths;
 
@@ -79,10 +81,27 @@ impl Drop for Com {
 	}
 }
 
-fn known_folder(id: &GUID) -> Option<PathBuf> {
+pub fn known_folder(id: &GUID) -> Option<PathBuf> {
 	let p = unsafe { SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, None) }.ok()?;
 	let s = pwstr_to_string(p);
 	(!s.is_empty()).then(|| PathBuf::from(s))
+}
+
+pub fn known_folder_id(folder: KnownFolder) -> &'static GUID {
+	match folder {
+		KnownFolder::Documents => &FOLDERID_Documents,
+		KnownFolder::Desktop => &FOLDERID_Desktop,
+		KnownFolder::Pictures => &FOLDERID_Pictures,
+		KnownFolder::Videos => &FOLDERID_Videos,
+	}
+}
+
+pub fn probe_folder_access(path: &Path) -> std::io::Result<()> {
+	std::fs::File::open(path)?;
+	if let Some(entry) = std::fs::read_dir(path)?.next() {
+		entry?;
+	}
+	Ok(())
 }
 
 pub fn detect_paths() -> Paths {
