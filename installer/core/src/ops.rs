@@ -1267,10 +1267,9 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 				continue;
 			}
 		};
-		let existed = path.is_file();
-		let current = if existed { std::fs::read(&path) } else { Ok(Vec::new()) };
-		let current = match current {
-			Ok(c) => c,
+		let (existed, current) = match std::fs::read(&path) {
+			Ok(c) => (true, c),
+			Err(e) if e.kind() == std::io::ErrorKind::NotFound => (false, Vec::new()),
 			Err(e) => {
 				failed = true;
 				ctx.warn("profiles", profile_access_msg(path.display(), e, shell));
@@ -1310,7 +1309,7 @@ fn add_profile_blocks(ctx: &mut Ctx, m: &mut Manifest) {
 					backup = Some(b);
 				}
 				let dir = path.parent().map(Path::to_path_buf);
-				let created_dir = dir.as_ref().filter(|d| !d.exists()).cloned();
+				let created_dir = dir.as_ref().filter(|d| matches!(d.try_exists(), Ok(false))).cloned();
 				let r = dir.map(std::fs::create_dir_all).unwrap_or(Ok(())).and_then(|_| std::fs::write(&path, &new));
 				match r {
 					Ok(()) => {
@@ -1376,9 +1375,17 @@ fn remove_profile_blocks(ctx: &mut Ctx, m: &mut Manifest, step: &str, backup_roo
 	let mut kept = Vec::new();
 	for rec in records {
 		let path = rec.path.clone();
-		let Ok(current) = std::fs::read(&path) else {
-			ctx.info(format!("   {} is gone", path.display()));
-			continue;
+		let current = match std::fs::read(&path) {
+			Ok(c) => c,
+			Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+				ctx.info(format!("   {} is gone", path.display()));
+				continue;
+			}
+			Err(e) => {
+				ctx.warn(step, profile_access_msg(path.display(), e, &rec.shell));
+				kept.push(rec);
+				continue;
+			}
 		};
 		match profile::remove_block(&current) {
 			Ok(None) => ctx.info(format!("   {}: no block", path.display())),
