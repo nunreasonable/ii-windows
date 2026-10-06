@@ -100,8 +100,12 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   and a low-level mouse hook. It takes over many Windows shortcuts: the Windows key pressed
   alone opens ii's search instead of the Start menu, and Win+Tab, Win+V, Win+A, Win+N,
   Win+1...0, Win+Q (closes the active window) and Win+D (maximizes) do ii things. Win+/ shows
-  them all; you can change them in `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. All of this
-  stops when ii closes.
+  them all; you can change them in `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. Holding
+  the Windows key, a left drag moves the window under the pointer and a right drag resizes it
+  (Settings > Interface > Windows tiling can turn this off); that click doesn't reach the app.
+  All of this stops when ii closes. While a window of an app running as administrator has the
+  focus, Windows doesn't let ii see the keyboard: ii's shortcuts don't work there and Win+Q
+  opens Windows' search. Close those windows with Alt+F4.
 - **Taskbar:** by default the Windows taskbar is hidden and shows up when the pointer touches
   the bottom of the screen. For that, ii turns on the taskbar's auto-hide while it runs (if it
   was off) and turns it back off when it closes.
@@ -110,15 +114,18 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   everything on to Explorer, whose own tray keeps working. When ii closes or crashes, apps talk to
   Explorer directly again. While ii runs, taskbar tweaking tools that look for the taskbar by its
   window class may not find it.
-- **Desktop background:** ii's wallpaper is placed inside the Windows desktop, behind your desktop
-  icons, instead of being a window of their own (Settings > Background can switch this off). Its
-  widgets (clock, weather) sit inside the desktop too, next to the icons, so you can still drag
-  them; the icons take every click outside them. Your desktop folder and icons aren't changed.
+- **Desktop background:** Windows keeps drawing the wallpaper. ii's widgets (clock, weather) are
+  placed inside the Windows desktop, above your icons, so you can drag them; the icons take every
+  click outside them. Settings > Background can make ii draw its own wallpaper there instead,
+  behind the icons (*Draw ii's own wallpaper*, with parallax between workspaces), or keep ii's
+  background out of the desktop as a window of its own. Your desktop folder and icons aren't
+  changed.
 - **Wallpaper and colors:** on its first start ii uses your current Windows wallpaper without
   changing it. When you pick a wallpaper or switch light/dark mode in ii, it sets the same in
   Windows: the desktop wallpaper and Windows' light/dark mode. The Windows **accent color** ii
   changes whenever it loads its palette, including every time it starts: it becomes the main
-  color of ii's palette.
+  color of ii's palette. If you change the wallpaper in Windows' own settings, ii picks it up and
+  takes its colors from it.
 - **Windows Terminal:** ii writes a color scheme matching its theme, plus font, cursor,
   padding and transparency settings for the PowerShell and Command Prompt profiles, as a Windows Terminal
   *fragment* in `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\illogical-impulse`. It does
@@ -136,6 +143,11 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   the screen translator send the text to translate to Google's free translation service
   (translate.googleapis.com). The screen translator first reads the text on screen with Windows'
   own on-device text recognition.
+- **Media visualizer:** while the media controls are open, ii reads what your speakers play (a
+  loopback of the default output) to draw the bars. It stays in memory; nothing is recorded or
+  sent.
+- **Weather** (off until you turn it on in Settings): ii asks wttr.in for the weather of the city
+  you set, or of where wttr.in places your IP address. It doesn't use Windows' location.
 - **Music recognition:** when you turn it on, ii records a few seconds of what your speakers play
   (or the microphone, if you choose it) and sends an audio fingerprint to Shazam's servers to
   identify the song, like SongRec does on Linux.

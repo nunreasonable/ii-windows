@@ -150,17 +150,25 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Bare metal do usuário:** pastas Área de Trabalho/Documentos/Imagens ficaram apontando para `OneDrive` depois que o WinUtil removeu o OneDrive (erro 362 no perfil do PowerShell). Problema da instalação; o setup ainda não detecta isso.
 - **Comentários:** saíram do código; as explicações ficam em `notes/comments.md`, só local.
 
-## Próxima release (combinado em 2026-10-05)
+## 0.5.0 (2026-10-06)
 
-- Testado pelo usuário no bare metal: **Wi-Fi e Bluetooth funcionam** (README já atualizado, falta publicar).
-- **Clima:** `Weather.getData()` saía logo no Windows, então os widgets de clima nunca carregavam. Corrigido com `XMLHttpRequest` para o wttr.in (commit local no `windows` do ii, **não testado**: as VMs estavam desligadas).
-- A fazer, combinado como lista da próxima release:
-  - visualizador de áudio do controle de mídia sem `cava` (loopback WASAPI + FFT);
-  - seletor de cor (o `hyprpicker`) nativo;
-  - detecção de janelas no recorte de tela sem OpenCV (retângulos do tracker);
-  - aviso antes de desligar (winget instalando);
-  - game mode e Cloudflare WARP (`warp-cli` existe no Windows);
-  - setup detectar Documentos/Área de Trabalho/Imagens apontando para um OneDrive removido;
-  - atualizar o `docs/PORTING.md`, que ainda marca coisas prontas como "todo".
+- **Como foi feito:** dois workflows (1: visualizador, seletor de cor, WARP/game mode/avisos de desligamento, pastas conhecidas; 2: barra que encolhe e Super+arraste) com revisores; integração, testes e correções por mim nas VMs `win11` e `win10`.
+- **Clima:** `XMLHttpRequest` para o wttr.in; sem GPS no Windows (evita o pedido de localização). Testado na win11.
+- **Visualizador de mídia** sem cava (`AudioVisualizer`, loopback WASAPI + FFT) e **seletor de cor nativo** (Shift+Win+C, botão da barra, `/accentcolor`). Testados na win11.
+- **Game mode, WARP (`warp-cli.exe`) e avisos de desligamento** (winget/msiexec/Windows Update, downloads incompletos): integrados, pouco testados.
+- **Pastas conhecidas:** o setup avisa quando Documentos/Área de Trabalho/Imagens/Vídeos apontam para um OneDrive removido (erro 362), e o ii cai para outra pasta. `File::open` numa pasta dá erro 5 no Windows: o teste lista a pasta. Testado na win11.
+- **Barra com escala alta:** mede em vez de usar os limiares fixos de largura. Primeiro reduz até 80%, depois esconde título e bandeja, por último reduz até 50%. Cada lado encolhe preso à própria borda (um `Scale` por seção, sem reindentar o código do upstream). Na win10 a 1920x1080/150% o 0.4.0 já punha a bandeja ~45 px por cima do relógio.
+- **Gap no topo (amigo, Win10 22H2, TV a 150%):** numa troca de escala ao vivo o Explorer manda `TaskbarCreated`; o ii invalidava a AppBar, o `ABM_NEW` falhava (ela continuava registrada) e a barra ia para baixo da própria reserva antiga. Agora remove e registra de novo. Antes disso, o gancho da bandeja atrapalhava as chamadas de AppBar do próprio ii (`TrayHookYield`). Testado ao vivo a 100/125/150% na win10.
+- **Papel de parede duplicado depois de trocar a escala:** janelas dentro do desktop não recebem `WM_DPICHANGED` e agora são recriadas; o zoom do papel de parede é recalculado quando a tela muda.
+- **Papel de parede pelo Windows (pedido do usuário):** o papel de parede do ii surgia ~20 s depois do logon por cima do idêntico do Windows, como um app abrindo. Agora, por padrão, o Windows desenha o papel de parede, o ii o mantém igual nos dois sentidos (vigiando `HKCU\Control Panel\Desktop`; o `IDesktopWallpaper` não manda `WM_SETTINGCHANGE`) e só os widgets ficam no desktop, acima dos ícones. `windowsPort.ownWallpaper` volta o papel de parede do ii (parallax). Testado na win11.
+- **Super+arraste** (`super_drag.cpp`): mover e redimensionar, com tiling (troca, divisória ao vivo, maximizada, flutuante, tile sozinho), entre monitores com escalas diferentes (monitor virtual do Virtual Display Driver na win10, removido depois), UWP; tela cheia e janelas de admin são ignoradas. Corrigido nos testes: subir a janela (`HWND_TOP` é ignorado fora do primeiro plano; agora `TOPMOST`/`NOTOPMOST`) e manter o ponto agarrado proporcional ao trocar de escala. Para testar input na VM, `SendInput` com `MOUSEEVENTF_ABSOLUTE`: um `SetCursorPos` + movimento zero não gera eventos no meio do arraste.
+- **Fechar janelas de admin:** o `WM_CLOSE` é barrado pelo UIPI; cai para `WM_SYSCOMMAND/SC_CLOSE`. Uma janela que entra no tracker já em foco vira a ativa (Win+Q logo depois de abrir um app não fazia nada).
+- **Limitação:** com uma janela de admin em foco o hook de teclado não recebe nada; o Win+Q vai para o Windows (abre a pesquisa) e o Win+Q seguinte fecha o que estiver na frente (fechou o PowerShell do usuário no teste). Está no README.
+- **Agente da VM:** `ssh -n` nas chamadas que não leem stdin (o da win10 travou no fetch do `agent`).
+- **Pendente:**
+  - detecção de janelas no recorte de tela (não feita);
+  - o `togglefloating` falhou uma vez e não repetiu;
+  - o cheatsheet não cabe em 1024x768 (layout do upstream);
+  - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 - **Assinatura de código (decidido em 2026-10-06):** adiada. Se o número de usuários crescer, o caminho é a SignPath Foundation (gratuita; exige build verificável no GitHub Actions, página de política de assinatura com papéis e declaração de privacidade). Nenhuma opção cala o SmartScreen de imediato desde 2024.
 

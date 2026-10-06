@@ -107,7 +107,12 @@ tarefas se oculta automaticamente.
   e um de mouse. Ele assume vários atalhos do Windows: a tecla Windows sozinha abre a busca do
   ii em vez do menu Iniciar, e Win+Tab, Win+V, Win+A, Win+N, Win+1...0, Win+Q (fecha a janela
   ativa) e Win+D (maximiza) fazem coisas do ii. Win+/ mostra todos; você pode mudá-los em
-  `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. Tudo isso para quando o ii fecha.
+  `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. Segurando a tecla Windows, arrastar com o
+  botão esquerdo move a janela sob o ponteiro e com o direito redimensiona (Configurações >
+  Interface > Windows tiling desliga isso); esse clique não chega ao app. Tudo isso para quando
+  o ii fecha. Enquanto uma janela de um app aberto como administrador está em foco, o Windows
+  não deixa o ii ver o teclado: os atalhos do ii não funcionam ali e o Win+Q abre a pesquisa do
+  Windows. Feche essas janelas com Alt+F4.
 - **Barra de tarefas:** por padrão a barra de tarefas do Windows fica escondida e aparece quando
   o ponteiro encosta na borda de baixo da tela. Para isso, o ii liga a ocultação automática da
   barra enquanto roda (se ela estava desligada) e a desliga de novo quando fecha.
@@ -117,16 +122,18 @@ tarefas se oculta automaticamente.
   funcionando. Quando o ii fecha ou trava, os apps voltam a falar direto com o Explorer. Enquanto
   o ii roda, ferramentas que ajustam a barra de tarefas procurando-a pela classe da janela podem
   não encontrá-la.
-- **Fundo da área de trabalho:** o papel de parede do ii fica dentro da área de trabalho do
-  Windows, atrás dos ícones, em vez de numa janela própria (Configurações > Fundo desliga isso).
-  Os widgets dele (relógio, clima) também ficam dentro da área de trabalho, junto dos ícones, e
-  dá para arrastá-los; fora deles, os cliques vão para os ícones. A pasta e os ícones da sua área
-  de trabalho não mudam.
+- **Fundo da área de trabalho:** o Windows continua desenhando o papel de parede. Os widgets do
+  ii (relógio, clima) ficam dentro da área de trabalho do Windows, acima dos ícones, e dá para
+  arrastá-los; fora deles, os cliques vão para os ícones. Em Configurações > Fundo dá para o ii
+  desenhar o próprio papel de parede ali, atrás dos ícones (*Draw ii's own wallpaper*, com
+  parallax entre os workspaces), ou deixar o fundo do ii fora da área de trabalho, numa janela
+  própria. A pasta e os ícones da sua área de trabalho não mudam.
 - **Papel de parede e cores:** na primeira vez que abre, o ii usa o papel de parede atual do
   Windows sem mudá-lo. Quando você escolhe um papel de parede ou alterna entre claro e escuro no
   ii, ele aplica o mesmo no Windows: o papel de parede da área de trabalho e o modo claro/escuro
   do Windows. A **cor de destaque** do Windows o ii muda sempre que carrega a paleta dele,
-  inclusive toda vez que abre: ela passa a ser a cor principal da paleta do ii.
+  inclusive toda vez que abre: ela passa a ser a cor principal da paleta do ii. Se você trocar o
+  papel de parede nas configurações do próprio Windows, o ii acompanha e tira as cores dele.
 - **Windows Terminal:** o ii grava um esquema de cores igual ao tema dele, mais ajustes de fonte,
   cursor, margem e transparência para os perfis do PowerShell e do Prompt de Comando, como um
   *fragmento* do Windows Terminal em
@@ -146,6 +153,12 @@ tarefas se oculta automaticamente.
   Configurações) e o tradutor de tela mandam o texto a traduzir para o serviço gratuito de tradução
   do Google (translate.googleapis.com). O tradutor de tela primeiro lê o texto da tela com o
   reconhecimento de texto do próprio Windows, no computador.
+- **Visualizador de mídia:** enquanto o controle de mídia está aberto, o ii lê o que sai nos
+  alto-falantes (um loopback da saída padrão) para desenhar as barras. Fica só na memória; nada é
+  gravado nem enviado.
+- **Clima** (desligado até você ligar nas Configurações): o ii pede ao wttr.in o clima da cidade
+  que você definir, ou de onde o wttr.in localiza o seu endereço IP. Ele não usa a localização do
+  Windows.
 - **Reconhecimento de música:** quando você liga, o ii grava alguns segundos do que sai nos
   alto-falantes (ou do microfone, se você escolher) e manda uma impressão digital do áudio para os
   servidores do Shazam para identificar a música, como o SongRec faz no Linux.

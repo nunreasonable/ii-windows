@@ -29,7 +29,7 @@
 
   - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
   - Bar with the system tray, sidebars, launcher, notifications, cheatsheet, settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
-  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's wallpaper and widgets sit inside the desktop, behind your icons
+  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's widgets (clock, weather) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>
@@ -39,7 +39,7 @@
 
   - **Quickshell for Windows**: a fork of Quickshell with a Windows backend. Panels are AppBars, input masks come from a low-level mouse hook, global shortcuts from `RegisterHotKey` plus a keyboard hook (for the lone Windows key), and the `Quickshell.Hyprland` module is backed by a window tracker and Windows' virtual desktops
   - **Tiling**: an optional dwindle layout in the Windows backend, one per virtual desktop and monitor, driven by the same dispatchers ii's keybinds already use (`togglefloating`, `togglesplit`, `movewindow`, `splitratio`...)
-  - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
+  - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, the media visualizer on a WASAPI loopback, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
   - **Helpers**: [SongRec](https://github.com/marin-m/SongRec)'s recognizer for music recognition and [MicroTeX](https://github.com/NanoMichael/MicroTeX) for LaTeX in the AI chat, both built for Windows
   - **ii for Windows**: a fork of ii where the services keep their public properties and swap only the implementation, so most modules are untouched
   - **Colors**: `matugen.exe` with ii's own template, so the palette from a wallpaper is the same as on Linux. Windows' wallpaper and light/dark mode follow what you pick in ii, and its accent color follows the palette
@@ -60,6 +60,7 @@
     - `Win`+`/` = keybind list
     - `Win` alone = search
     - `Win`+`Enter` = terminal
+    - `Win`+drag = move a window, `Win`+right drag = resize it (like `bindm` on Hyprland)
   - Needs Windows 10 version 2004 or newer (22H2 recommended) or Windows 11 (build 22000 or
     newer). winget is needed for the optional terminal tools and FFmpeg; on Windows 10 without it, the setup can install it
   - Every time it opens, the setup checks GitHub for a newer release and updates itself first
@@ -69,12 +70,13 @@
 <details>
   <summary>What works</summary>
 
-  - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, and the setup (install, update, self-update, repair, uninstall)
-  - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, and the setup with Windows Terminal, the terminal tools and FFmpeg
+  - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, weather, the media visualizer, the color picker, and the setup (install, update, self-update, repair, uninstall)
+  - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, `Win`+drag to move and resize windows (also across monitors with different scaling, with and without tiling), the bar at 125% and 150% scaling and after changing the scale while ii runs, and the setup with Windows Terminal, the terminal tools and FFmpeg
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
   - **Tested on real hardware**: Wi-Fi and Bluetooth
-  - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize)
-  - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects and WARP toggles
+  - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize), game mode, the Cloudflare WARP toggle (needs Cloudflare's WARP client) and the warning before shutting down while winget is installing
+  - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects toggle
+  - **Known limit**: while a window of an app running as administrator (Task Manager, installers) has the focus, Windows doesn't let ii see the keyboard, so ii's shortcuts don't work there and `Win`+`Q` opens Windows' search instead. Close those windows with `Alt`+`F4` or a middle click in the overview
 
 </details>
 

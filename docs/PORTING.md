@@ -52,7 +52,7 @@ Windows, so they show the real RTX output.
 
 ## Status
 
-- All planned phases are done and released (0.1.0 to 0.4.0). Tested on Windows 11 25H2 in VMs (with
+- All planned phases are done and released (0.1.0 to 0.5.0). Tested on Windows 11 25H2 in VMs (with
   the RTX passed through and with WARP only), on a Windows 10 22H2 VM, and on real hardware (an
   i3-13100 with its iGPU, and a bare-metal install where Wi-Fi and Bluetooth were checked).
 - Not ported on purpose: ii's lock screen (Windows' own one is used), the polkit agent (UAC),
@@ -72,6 +72,8 @@ Windows, so they show the real RTX output.
 | GlobalShortcut + Hyprland keybinds      | RegisterHotKey + WH_KEYBOARD_LL (lone Super), `defaults/windows/keybinds.json` | done |
 | Hyprland workspaces / dispatch          | virtual desktops (registry + IVirtualDesktopManager + VirtualDesktopAccessor, SEH-guarded) | done |
 | Hyprland dwindle layout                 | `tiling.cpp` / `tiling_layout.cpp`, optional, per desktop and monitor | done |
+| Hyprland `bindm` (Super + drag)          | `super_drag.cpp`: mouse hook decides, worker thread moves/resizes, tiling-aware | done |
+| ii's wallpaper window                   | Windows draws the wallpaper (ii keeps it in sync both ways); ii's own one is optional (`windowsPort.ownWallpaper`) | done |
 | HyprlandData (hyprctl -j)               | window tracker (SetWinEventHook) shaped like hyprctl JSON            | done |
 | ToplevelManager                         | same window tracker                                                  | done |
 | ScreencopyView                          | Windows.Graphics.Capture -> D3D11 texture -> QSGTexture              | done |
@@ -102,12 +104,12 @@ Windows, so they show the real RTX output.
 | hyprsunset                              | gamma ramp                                                           | done |
 | /proc (ResourceUsage)                   | GetSystemTimes, GlobalMemoryStatusEx, PDH; swap shown as "WinPageFile" | done |
 | trans (translate-shell)                 | Google's gtx endpoint through XMLHttpRequest                         | done |
-| curl wttr.in \| jq (Weather.qml)        | XMLHttpRequest to wttr.in, IP/city location (no GPS prompt)          | done, unreleased |
+| curl wttr.in \| jq (Weather.qml)        | XMLHttpRequest to wttr.in, IP/city location (no GPS prompt)          | done |
 | songrec                                 | `songrec.exe` (SongRec's recognizer, WASAPI loopback)                | done |
 | MicroTeX (LaTeX in AI chat)             | `LaTeX.exe` with a Qt/SVG headless CLI                               | done |
-| cava (media visualizer)                 | native WASAPI loopback + FFT                                         | in progress |
-| hyprpicker                              | native picker overlay                                                | in progress |
-| warp-cli, game mode, session warnings   | warp-cli.exe, ii's own effects, winget/msiexec + partial downloads   | in progress |
+| cava (media visualizer)                 | native WASAPI loopback + FFT (`AudioVisualizer`)                     | done |
+| hyprpicker                              | native picker overlay (`Screenshot.pixelAt`, `Input.cursorPosition`) | done |
+| warp-cli, game mode, session warnings   | warp-cli.exe, ii's own effects, winget/msiexec + partial downloads   | done (WARP and game mode barely tested) |
 
 ## ii files changed from upstream
 
@@ -137,7 +139,7 @@ Windows, so they show the real RTX output.
   `setWifiListVisible()`/`wifiNeedsLocationPermission`/`openWifiLocationSettings()` are
   Windows-only additions, wired into `WifiDialog.qml`/`WifiControl.qml`.
 - `services/Brightness.qml` — skip the ddcutil detect pass on Windows
-- `services/SessionWarnings.qml` — `refresh()` no-ops on Windows (no pidof)
+- `services/SessionWarnings.qml` — on Windows, warns while winget/msiexec/Windows Update installers run or a browser download is partial (tasklist + Downloads folder)
 - `services/Weather.qml` — `getData()` no-ops on Windows (curl|jq pipeline needs bash+jq)
 - `services/Translation.qml` — skip the `find`-based language scan on Windows, keep the en_US default
 - `services/DateTime.qml` — disable the /proc/uptime polling Timer on Windows
