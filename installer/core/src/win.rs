@@ -97,7 +97,6 @@ pub fn known_folder_id(folder: KnownFolder) -> &'static GUID {
 }
 
 pub fn probe_folder_access(path: &Path) -> std::io::Result<()> {
-	std::fs::File::open(path)?;
 	if let Some(entry) = std::fs::read_dir(path)?.next() {
 		entry?;
 	}
