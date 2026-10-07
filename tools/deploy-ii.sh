@@ -78,5 +78,14 @@ mkdir -p "$D/config"
 	cp -f "$IIW/ii/$f" "$D/config/ii/$f"
 done
 
+QMLCACHE_GEN="${QMLCACHE_GEN:-$IIW/quickshell/tools/qmlcache-bundle.py}"
+if [ -f "$QMLCACHE_GEN" ]; then
+	python3 "$QMLCACHE_GEN" "$D/config/ii" -q \
+		--qmlcachegen "$QT_HOST/libexec/qmlcachegen" --qt-version "$QT_VERSION" ||
+		echo "warning: no QML bytecode bundle - ii will compile its QML from source at startup" >&2
+else
+	echo "warning: no $QMLCACHE_GEN - ii will compile its QML from source at startup" >&2
+fi
+
 rm -rf "$D/testconfigs"; cp -r "$IIW/tools/testconfigs" "$D/testconfigs"
 echo "staged $D ($(du -sh "$D" | cut -f1))"
