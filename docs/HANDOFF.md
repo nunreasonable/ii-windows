@@ -172,15 +172,24 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
-## A fazer (2026-10-07)
+## 0.6.0 (2026-10-07)
 
-- **Aba "System" no cheatsheet** (pedido do usuário, com um screenshot de um ii no CachyOS: abas Keybinds | System | AI usage; o nosso tem Keybinds | Elements). Vem do canal de Tweaks do Discord da comunidade do end-4 (não está no `end-4/dots-hyprland` até 03/10). Decidido em 2026-10-06: implementação nossa, seguindo de perto o visual do post (layout, cards, medidores, gráficos, cabeçalho) a partir do screenshot; nenhum código do post é copiado (post do Discord não tem licença).
-  - Cabeçalho: host, sistema, kernel, placa-mãe, tempo ligado.
-  - CPU: modelo, núcleos/threads, clock máximo, L3; uso, temperatura e clock em medidores; gráfico de uso.
-  - GPU: modelo, VRAM, driver/VBIOS; uso, temperatura (e hotspot), VRAM usada; potência, clock, temperatura da VRAM, ventoinha; gráfico de uso.
-  - Memória: RAM, swap (no Windows, o arquivo de paginação) e VRAM em barras.
-  - Armazenamento: discos (modelo, tipo, tamanho, temperatura) e partições com sistema de arquivos e uso.
-  - Aba "AI usage" (conteúdo não aparece no screenshot) e cards de CPU/RAM/disco no desktop, ao lado do relógio.
-  - Fontes no Windows a avaliar: `Win32_BaseBoard`/`Win32_Processor` (WMI), contadores PDH "GPU Engine" e DXGI `QueryVideoMemoryInfo` para a GPU, temperatura/potência/ventoinha só por API do fabricante (NVML, ADLX), temperatura de disco por `MSFT_StorageReliabilityCounter`; temperatura de CPU não tem API confiável sem driver.
+- **Como foi feito:** dois workflows/rodadas de agentes (otimização: posicionamento dos widgets, inicialização nativa, pool de threads, sidebars, painéis, construtores dos serviços, cache de bytecode; mais o índice de arquivos), com revisão, integração e testes por mim nas VMs `win10`, `win11` e `win11-gpu`.
+- **Inicialização em PC fraco** (VM presa a 2 E-cores a 40% e disco a 120 IOPS / 30 MB/s): barra em ~4 s (0.5.0: ~43 s), CPU de ~40 s para ~8 s. Sem limite: ~1 s.
+  - Scanner de QML: `QVector<QDir>::contains` chamava `canonicalPath` dos dois lados a cada diretório (34,6 s de 38 s); agora um `QSet` de caminhos canônicos.
+  - Painéis: a família só compila os painéis que cria; no Windows a barra primeiro e o resto um por volta do event loop; sem watcher de QML no Windows (`IIW_WATCH_FILES=1` liga).
+  - Cache de bytecode QML gerado no deploy e servido pelo hook de unidades em cache do Qt quando o hash do fonte bate (o esquema `qs:` não passa pelo cache em disco do Qt).
+  - Tirados da thread da interface: posição "least busy" dos widgets (thread própria + cache), espera pelo WorkerW do Explorer, fontes já instaladas, varredura de apps/brilho/miniaturas (pool próprio), Wi-Fi/rede/teclado/OCR/estatísticas, o broadcast `WM_SETTINGCHANGE` da cor de destaque e os watchers do Menu Iniciar (767 ms → 9 ms).
+- **Aba System no cheatsheet** e **widget de CPU/RAM/disco no desktop** (a partir de um post do canal de Tweaks do Discord do end-4; implementação nossa). Ajusta a 3/2/1 colunas em telas pequenas (testado em 1024x768 e 125%).
+- **Busca Spotlight** (a partir de vídeos do mesmo canal; implementação nossa): Win sozinho abre a busca (apps, arquivos, área de transferência, emoji, ações do sistema, web); Win+Tab abre os workspaces sem a busca. Toggle em Configurações > Services > Search. Arquivos no Windows por um índice em memória da pasta do usuário (`FileIndex`), placeholders do OneDrive incluídos.
+- **Emoji no Windows:** a lista vinha do script do Hyprland, que não existe no Windows; agora vai em `defaults/windows/fuzzel-emoji.sh` (Win+. e o spotlight).
+- **Crashes ao recarregar:** handler do UPower e retornos das threads do brilho e do Wi-Fi seguravam o singleton morto; agora `QPointer`.
+- **Pendente:**
+  - a cor de destaque não fica no Windows 10: o Explorer reescreve `DWM\AccentColor` a partir de `Explorer\Accent` depois do broadcast (precisaria gravar `AccentColorMenu`/`AccentPalette`);
+  - a aba System ainda não foi vista com uma GPU de verdade (a NVIDIA da `win11-gpu`);
+  - atalho de um painel ainda não criado no primeiro segundo é ignorado.
+
+## A fazer
+
+- **App de Configurações completo:** pôr nele tudo que hoje só existe no `config.json`.
 - **Assinatura de código (decidido em 2026-10-06):** adiada. Se o número de usuários crescer, o caminho é a SignPath Foundation (gratuita; exige build verificável no GitHub Actions, página de política de assinatura com papéis e declaração de privacidade). Nenhuma opção cala o SmartScreen de imediato desde 2024.
-

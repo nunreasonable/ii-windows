@@ -52,7 +52,7 @@ Windows, so they show the real RTX output.
 
 ## Status
 
-- All planned phases are done and released (0.1.0 to 0.5.0). Tested on Windows 11 25H2 in VMs (with
+- All planned phases are done and released (0.1.0 to 0.6.0). Tested on Windows 11 25H2 in VMs (with
   the RTX passed through and with WARP only), on a Windows 10 22H2 VM, and on real hardware (an
   i3-13100 with its iGPU, and a bare-metal install where Wi-Fi and Bluetooth were checked).
 - Not ported on purpose: ii's lock screen (Windows' own one is used), the polkit agent (UAC),
@@ -110,6 +110,9 @@ Windows, so they show the real RTX output.
 | cava (media visualizer)                 | native WASAPI loopback + FFT (`AudioVisualizer`)                     | done |
 | hyprpicker                              | native picker overlay (`Screenshot.pixelAt`, `Input.cursorPosition`) | done |
 | warp-cli, game mode, session warnings   | warp-cli.exe, ii's own effects, winget/msiexec + partial downloads   | done (WARP and game mode barely tested) |
+| system info for the cheatsheet's System tab | `SystemMonitor` (WMI, PDH, D3DKMT, IOCTLs, NVML when present), polled only while the tab is open | done |
+| plocate (spotlight Files mode)          | `FileIndex`: in-memory index of the profile's file names (FindFirstFileExW, worker thread) | done |
+| QML disk cache (qs: URLs bypass it)     | bytecode bundle built at deploy (`.qmlcache/bundle.bin`), served through Qt's cached-unit hook when the source hash matches | done |
 
 ## ii files changed from upstream
 
@@ -160,6 +163,13 @@ Windows, so they show the real RTX output.
 - `modules/common/utils/ScreenshotAction.qml` — `getCommand()` (Linux, bash/magick/wl-copy/tesseract/satty-swappy pipeline) is untouched; added `runWindows()` as its Windows counterpart, built on the native crop/clipboard/OCR calls instead of a shell pipeline, plus `startWindowsRecording()`/`stopWindowsRecording()`/`windowsRecordingStatusCommand()` for the ffmpeg-based recorder and a `Connections` block that routes `Ocr.recognized` results to the clipboard + a notification.
 - `modules/ii/regionSelector/RegionSelection.qml` — screenshotPath now sanitizes `screen.name`; `enableContentRegions` forced off on Windows (no OpenCV port yet); `checkRecordingProc`'s command and `snip()`'s action dispatch branch on `Platform.isWindows` (calling the new `ScreenshotAction.runWindows()`/recording helpers instead of `getCommand()` + `execDetached`); a new `ffmpegMissing` state shows a notification and bails instead of opening the region UI when ffmpeg isn't installed.
 - `scripts/videos/record.ps1` — new file: Windows counterpart to `record.sh` (ffmpeg `gdigrab` region to Matroska, remuxed to mp4 on stop because ffmpeg can only be killed from outside; sound through a DirectShow loopback device such as Stereo Mix or a virtual cable, else records silently and ii says so; PID file instead of `pgrep`/`pkill`).
+- `modules/ii/spotlight/*` — new (also on the author's Linux ii): Spotlight-style search; `GlobalStates.spotlightOpen`/`spotlightMode`; `Config.options.search.spotlight` (switch in `modules/settings/ServicesConfig.qml`); files mode uses plocate on Linux and `WindowsNative.fileIndex` on Windows.
+- `modules/ii/overview/Overview.qml` — with `search.spotlight` on, Super/searchToggle/IPC `search.toggle` open the spotlight and Super+Tab opens the overview without its SearchWidget; off = upstream behaviour.
+- `services/Emojis.qml` — on Windows reads `defaults/windows/fuzzel-emoji.sh` (a copy of the upstream emoji list; the Hyprland scripts folder doesn't exist there).
+- `modules/ii/cheatsheet/*` — System tab (`CheatsheetSystem*.qml`, Windows-only via a Repeater), cheatsheet capped to the screen, periodic table scales down.
+- `modules/ii/background/widgets/resources/*` — new CPU/RAM/disk desktop widget; `Background.qml` loads it (and its widget loaders are asynchronous on Windows).
+- `shell.qml`, `panelFamilies/PanelLoader.qml`, `panelFamilies/PanelLoaderQueue.qml` (new), `panelFamilies/*Family.qml` — panels referenced by path so only created ones get compiled; on Windows the bar first and the rest one per event-loop turn; `settings.watchFiles` off on Windows unless `IIW_WATCH_FILES=1`.
+- `modules/ii/sidebarLeft/SidebarLeft.qml`, `sidebarRight/SidebarRight.qml`, `background/widgets/AbstractBackgroundWidget.qml` — lazy/async content and async least-busy placement on Windows (startup).
 - Noticed but out of scope here: `modules/ii/screenTranslator/ScreenTranslatorPanel.qml` and `modules/waffle/screenSnip/WRegionSelectionPanel.qml` build the same unsanitized `image-${screen.name}` temp path as the region selector did; worth the same `FileUtils.sanitizeFilename()` fix when those are ported.
 
 ## Packaging

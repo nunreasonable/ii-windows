@@ -104,8 +104,9 @@ tarefas se oculta automaticamente.
 ## O que o ii muda enquanto roda
 
 - **Teclado e mouse:** o ii registra atalhos globais e instala um hook de baixo nível de teclado
-  e um de mouse. Ele assume vários atalhos do Windows: a tecla Windows sozinha abre a busca do
-  ii em vez do menu Iniciar, e Win+Tab, Win+V, Win+A, Win+N, Win+1...0, Win+Q (fecha a janela
+  e um de mouse. Ele assume vários atalhos do Windows: a tecla Windows sozinha abre a busca
+  Spotlight do ii em vez do menu Iniciar (Configurações > Services > Search volta para a visão
+  geral original do ii), e Win+Tab, Win+V, Win+A, Win+N, Win+1...0, Win+Q (fecha a janela
   ativa) e Win+D (maximiza) fazem coisas do ii. Win+/ mostra todos; você pode mudá-los em
   `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. Segurando a tecla Windows, arrastar com o
   botão esquerdo move a janela sob o ponteiro e com o direito redimensiona (Configurações >
@@ -123,7 +124,7 @@ tarefas se oculta automaticamente.
   o ii roda, ferramentas que ajustam a barra de tarefas procurando-a pela classe da janela podem
   não encontrá-la.
 - **Fundo da área de trabalho:** o Windows continua desenhando o papel de parede. Os widgets do
-  ii (relógio, clima) ficam dentro da área de trabalho do Windows, acima dos ícones, e dá para
+  ii (relógio, clima, CPU/RAM/disco) ficam dentro da área de trabalho do Windows, acima dos ícones, e dá para
   arrastá-los; fora deles, os cliques vão para os ícones. Em Configurações > Fundo dá para o ii
   desenhar o próprio papel de parede ali, atrás dos ícones (*Draw ii's own wallpaper*, com
   parallax entre os workspaces), ou deixar o fundo do ii fora da área de trabalho, numa janela
@@ -153,6 +154,12 @@ tarefas se oculta automaticamente.
   Configurações) e o tradutor de tela mandam o texto a traduzir para o serviço gratuito de tradução
   do Google (translate.googleapis.com). O tradutor de tela primeiro lê o texto da tela com o
   reconhecimento de texto do próprio Windows, no computador.
+- **Busca de arquivos:** o modo Arquivos da busca Spotlight guarda na memória uma lista com os
+  nomes dos arquivos e pastas da sua pasta de usuário (sem AppData, ocultos ou de sistema),
+  refeita no máximo uma vez por minuto enquanto você usa. Nada é gravado em disco nem enviado.
+- **Informações do sistema:** a aba System do cheatsheet (Win+/) lê dados de CPU, GPU, memória e
+  discos do Windows (e do driver da NVIDIA, se houver) só enquanto a aba está aberta. Nada sai do
+  seu PC.
 - **Visualizador de mídia:** enquanto o controle de mídia está aberto, o ii lê o que sai nos
   alto-falantes (um loopback da saída padrão) para desenhar as barras. Fica só na memória; nada é
   gravado nem enviado.

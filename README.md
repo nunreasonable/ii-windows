@@ -28,8 +28,8 @@
   <summary>What this is/isn't</summary>
 
   - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
-  - Bar with the system tray, sidebars, launcher, notifications, cheatsheet, settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
-  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's widgets (clock, weather) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
+  - Bar with the system tray, sidebars, a Spotlight-style search, notifications, cheatsheet (with a System tab for CPU, GPU, memory and disks), settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
+  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>
@@ -58,7 +58,8 @@
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
-    - `Win` alone = search
+    - `Win` alone = Spotlight search: apps, files, clipboard, emoji, system actions and the web (Settings → Services → Search switches back to ii's original overview)
+    - `Win`+`Tab` = workspaces and their windows
     - `Win`+`Enter` = terminal
     - `Win`+drag = move a window, `Win`+right drag = resize it (like `bindm` on Hyprland)
   - Needs Windows 10 version 2004 or newer (22H2 recommended) or Windows 11 (build 22000 or
@@ -70,8 +71,9 @@
 <details>
   <summary>What works</summary>
 
-  - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, weather, the media visualizer, the color picker, and the setup (install, update, self-update, repair, uninstall)
+  - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, weather, the media visualizer, the color picker, the Spotlight search, the cheatsheet's System tab, and the setup (install, update, self-update, repair, uninstall)
   - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, `Win`+drag to move and resize windows (also across monitors with different scaling, with and without tiling), the bar at 125% and 150% scaling and after changing the scale while ii runs, and the setup with Windows Terminal, the terminal tools and FFmpeg
+  - **Startup**: on a VM held to two slow cores at 40% and a disk at 120 IOPS, the bar shows in about 4 seconds (about 43 in 0.5.0)
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
   - **Tested on real hardware**: Wi-Fi and Bluetooth
   - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize), game mode, the Cloudflare WARP toggle (needs Cloudflare's WARP client) and the warning before shutting down while winget is installing

@@ -98,7 +98,8 @@ light or dark mode, the accent color and whether the taskbar hides automatically
 
 - **Keyboard and mouse:** ii registers global shortcuts and installs a low-level keyboard hook
   and a low-level mouse hook. It takes over many Windows shortcuts: the Windows key pressed
-  alone opens ii's search instead of the Start menu, and Win+Tab, Win+V, Win+A, Win+N,
+  alone opens ii's Spotlight search instead of the Start menu (Settings > Services > Search can
+  switch back to ii's original overview), and Win+Tab, Win+V, Win+A, Win+N,
   Win+1...0, Win+Q (closes the active window) and Win+D (maximizes) do ii things. Win+/ shows
   them all; you can change them in `%LOCALAPPDATA%\illogical-impulse\keybinds.json`. Holding
   the Windows key, a left drag moves the window under the pointer and a right drag resizes it
@@ -114,7 +115,7 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   everything on to Explorer, whose own tray keeps working. When ii closes or crashes, apps talk to
   Explorer directly again. While ii runs, taskbar tweaking tools that look for the taskbar by its
   window class may not find it.
-- **Desktop background:** Windows keeps drawing the wallpaper. ii's widgets (clock, weather) are
+- **Desktop background:** Windows keeps drawing the wallpaper. ii's widgets (clock, weather, CPU/RAM/disk) are
   placed inside the Windows desktop, above your icons, so you can drag them; the icons take every
   click outside them. Settings > Background can make ii draw its own wallpaper there instead,
   behind the icons (*Draw ii's own wallpaper*, with parallax between workspaces), or keep ii's
@@ -143,6 +144,12 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   the screen translator send the text to translate to Google's free translation service
   (translate.googleapis.com). The screen translator first reads the text on screen with Windows'
   own on-device text recognition.
+- **File search:** the Files mode of the Spotlight search keeps a list of the names of the files
+  and folders in your user folder in memory (not AppData, hidden or system ones), rebuilt at most
+  once a minute while you use it. Nothing is written to disk or sent anywhere.
+- **System information:** the System tab of the cheatsheet (Win+/) reads CPU, GPU, memory and
+  disk details from Windows (and from the NVIDIA driver, if there is one) only while the tab is
+  open. Nothing leaves your PC.
 - **Media visualizer:** while the media controls are open, ii reads what your speakers play (a
   loopback of the default output) to draw the bars. It stays in memory; nothing is recorded or
   sent.
