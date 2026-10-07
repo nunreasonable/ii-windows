@@ -171,5 +171,16 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o `togglefloating` falhou uma vez e não repetiu;
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
+
+## A fazer (2026-10-07)
+
+- **Aba "System" no cheatsheet** (pedido do usuário, com um screenshot de um ii no CachyOS: abas Keybinds | System | AI usage; o nosso tem Keybinds | Elements). Não está no `end-4/dots-hyprland` até 03/10 (o PR #1858 "More detailed resources usage" é parecido, mas é outro): descobrir de onde vem antes de portar (licença, e juntar em vez de reescrever).
+  - Cabeçalho: host, sistema, kernel, placa-mãe, tempo ligado.
+  - CPU: modelo, núcleos/threads, clock máximo, L3; uso, temperatura e clock em medidores; gráfico de uso.
+  - GPU: modelo, VRAM, driver/VBIOS; uso, temperatura (e hotspot), VRAM usada; potência, clock, temperatura da VRAM, ventoinha; gráfico de uso.
+  - Memória: RAM, swap (no Windows, o arquivo de paginação) e VRAM em barras.
+  - Armazenamento: discos (modelo, tipo, tamanho, temperatura) e partições com sistema de arquivos e uso.
+  - Aba "AI usage" (conteúdo não aparece no screenshot) e cards de CPU/RAM/disco no desktop, ao lado do relógio.
+  - Fontes no Windows a avaliar: `Win32_BaseBoard`/`Win32_Processor` (WMI), contadores PDH "GPU Engine" e DXGI `QueryVideoMemoryInfo` para a GPU, temperatura/potência/ventoinha só por API do fabricante (NVML, ADLX), temperatura de disco por `MSFT_StorageReliabilityCounter`; temperatura de CPU não tem API confiável sem driver.
 - **Assinatura de código (decidido em 2026-10-06):** adiada. Se o número de usuários crescer, o caminho é a SignPath Foundation (gratuita; exige build verificável no GitHub Actions, página de política de assinatura com papéis e declaração de privacidade). Nenhuma opção cala o SmartScreen de imediato desde 2024.
 
