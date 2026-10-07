@@ -172,6 +172,12 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.6.1 (2026-10-07)
+
+- **Configurações completas:** das 304 opções do `config.json`, 118 não tinham controle; ~90 entraram no app (Geral, Barra, Fundo, Interface, Serviços), em quatro agentes paralelos com revisão e integração por mim. O que só vale no Linux fica escondido no Windows. Ficaram só no arquivo: posições arrastadas de widgets, estado salvo do game mode, listas que o próprio ii edita (apps fixados, bandeja, botões rápidos) e `ai.extraModels`. Opções mortas (sem uso no código) não ganharam controle.
+- **Corrigido nos testes (win10):** dicas presas na tela (os `ConfigSpinBox`/`ConfigSlider` não tinham `hovered`), campos de lista que comiam a vírgula ao digitar (agora gravam ao sair do campo), cor de destaque que só valia na próxima troca de papel de parede, linhas apertadas a 1024 px, botão do arquivo de config cortado em pt_BR.
+- **pt_BR:** 196 textos das Configurações traduzidos.
+
 ## 0.6.0 (2026-10-07)
 
 - **Como foi feito:** dois workflows/rodadas de agentes (otimização: posicionamento dos widgets, inicialização nativa, pool de threads, sidebars, painéis, construtores dos serviços, cache de bytecode; mais o índice de arquivos), com revisão, integração e testes por mim nas VMs `win10`, `win11` e `win11-gpu`.
@@ -192,5 +198,4 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 
 ## A fazer
 
-- **App de Configurações completo:** pôr nele tudo que hoje só existe no `config.json`.
 - **Assinatura de código (decidido em 2026-10-06):** adiada. Se o número de usuários crescer, o caminho é a SignPath Foundation (gratuita; exige build verificável no GitHub Actions, página de política de assinatura com papéis e declaração de privacidade). Nenhuma opção cala o SmartScreen de imediato desde 2024.

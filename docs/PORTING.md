@@ -52,7 +52,7 @@ Windows, so they show the real RTX output.
 
 ## Status
 
-- All planned phases are done and released (0.1.0 to 0.6.0). Tested on Windows 11 25H2 in VMs (with
+- All planned phases are done and released (0.1.0 to 0.6.1). Tested on Windows 11 25H2 in VMs (with
   the RTX passed through and with WARP only), on a Windows 10 22H2 VM, and on real hardware (an
   i3-13100 with its iGPU, and a bare-metal install where Wi-Fi and Bluetooth were checked).
 - Not ported on purpose: ii's lock screen (Windows' own one is used), the polkit agent (UAC),
@@ -163,6 +163,7 @@ Windows, so they show the real RTX output.
 - `modules/common/utils/ScreenshotAction.qml` — `getCommand()` (Linux, bash/magick/wl-copy/tesseract/satty-swappy pipeline) is untouched; added `runWindows()` as its Windows counterpart, built on the native crop/clipboard/OCR calls instead of a shell pipeline, plus `startWindowsRecording()`/`stopWindowsRecording()`/`windowsRecordingStatusCommand()` for the ffmpeg-based recorder and a `Connections` block that routes `Ocr.recognized` results to the clipboard + a notification.
 - `modules/ii/regionSelector/RegionSelection.qml` — screenshotPath now sanitizes `screen.name`; `enableContentRegions` forced off on Windows (no OpenCV port yet); `checkRecordingProc`'s command and `snip()`'s action dispatch branch on `Platform.isWindows` (calling the new `ScreenshotAction.runWindows()`/recording helpers instead of `getCommand()` + `execDetached`); a new `ffmpegMissing` state shows a notification and bails instead of opening the region UI when ffmpeg isn't installed.
 - `scripts/videos/record.ps1` — new file: Windows counterpart to `record.sh` (ffmpeg `gdigrab` region to Matroska, remuxed to mp4 on stop because ffmpeg can only be killed from outside; sound through a DirectShow loopback device such as Stereo Mix or a virtual cable, else records silently and ii says so; PID file instead of `pgrep`/`pkill`).
+- `modules/settings/*` — controls for almost every `config.json` option (Linux-only ones hidden on Windows); `modules/common/widgets/ConfigSpinBox.qml`/`ConfigSlider.qml` expose `hovered` so tooltips inside them hide.
 - `modules/ii/spotlight/*` — new (also on the author's Linux ii): Spotlight-style search; `GlobalStates.spotlightOpen`/`spotlightMode`; `Config.options.search.spotlight` (switch in `modules/settings/ServicesConfig.qml`); files mode uses plocate on Linux and `WindowsNative.fileIndex` on Windows.
 - `modules/ii/overview/Overview.qml` — with `search.spotlight` on, Super/searchToggle/IPC `search.toggle` open the spotlight and Super+Tab opens the overview without its SearchWidget; off = upstream behaviour.
 - `services/Emojis.qml` — on Windows reads `defaults/windows/fuzzel-emoji.sh` (a copy of the upstream emoji list; the Hyprland scripts folder doesn't exist there).

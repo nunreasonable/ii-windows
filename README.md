@@ -73,6 +73,7 @@
 
   - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, weather, the media visualizer, the color picker, the Spotlight search, the cheatsheet's System tab, and the setup (install, update, self-update, repair, uninstall)
   - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, `Win`+drag to move and resize windows (also across monitors with different scaling, with and without tiling), the bar at 125% and 150% scaling and after changing the scale while ii runs, and the setup with Windows Terminal, the terminal tools and FFmpeg
+  - **Settings app**: almost every option is there now, not only in `config.json`
   - **Startup**: on a VM held to two slow cores at 40% and a disk at 120 IOPS, the bar shows in about 4 seconds (about 43 in 0.5.0)
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
   - **Tested on real hardware**: Wi-Fi and Bluetooth
