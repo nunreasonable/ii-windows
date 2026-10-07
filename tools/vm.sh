@@ -64,6 +64,7 @@ New-Item -Force -ItemType Directory "\$env:IIW_ROOT\\$name" | Out-Null
 # Running programs lock their exe and DLLs; stop whatever runs from the target dir first.
 Get-Process | Where-Object { \$_.Path -like "\$env:IIW_ROOT\\$name\\*" } | Stop-Process -Force
 Start-Sleep -Milliseconds 500
+Get-ChildItem -Force "\$env:IIW_ROOT\\$name" | Remove-Item -Recurse -Force
 cmd /c "%IIW_GW% fetch $name | tar -xf - -C %IIW_ROOT%\\$name"
 if (\$LASTEXITCODE -ne 0) { exit \$LASTEXITCODE }
 "pushed $name: " + (Get-ChildItem -Recurse "\$env:IIW_ROOT\\$name" | Measure-Object -Sum Length).Sum + " bytes"
