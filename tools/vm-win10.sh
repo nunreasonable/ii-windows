@@ -38,10 +38,17 @@ create)
 	virsh_ vol-create-as default "$vol" "$(stat -c %s "$WORK/unattend.iso")" --format raw >/dev/null
 	virsh_ vol-upload --pool default "$vol" "$WORK/unattend.iso"
 
+	# 1 socket com 4 nucleos x 2 threads, presos nos P-cores 4-11 (como a win11):
+	# sem topologia o libvirt expoe cada vCPU como um socket, e o Windows 10 de
+	# desktop so usa 2 sockets - a VM ficava com 2 CPUs na pratica. Os CPUs 12-15
+	# do i5-12600K sao E-cores; nao prender ali.
 	virt-install --connect "$VM_URI" \
 		--name "$NAME" \
 		--osinfo win10 \
-		--memory 8192 --vcpus 6 --cpu host-passthrough \
+		--memory 8192 \
+		--vcpus 8,sockets=1,cores=4,threads=2 \
+		--cputune vcpupin0.vcpu=0,vcpupin0.cpuset=4,vcpupin1.vcpu=1,vcpupin1.cpuset=5,vcpupin2.vcpu=2,vcpupin2.cpuset=6,vcpupin3.vcpu=3,vcpupin3.cpuset=7,vcpupin4.vcpu=4,vcpupin4.cpuset=8,vcpupin5.vcpu=5,vcpupin5.cpuset=9,vcpupin6.vcpu=6,vcpupin6.cpuset=10,vcpupin7.vcpu=7,vcpupin7.cpuset=11 \
+		--cpu host-passthrough \
 		--machine q35 \
 		--disk path="$DISK",size=64,format=qcow2,bus=sata \
 		--disk path="$iso",device=cdrom,bus=sata,readonly=on \
