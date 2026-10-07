@@ -174,7 +174,7 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 
 ## A fazer (2026-10-07)
 
-- **Aba "System" no cheatsheet** (pedido do usuário, com um screenshot de um ii no CachyOS: abas Keybinds | System | AI usage; o nosso tem Keybinds | Elements). Não está no `end-4/dots-hyprland` até 03/10 (o PR #1858 "More detailed resources usage" é parecido, mas é outro): descobrir de onde vem antes de portar (licença, e juntar em vez de reescrever).
+- **Aba "System" no cheatsheet** (pedido do usuário, com um screenshot de um ii no CachyOS: abas Keybinds | System | AI usage; o nosso tem Keybinds | Elements). Vem do canal de Tweaks do Discord da comunidade do end-4 (não está no `end-4/dots-hyprland` até 03/10). Os arquivos têm de vir pelo usuário (não acesso o Discord). Post no Discord não tem licença: para entrar no ii-windows (GPL, público) precisa da autorização do autor; sem ela, só como referência e com código nosso.
   - Cabeçalho: host, sistema, kernel, placa-mãe, tempo ligado.
   - CPU: modelo, núcleos/threads, clock máximo, L3; uso, temperatura e clock em medidores; gráfico de uso.
   - GPU: modelo, VRAM, driver/VBIOS; uso, temperatura (e hotspot), VRAM usada; potência, clock, temperatura da VRAM, ventoinha; gráfico de uso.
