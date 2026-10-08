@@ -8,6 +8,23 @@ SHIMS="${SHIMS:-$IIW/quickshell/shims}"
 
 "$IIW/tools/deploy.sh" "$D" "$IIW/build/qs/qs.exe" "$IIW/build/qs/qsw.exe" >/dev/null
 
+pin_unused_axes() {
+	local src="$1" axes="$2" key cache
+	key=$(sha256sum "$src" | cut -c1-16)
+	cache="$IIW/build/fonts/$key-$(basename "$src")"
+	if [ ! -f "$cache" ]; then
+		mkdir -p "$IIW/build/fonts"
+		# shellcheck disable=SC2086
+		if ! uv run -q --with fonttools fonttools varLib.instancer "$src" $axes -o "$cache.tmp" >/dev/null 2>&1; then
+			rm -f "$cache.tmp"
+			cp -f "$src" "$D/fonts/"
+			return
+		fi
+		mv "$cache.tmp" "$cache"
+	fi
+	cp -f "$cache" "$D/fonts/$(basename "$src")"
+}
+
 mkdir -p "$D/fonts"
 for f in \
 	/usr/share/fonts/google-sans-flex-vf-fonts/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf \
@@ -16,7 +33,10 @@ for f in \
 	"/usr/share/fonts/google-readex-pro-vf-fonts/Readexpro[HEXP,wght].ttf" \
 	/usr/share/fonts/google-rubik-vf-fonts/Rubik*.ttf \
 	/usr/share/fonts/florian-karsten-space-grotesk-fonts/SpaceGrotesk-*.otf; do
-	cp -f "$f" "$D/fonts/"
+	case "$f" in
+	*GoogleSansFlex* | *MaterialSymbolsRounded*) pin_unused_axes "$f" "GRAD=0" ;;
+	*) cp -f "$f" "$D/fonts/" ;;
+	esac
 done
 
 rm -rf "$D/icons"
