@@ -151,6 +151,9 @@ pub fn extract(
 			done += n as u64;
 			progress(done, info.unpacked_size);
 		}
+		if let Some(modified) = entry.last_modified().and_then(zip_time) {
+			let _ = out.set_modified(modified);
+		}
 	}
 	for req in REQUIRED {
 		if !dest.join(req.replace('/', std::path::MAIN_SEPARATOR_STR)).is_file() {
@@ -158,6 +161,22 @@ pub fn extract(
 		}
 	}
 	Ok(())
+}
+
+fn zip_time(t: zip::DateTime) -> Option<std::time::SystemTime> {
+	let (y, m, d) = (i64::from(t.year()), i64::from(t.month()), i64::from(t.day()));
+	if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+		return None;
+	}
+	let (y, m) = if m <= 2 { (y - 1, m + 9) } else { (y, m - 3) };
+	let era = y.div_euclid(400);
+	let yoe = y - era * 400;
+	let doy = (153 * m + 2) / 5 + d - 1;
+	let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+	let days = era * 146_097 + doe - 719_468;
+	let secs = days * 86_400 + i64::from(t.hour()) * 3600 + i64::from(t.minute()) * 60 + i64::from(t.second());
+	let secs = u64::try_from(secs).ok()?;
+	std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
 }
 
 pub fn find_offline(dir: &Path) -> Option<PathBuf> {
@@ -178,6 +197,17 @@ pub fn find_offline(dir: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn zip_times_map_to_stable_instants() {
+		let at = |y, mo, d, h, mi, s| {
+			let t = zip::DateTime::from_date_and_time(y, mo, d, h, mi, s).unwrap();
+			zip_time(t).unwrap().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
+		};
+		assert_eq!(at(1980, 1, 1, 0, 0, 0), 315_532_800);
+		assert_eq!(at(2024, 2, 29, 23, 59, 58), 1_709_251_198);
+		assert_eq!(at(2026, 10, 8, 20, 30, 4), 1_791_491_404);
+	}
 
 	fn make_zip(path: &Path, prefix: &str, files: &[(&str, &[u8])]) {
 		let mut w = zip::ZipWriter::new(File::create(path).unwrap());
@@ -218,6 +248,26 @@ mod tests {
 		assert_eq!(last, info.unpacked_size);
 		assert_eq!(std::fs::read(out.join("config").join("ii").join("shell.qml")).unwrap(), b"import QtQuick");
 		assert_eq!(find_offline(&d).unwrap(), zip_path);
+		std::fs::remove_dir_all(&d).unwrap();
+	}
+
+	#[test]
+	fn extract_keeps_entry_times() {
+		let d = tmp("c");
+		let zip_path = d.join("ii-windows-0.4.0.zip");
+		let mut w = zip::ZipWriter::new(File::create(&zip_path).unwrap());
+		let when = zip::DateTime::from_date_and_time(2026, 10, 8, 20, 30, 4).unwrap();
+		let opts = zip::write::SimpleFileOptions::default().last_modified_time(when);
+		for (name, data) in [("qsw.exe", &b"MZ"[..]), ("qs.exe", b"MZ"), ("config/ii/shell.qml", b"import QtQuick")] {
+			w.start_file(name, opts).unwrap();
+			w.write_all(data).unwrap();
+		}
+		w.finish().unwrap();
+		let info = inspect(&zip_path).unwrap();
+		let out = d.join("out");
+		extract(&info, &out, &mut |_, _| {}, &|| false).unwrap();
+		let modified = std::fs::metadata(out.join("config").join("ii").join("shell.qml")).unwrap().modified().unwrap();
+		assert_eq!(modified.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(), 1_791_491_404);
 		std::fs::remove_dir_all(&d).unwrap();
 	}
 
