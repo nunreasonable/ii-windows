@@ -9,7 +9,7 @@ for exe in "$@"; do cp -f "$exe" "$dest/"; done
 unused_dll() {
 	case "$(basename "$1")" in
 	Qt6Designer*.dll | Qt6Help.dll | Qt6Multimedia*.dll | Qt6QmlCompiler.dll | Qt6Quick3DSpatialAudio.dll | \
-		Qt6QuickTest.dll | Qt6SpatialAudio.dll | Qt6Test.dll | Qt6UiTools.dll | \
+		Qt6QuickTest.dll | Qt6SpatialAudio.dll | Qt6Test.dll | Qt6UiTools.dll | opengl32sw.dll | d3dcompiler_47.dll | \
 		avcodec-*.dll | avformat-*.dll | avutil-*.dll | swresample-*.dll | swscale-*.dll) return 0 ;;
 	esac
 	return 1
@@ -33,7 +33,8 @@ copy_tree() {
 }
 
 rm -rf "$dest/plugins/multimedia" "$dest/qml/QtMultimedia"
-for p in platforms styles imageformats iconengines tls generic position networkinformation; do
+rm -rf "$dest/plugins/position" "$dest/qml/Qt/test" "$dest/qml/QtQuick/Controls/Imagine" "$dest/qml/QtQuick/Controls/Universal"
+for p in platforms styles imageformats iconengines tls generic networkinformation; do
 	[ -d "$QT_WIN/plugins/$p" ] && copy_tree "$QT_WIN/plugins/$p" "$dest/plugins/$p"
 done
 rm -f "$dest"/plugins/imageformats/{qicns,qtga,qwbmp}.dll "$dest/plugins/platforms/qdirect2d.dll" \
@@ -41,6 +42,7 @@ rm -f "$dest"/plugins/imageformats/{qicns,qtga,qwbmp}.dll "$dest/plugins/platfor
 for q in QtQuick QtQml QtCore Qt5Compat QtPositioning Qt; do
 	[ -d "$QT_WIN/qml/$q" ] && copy_tree "$QT_WIN/qml/$q" "$dest/qml/$q"
 done
+rm -rf "$dest/qml/Qt/test" "$dest/qml/QtQuick/Controls/Imagine" "$dest/qml/QtQuick/Controls/Universal"
 if [ -d "$IIW/toolchain/vcredist" ]; then
 	cp -f "$IIW"/toolchain/vcredist/*.dll "$dest/"
 else
