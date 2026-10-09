@@ -14,6 +14,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 const SETUP_VERSION: &str = env!("IIW_SETUP_VERSION");
+const RELEASE_NAME: &str = env!("IIW_RELEASE_NAME");
 const README_EN: &str = include_str!("../../README.en.md");
 const README_PT: &str = include_str!("../../README.pt-BR.md");
 const EVENT: &str = "setup-event";
@@ -124,6 +125,7 @@ struct OfflineInfo {
 #[derive(Serialize)]
 struct Info {
 	setup_version: String,
+	release_name: String,
 	lang: String,
 	readme_en: String,
 	readme_pt: String,
@@ -177,6 +179,7 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 	});
 	Info {
 		setup_version: SETUP_VERSION.into(),
+		release_name: RELEASE_NAME.into(),
 		lang: if state.lang_pt { "pt".into() } else { "en".into() },
 		readme_en: readme::to_html(README_EN),
 		readme_pt: readme::to_html(README_PT),

@@ -29,8 +29,9 @@
 
   - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
   - Bar with the system tray, sidebars, a Spotlight-style search, notifications, cheatsheet (with a System tab for CPU, GPU, memory and disks), settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
-  - Two looks to pick from, with the same features and options: ii's original style or the one from pctrade's [end4-pC](https://github.com/pctrade/end4-pC) fork (its settings card, workspace numbers, a color picker on the bar)
-  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
+  - Two looks to pick from, with the same features and options: ii's original style or the one from pctrade's [end4-pC](https://github.com/pctrade/end4-pC) fork (its bar layout, settings card or dashboard, sidebar banner, workspace numbers, a color picker on the bar)
+  - Most of what end4-pC adds, in both looks: a bar you can rearrange (with a dynamic island and a screen frame), a dock on any screen edge, more desktop widgets (calendar, notes, to-do, timers, world clock, media, images, stickers), Wallhaven in the wallpaper selector, a media card and reorderable sections in the sidebar, and presets
+  - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on, or back in place of ii's bar with Ctrl+Super+P), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>

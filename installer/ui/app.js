@@ -120,6 +120,9 @@
 		$$("#stepper .dot").forEach((d) => (d.innerHTML = icon("check")));
 		$$(".lang-toggle button").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
 		$("#setup-version").textContent = t("setup_version", { v: info ? info.setup_version : "" });
+		const releaseName = $("#release-name");
+		releaseName.textContent = info && info.release_name ? `${info.setup_version} · ${info.release_name}` : "";
+		releaseName.hidden = !(info && info.release_name);
 		$("#toggle-log span:last-child").textContent = t(S.logOpen ? "hide_details" : "show_details");
 	}
 

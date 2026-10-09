@@ -11,7 +11,7 @@ administrador, a não ser para o PowerShell 7 opcional.
 
 ## O que é instalado, e onde
 
-- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 185 MB): o Quickshell
+- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 195 MB): o Quickshell
   (`qs.exe`, `qsw.exe`), as bibliotecas do Qt, as fontes e os ícones que o ii usa, o
   `matugen.exe` (gera a paleta de cores a partir do papel de parede) e a
   `VirtualDesktopAccessor.dll` (duas versões: uma para o Windows 11 e uma para o Windows 10, em

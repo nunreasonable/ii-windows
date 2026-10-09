@@ -11,7 +11,7 @@ except for the optional PowerShell 7.
 
 ## What gets installed, and where
 
-- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 185 MB): Quickshell (`qs.exe`,
+- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 195 MB): Quickshell (`qs.exe`,
   `qsw.exe`), the Qt libraries, the fonts and icons ii uses, `matugen.exe` (makes the color
   palette from your wallpaper), `VirtualDesktopAccessor.dll` (two builds: one for Windows 11,
   one for Windows 10 in `win10`) and the Microsoft Visual C++ runtime DLLs the program needs
