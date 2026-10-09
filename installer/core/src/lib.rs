@@ -9,6 +9,7 @@ pub mod profile;
 pub mod progress;
 pub mod readme;
 pub mod release;
+pub mod style;
 pub mod ttf;
 pub mod version;
 

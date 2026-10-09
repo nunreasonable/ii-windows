@@ -13,7 +13,7 @@ use crate::package::{self, PackageInfo};
 use crate::paths::Paths;
 use crate::progress::{Event, Msg, Reporter, Status};
 use crate::release::{self, ReleaseInfo};
-use crate::{appinstaller, profile, ttf, version, win};
+use crate::{appinstaller, profile, style, ttf, version, win};
 
 type R<T> = Result<T, Msg>;
 
@@ -751,6 +751,27 @@ fn seed_colors(ctx: &mut Ctx, m: &mut Manifest, force: bool) {
 		}
 		Err(e) => ctx.warn("config", io_msg("colors_failed", colors.display(), e)),
 	}
+}
+
+fn apply_style(ctx: &mut Ctx, chosen: &str) -> bool {
+	if chosen.is_empty() {
+		return false;
+	}
+	let config = ctx.paths.settings.join(style::CONFIG_FILE);
+	match style::write(&config, chosen) {
+		Ok(style::Outcome::Unchanged) => ctx.info(format!("   visual style {chosen}, unchanged")),
+		Ok(_) => ctx.info(format!("   visual style {chosen} set in {}", config.display())),
+		Err(e) => {
+			ctx.warn(
+				"config",
+				Msg::new("style_failed", format!("Couldn't set the visual style in {}: {e}", config.display()))
+					.with("error", e.to_string())
+					.with("path", config.display().to_string()),
+			);
+			return false;
+		}
+	}
+	true
 }
 
 fn copy_setup_exe(ctx: &mut Ctx, pkg: &PackageInfo) {
@@ -1650,6 +1671,7 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		}
 		m.state = "installing".into();
 		seed_colors(ctx, &mut m, false);
+		apply_style(ctx, &opts.visual_style);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
 		apply_integrations(ctx, &mut m, &opts, &previous_opts, run);
@@ -1701,6 +1723,9 @@ pub fn update(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		m.source = source.describe();
 		m.updated_at = Some(log::timestamp());
 		seed_colors(ctx, &mut m, false);
+		if apply_style(ctx, &run.options.visual_style) {
+			m.options.visual_style = run.options.visual_style.clone();
+		}
 		copy_setup_exe(ctx, &pkg);
 		shortcuts_and_entry(ctx, &mut m);
 		if m.options.autostart {
@@ -1788,6 +1813,7 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		m.setup_version = ctx.setup_version.clone();
 		m.repaired_at = Some(log::timestamp());
 		seed_colors(ctx, &mut m, true);
+		apply_style(ctx, &opts.visual_style);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
 		apply_integrations(ctx, &mut m, &opts, &opts, run);

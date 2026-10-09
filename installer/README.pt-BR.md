@@ -47,6 +47,15 @@ tarefas se oculta automaticamente.
 
 ## As opções
 
+- **Estilo visual**: *illogical-impulse* (o visual original do ii) ou *end4-pC* (o visual do fork
+  do pctrade). Os dois têm as mesmas funções e opções; a escolha define alguns padrões da barra e
+  da barra lateral (números ou ícones dos apps nas áreas de trabalho, quais botões a barra mostra,
+  os controles rápidos) e qual layout da janela de configurações abre. Cada cartão tem uma imagem
+  de como fica. O instalador só grava `appearance.visualStyle` em
+  `%LOCALAPPDATA%\illogical-impulse\config.json` (criando o arquivo se ele ainda não existir e a
+  escolha não for a padrão); o ii aplica o resto na próxima vez que abrir. Dá para trocar quando
+  quiser em Configurações > Básico > Estilo. A atualização mostra a mesma escolha, já marcada com
+  o estilo que você usa agora.
 - **Iniciar com o Windows** (ligada por padrão): adiciona `illogical-impulse` à lista "Run" do
   seu usuário (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), para o ii abrir quando você
   entra no Windows.

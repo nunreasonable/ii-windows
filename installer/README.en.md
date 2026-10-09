@@ -43,6 +43,14 @@ light or dark mode, the accent color and whether the taskbar hides automatically
 
 ## The options
 
+- **Visual style**: *illogical-impulse* (ii's original look) or *end4-pC* (the look of pctrade's
+  fork). Both have the same features and options; the choice sets a few bar and sidebar defaults
+  (workspace numbers or app icons, which buttons the bar shows, the quick sliders) and which
+  settings window layout opens. Each card has a picture of how it looks. The setup only writes
+  `appearance.visualStyle` into `%LOCALAPPDATA%\illogical-impulse\config.json` (creating the file
+  if it doesn't exist yet and the choice isn't the default); ii applies the rest the next time it
+  starts. You can switch any time in Settings > Quick > Style. Update shows the same choice,
+  preselected with the style you have now.
 - **Start with Windows** (on by default): adds `illogical-impulse` to the "Run" list of your
   user (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), so ii starts when you sign in.
 - **Terminal setup** (on by default), the Windows version of ii's terminal look:

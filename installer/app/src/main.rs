@@ -135,6 +135,7 @@ struct Info {
 	install_dir: String,
 	settings_dir: String,
 	settings_exist: bool,
+	current_style: Option<String>,
 	unmanaged_files: bool,
 }
 
@@ -188,6 +189,7 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		install_dir: p.install_dir.display().to_string(),
 		settings_dir: p.settings.display().to_string(),
 		settings_exist: p.settings.exists(),
+		current_style: iiw_setup_core::style::read(&p.settings.join(iiw_setup_core::style::CONFIG_FILE)),
 	}
 }
 

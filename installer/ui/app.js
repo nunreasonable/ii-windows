@@ -26,6 +26,7 @@
 		ok: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/>',
 		skip: '<path d="M7 12h10"/>',
 		close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+		expand: '<path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15"/>',
 		folder: '<path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4l2 2h8A1.5 1.5 0 0 1 20.5 9v8.5A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
 		rocket: '<path d="M12 15.5 8.5 12c.8-4 3.5-7.5 9-8.5-1 5.5-4.5 8.2-8.5 9"/><path d="M8.5 12H5l2.5-3.5h3.5M12 15.5V19l3.5-2.5V13"/>',
 	};
@@ -201,9 +202,33 @@
 		$("#readme-next").disabled = !(S.readEnd && S.readChecked);
 	}
 
+	const STYLES = [
+		{ id: "ii", img: "img/style-ii.webp" },
+		{ id: "end4pc", img: "img/style-end4pc.webp" },
+	];
+
 	function defaultOpts() {
-		if (info.installed) return { ...info.installed.options };
-		return { autostart: true, terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
+		const o = info.installed ? { ...info.installed.options } : { autostart: true, terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
+		o.visual_style = info.current_style || (STYLES.some((s) => s.id === o.visual_style) ? o.visual_style : "ii");
+		return o;
+	}
+
+	function styleCard(o) {
+		const items = STYLES.map((s) => {
+			const on = o.visual_style === s.id;
+			return `<button type="button" class="style-opt${on ? " selected" : ""}" data-style="${s.id}" role="radio" aria-checked="${on}">
+				<span class="style-shot"><img src="${s.img}" alt="${esc(t(`style_${s.id}`))}" draggable="false"><span class="style-zoom" data-zoom="${s.img}" title="${esc(t("style_zoom"))}">${icon("expand")}</span></span>
+				<span class="style-name">${esc(t(`style_${s.id}`))}<span class="style-check">${icon("check")}</span></span>
+				<span class="style-sub">${esc(t(`style_${s.id}_desc`))}</span>
+			</button>`;
+		}).join("");
+		return `<div class="card"><div class="card-title">${esc(t("card_style"))}</div><div class="style-grid" role="radiogroup">${items}</div><div class="style-note">${esc(t("style_note"))}</div></div>`;
+	}
+
+	function openZoom(src) {
+		const box = $("#lightbox");
+		box.querySelector("img").src = src;
+		box.hidden = false;
 	}
 
 	function switchRow(id, iconName, title, desc, checked, { disabled = false, extra = "", extraCls = "info", caution = false } = {}) {
@@ -267,6 +292,7 @@
 			if (!S.opts) S.opts = defaultOpts();
 			const o = S.opts;
 			html += sourceCard(a);
+			html += styleCard(o);
 			const pwshPresent = pf && pf.pwsh;
 			const policyEff = pf && pf.exec_policy_effective;
 			const policyAllowed = policyEff && /^(RemoteSigned|Unrestricted|Bypass)$/i.test(policyEff);
@@ -301,6 +327,7 @@
 			</div>`;
 			html += checksCard(a);
 		} else if (a === "update") {
+			if (!S.opts) S.opts = defaultOpts();
 			html += sourceCard(a);
 			const v = sourceVersion(a);
 			if (v) {
@@ -310,6 +337,7 @@
 					${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}
 				</div>`;
 			}
+			html += styleCard(S.opts);
 			html += checksCard(a);
 		} else if (a === "repair") {
 			html += sourceCard(a);
@@ -621,7 +649,18 @@
 		});
 		$("#options-body").addEventListener("click", (e) => {
 			if (e.target.closest("[data-retry]")) loadSource(S.action).then(() => loadPreflight(S.action));
+			const zoom = e.target.closest("[data-zoom]");
+			if (zoom) {
+				openZoom(zoom.dataset.zoom);
+				return;
+			}
+			const style = e.target.closest("[data-style]");
+			if (style && S.opts && S.opts.visual_style !== style.dataset.style) {
+				S.opts.visual_style = style.dataset.style;
+				renderOptions();
+			}
 		});
+		$("#lightbox").addEventListener("click", () => ($("#lightbox").hidden = true));
 		$("#options-go").addEventListener("click", start);
 
 		$("#toggle-log").addEventListener("click", () => {
@@ -658,6 +697,7 @@
 			const k = e.key.toLowerCase();
 			if (k === "f5" || k === "f7" || (e.ctrlKey && ["r", "p", "f", "g", "j", "u", "s", "o"].includes(k)) || (e.ctrlKey && e.shiftKey && k === "i")) e.preventDefault();
 			if (k === "end" && S.page === "readme" && document.activeElement !== $("#readme")) { $("#readme").scrollTop = 1e9; }
+			if (k === "escape" && !$("#lightbox").hidden) $("#lightbox").hidden = true;
 		});
 		listen("setup-event", (ev) => onEvent(ev.payload));
 		listen("close-blocked", () => toast(t("close_blocked")));

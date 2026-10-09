@@ -11,6 +11,7 @@ pub struct Options {
 	pub pwsh7: bool,
 	pub exec_policy: bool,
 	pub ffmpeg: bool,
+	pub visual_style: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
