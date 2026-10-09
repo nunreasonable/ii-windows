@@ -172,6 +172,23 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.6.2 (2026-10-08)
+
+- **Como foi feito:** revisão do código todo por sete agentes (caminho de inicialização, backend Windows, janelas/painéis, QML de inicialização, módulos do ii, app de Configurações, deploy/Qt), medição nas VMs e implementação em seis branches paralelos (widgets e barra, serviços, Configurações, painéis, eventos C++, render/IO C++), com revisão, integração e testes por mim na `win10` e na `win11`.
+- **Inicialização em PC fraco** (VM com 2 vCPUs de E-core a 40% e disco a 120 IOPS / 30 MB/s): primeiro quadro da barra em ~2,0 s na win10 (0.6.1: ~5,3 s) e ~2,1 s na win11; configuração carregada em ~1,0 s (era 3,4 s).
+  - Cache do scanner de QML (`qmlscan.bin`): arquivo com tamanho e data iguais não é aberto; 2,2 s → 0,15 s. O deploy e o instalador agora preservam as datas dos arquivos, então o cache sobrevive às atualizações.
+  - Portão "depois do primeiro quadro": DLL dos desktops virtuais, lista inicial de janelas, reserva da AppBar, Wi-Fi/rede, mídia, Bluetooth, dispositivos de áudio extras, bandeja e compositor do blur do Win11 esperam a barra aparecer.
+  - Logs detalhados desligados por padrão no Windows (`QS_DETAILED_LOGS=1` religa); fontes Material Symbols e Google Sans Flex sem o eixo GRAD (14,6 → 8,1 MB e 4,0 → 2,2 MB); `qsw.exe` com `/Ob2 /Gw /OPT:REF,ICF` (6,5 → 5,0 MB); pacote sem FFmpeg, Qt Multimedia, Designer e afins (251 → 206 MB); limpeza automática de instâncias antigas em `run\` (189 instâncias e 70 MB na VM).
+  - QML: texto, botões e dicas não criam mais animações e camadas de efeito que nunca rodam; popups da barra montados ao abrir; serviços do Linux e pastas que nem existem no Windows não são mais carregados na inicialização; tema e tradução chegam antes da barra (sem recolorir e retraduzir tudo).
+- **Configurações:** abrem dentro do próprio shell no Windows (sem processo novo): 0,6–1,3 s já com tema e em português no primeiro quadro (antes: janela vazia em ~1 s, branca e em inglês, pronta em ~2,5–3 s). O `qsw -p settings.qml` continua funcionando (atalho do Menu Iniciar) e também abre já pronto, sem o quadro branco.
+- **Painéis:** sessão, OSD, controles de mídia, seletor de papel de parede e cheatsheet mantêm a janela depois da primeira abertura; sidebar esquerda e cheatsheet pré-carregados em segundo plano; spotlight reaproveita os itens ao digitar; foco de teclado na primeira exposição (digitar logo depois do Win cai na busca).
+- **Mouse em máquinas mais fracas:** o hook de mouse decide sozinho quando uma máscara precisa mudar e só acorda a thread da interface nesse caso; eventos de janelas irrelevantes são descartados antes de chegar nela.
+- **Corrigido:** o brilho era regravado no monitor a cada inicialização (DDC ia a 100%); tradução não carregava com idioma "auto"; Super+Q com a janela de Configurações em foco fechava o app anterior; texto sobreposto no cheatsheet; seletor de papel de parede cortado em telas pequenas.
+- **Mudanças de comportamento:** com "barra de tarefas só ao passar o mouse", o ocultar automático do Windows continua ligado depois de fechar o ii (o desinstalador restaura); no Windows algumas máscaras de painel inteiro saíram (bordas cortadas retas em alguns painéis, miniaturas do overview sem cantos arredondados).
+- **Pendente:**
+  - a primeira inicialização depois de instalar arquivos novos continua lenta (Defender e disco frio em cada DLL regravada), uma vez por atualização;
+  - blur do Win11 com GPU de verdade e brilho por WMI em notebook ainda não vistos em hardware real.
+
 ## 0.6.1 (2026-10-07)
 
 - **Configurações completas:** das 304 opções do `config.json`, 118 não tinham controle; ~90 entraram no app (Geral, Barra, Fundo, Interface, Serviços), em quatro agentes paralelos com revisão e integração por mim. O que só vale no Linux fica escondido no Windows. Ficaram só no arquivo: posições arrastadas de widgets, estado salvo do game mode, listas que o próprio ii edita (apps fixados, bandeja, botões rápidos) e `ai.extraModels`. Opções mortas (sem uso no código) não ganharam controle.
