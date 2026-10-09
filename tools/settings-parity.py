@@ -10,10 +10,19 @@ ASSIGN = re.compile(r"Config\.options\.([A-Za-z_][A-Za-z0-9_.]*?)\s*(?:=(?!=)|\+
 NESTED = re.compile(r"Config\.setNestedValue\(\s*[\"'`]([^\"'`]+)[\"'`]")
 
 
+BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
+LINE_COMMENT = re.compile(r"^[ \t]*//.*$", re.M)
+
+
+def strip_comments(text):
+    text = BLOCK_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+    return LINE_COMMENT.sub("", text)
+
+
 def collect(directory, root):
     keys = {}
     for path in sorted(directory.rglob("*.qml")):
-        text = path.read_text(encoding="utf-8")
+        text = strip_comments(path.read_text(encoding="utf-8"))
         for pattern in (ASSIGN, NESTED):
             for match in pattern.finditer(text):
                 line = text.count("\n", 0, match.start()) + 1
