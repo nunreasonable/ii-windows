@@ -327,7 +327,9 @@ O próprio ii também muda um pouco no Windows 10:
   Quickshell é licenciado sob a LGPL-3.0.
 - illogical-impulse para Windows, branch `ii-windows`:
   [github.com/nunreasonable/dots-hyprland](https://github.com/nunreasonable/dots-hyprland). O
-  dots-hyprland do end-4 é licenciado sob a GPL-3.0.
+  dots-hyprland do end-4 é licenciado sob a GPL-3.0. O estilo end4-pC (a janela de configurações e
+  os padrões dele) é portado do fork end4-pC do ii, do pctrade
+  ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), também GPL-3.0.
 - Também incluídos, entre outros: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor
   (MIT), o runtime do Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da
   Microsoft), as fontes JetBrainsMono Nerd Font, Readex Pro, Space Grotesk e Google Sans Flex

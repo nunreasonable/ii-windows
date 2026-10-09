@@ -29,6 +29,7 @@
 
   - [illogical-impulse](https://github.com/end-4/dots-hyprland) (ii), end-4's Quickshell desktop shell for Hyprland, running natively on Windows 10 and 11
   - Bar with the system tray, sidebars, a Spotlight-style search, notifications, cheatsheet (with a System tab for CPU, GPU, memory and disks), settings app, screen recording, translation and Material You colors from your wallpaper, the same QML as on Linux wherever it could stay the same
+  - Two looks to pick from, with the same features and options: ii's original style or the one from pctrade's [end4-pC](https://github.com/pctrade/end4-pC) fork (its settings card, workspace numbers, a color picker on the bar)
   - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
@@ -52,6 +53,7 @@
 
   - Download **`ii-windows-setup.exe`** from the [latest release](https://github.com/nunreasonable/ii-windows/releases/latest) and run it
     - It shows a README with everything it changes on your PC, and you have to read it before installing
+    - It lets you pick the look (ii's original or end4-pC), with a picture of each; you can switch later in *Settings → Quick → Style*
     - Everything goes into your Windows user, no administrator needed (except the optional PowerShell 7)
     - It downloads the package from the release and checks its SHA-256 before installing anything
   - Update, repair and uninstall are in the same setup: *Settings → Apps → Installed apps → illogical-impulse (ii-windows) → Modify*
@@ -73,8 +75,8 @@
 
   - **Tested on Windows 11 25H2** (in the VMs): bar, system tray, sidebars, launcher and search, cheatsheet, settings app, notifications (including the ones other apps show), clipboard history, screen snip and OCR, screen recording, translation, LaTeX rendering, wallpaper selector and Material colors, the wallpaper behind the desktop icons, virtual desktops as workspaces, taskbar on hover, terminal theming, weather, the media visualizer, the color picker, the Spotlight search, the cheatsheet's System tab, and the setup (install, update, self-update, repair, uninstall)
   - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, `Win`+drag to move and resize windows (also across monitors with different scaling, with and without tiling), the bar at 125% and 150% scaling and after changing the scale while ii runs, and the setup with Windows Terminal, the terminal tools and FFmpeg
-  - **Settings app**: almost every option is there now, not only in `config.json`
-  - **Startup**: on a VM held to two slow cores at 40% and a disk at 120 IOPS, the bar shows in about 4 seconds (about 43 in 0.5.0)
+  - **Settings app**: almost every option is there now, not only in `config.json`, in two layouts (ii's and end4-pC's) with exactly the same options
+  - **Startup**: on a VM held to two slow cores at 40% and a disk at 120 IOPS, the bar shows in about 1.6 seconds (about 43 in 0.5.0)
   - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
   - **Tested on real hardware**: Wi-Fi and Bluetooth
   - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize), game mode, the Cloudflare WARP toggle (needs Cloudflare's WARP client) and the warning before shutting down while winget is installing
@@ -120,12 +122,13 @@ All of the design and nearly all of the shell are other people's work. This repo
 
  - [@end-4](https://github.com/end-4) for illogical-impulse and [dots-hyprland](https://github.com/end-4/dots-hyprland): every widget here is theirs. If you like it, [support them](https://github.com/sponsors/end-4) and give the original a star
  - Everyone thanked in [dots-hyprland's README](https://github.com/end-4/dots-hyprland#readme), including [@clsty](https://github.com/clsty) and [@midn8hustlr](https://github.com/midn8hustlr), and all of [dots-hyprland's contributors](https://github.com/end-4/dots-hyprland/graphs/contributors)
+ - [@pctrade](https://github.com/pctrade) for [end4-pC](https://github.com/pctrade/end4-pC), the fork of ii whose look and settings window are the second visual style here
  - [@outfoxxed](https://github.com/outfoxxed) and the contributors of [Quickshell](https://quickshell.outfoxxed.me), the toolkit underneath it all
  - [minimal-05/quickshell-macos](https://github.com/minimal-05/quickshell-macos), whose macOS port of Quickshell and ii showed this could be done
  - [InioX](https://github.com/InioX) for [matugen](https://github.com/InioX/matugen), [Ciantic](https://github.com/Ciantic) for [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor), and Google's [material-color-utilities](https://github.com/material-foundation/material-color-utilities), ported for the terminal colors
  - [marin-m](https://github.com/marin-m) for [SongRec](https://github.com/marin-m/SongRec) and [NanoMichael](https://github.com/NanoMichael) for [MicroTeX](https://github.com/NanoMichael/MicroTeX)
  - [RetroBar](https://github.com/dremin/RetroBar) and [ManagedShell](https://github.com/cairoshell/ManagedShell), whose way of sharing the tray with Explorer the Windows tray follows
- - The Qt Project, and the fonts and icons ii ships with: JetBrains Mono and Nerd Fonts, Rubik, Readex Pro, Space Grotesk, Google Sans Flex, Material Symbols and GNOME's Adwaita icons
+ - The Qt Project, and the fonts and icons ii ships with: JetBrains Mono and Nerd Fonts, Readex Pro, Space Grotesk, Google Sans Flex, Material Symbols and GNOME's Adwaita icons (the setup itself uses Rubik)
 
 <div align="center">
     <h2>• license •</h2>

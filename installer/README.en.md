@@ -303,7 +303,9 @@ ii itself also differs a little on Windows 10:
   is licensed under the LGPL-3.0.
 - illogical-impulse for Windows, branch `ii-windows`:
   [github.com/nunreasonable/dots-hyprland](https://github.com/nunreasonable/dots-hyprland).
-  end-4's dots-hyprland is licensed under the GPL-3.0.
+  end-4's dots-hyprland is licensed under the GPL-3.0. The end4-pC style (its settings window and
+  defaults) is ported from pctrade's end4-pC fork of ii
+  ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), also GPL-3.0.
 - Also included, among others: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT),
   the Microsoft Visual C++ runtime (redistributable files under Microsoft's license terms), the
   fonts JetBrainsMono Nerd Font, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open Font
