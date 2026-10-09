@@ -28,5 +28,30 @@ for f in files:
             continue
         bad += 1
         print(f"{f}: uses {name} without import {module}")
-print(f"{bad} missing singleton imports", file=sys.stderr)
+imported_dirs = {""}
+for f in files:
+    src = open(os.path.join(root, f), encoding="utf-8").read()
+    for m in re.finditer(r"^\s*import\s+qs((?:\.[\w]+)*)", src, re.M):
+        imported_dirs.add(m.group(1).lstrip(".").replace(".", "/"))
+    for m in re.finditer(r'^\s*import\s+"([^"]+)"', src, re.M):
+        rel = os.path.normpath(os.path.join(os.path.dirname(f), m.group(1)))
+        imported_dirs.add("" if rel == "." else rel)
+types_by_dir = {}
+for f in files:
+    name = os.path.splitext(os.path.basename(f))[0]
+    if name[:1].isupper():
+        types_by_dir.setdefault(os.path.dirname(f), set()).add(name)
+unreachable = 0
+for f in files:
+    d = os.path.dirname(f)
+    if d in imported_dirs or f.startswith("modules/waffle/") or "/" not in f:
+        continue
+    src = open(os.path.join(root, f), encoding="utf-8").read()
+    me = os.path.splitext(os.path.basename(f))[0]
+    used = [t for t in types_by_dir.get(d, ()) if t != me and re.search(r"(?<![\w.])" + t + r"\s*\{", src)]
+    if used:
+        unreachable += 1
+        print(f"{f}: uses sibling types {sorted(used)} but no file imports qs.{d.replace('/', '.')} (no qmldir gets made)")
+bad += unreachable
+print(f"{bad} problems ({unreachable} unreachable directories)", file=sys.stderr)
 sys.exit(1 if bad else 0)
