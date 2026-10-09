@@ -48,6 +48,8 @@ pub const UNINSTALL_ROOT: &str = r"Software\Microsoft\Windows\CurrentVersion\Uni
 pub const FONTS_KEY: &str = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts";
 pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 pub const DWM_KEY: &str = r"Software\Microsoft\Windows\DWM";
+pub const QUICKSHELL_KEY: &str = r"Software\Quickshell";
+pub const AUTOHIDE_OWNED: &str = "TaskbarAutoHideOwned";
 pub const DESKTOP_KEY: &str = r"Control Panel\Desktop";
 pub const WALLPAPERS_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers";
 

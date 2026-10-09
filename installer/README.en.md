@@ -11,7 +11,7 @@ except for the optional PowerShell 7.
 
 ## What gets installed, and where
 
-- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 250 MB): Quickshell (`qs.exe`,
+- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 210 MB): Quickshell (`qs.exe`,
   `qsw.exe`), the Qt libraries, the fonts and icons ii uses, `matugen.exe` (makes the color
   palette from your wallpaper), `VirtualDesktopAccessor.dll` (two builds: one for Windows 11,
   one for Windows 10 in `win10`) and the Microsoft Visual C++ runtime DLLs the program needs
@@ -108,8 +108,10 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   focus, Windows doesn't let ii see the keyboard: ii's shortcuts don't work there and Win+Q
   opens Windows' search. Close those windows with Alt+F4.
 - **Taskbar:** by default the Windows taskbar is hidden and shows up when the pointer touches
-  the bottom of the screen. For that, ii turns on the taskbar's auto-hide while it runs (if it
-  was off) and turns it back off when it closes.
+  the bottom of the screen. For that, ii turns on the taskbar's auto-hide (if it was off) and
+  leaves it on between sessions, so the screen doesn't jump every time ii starts or closes. It
+  turns it back off when you switch the hover-only taskbar off in ii's settings, and uninstalling
+  puts back what you had.
 - **System tray:** ii's bar shows the icons apps put in the notification area. For that, while ii
   runs, it puts a hidden window in front of Explorer's tray: apps talk to it, and it passes
   everything on to Explorer, whose own tray keeps working. When ii closes or crashes, apps talk to
@@ -294,12 +296,12 @@ ii itself also differs a little on Windows 10:
 - illogical-impulse for Windows, branch `ii-windows`:
   [github.com/nunreasonable/dots-hyprland](https://github.com/nunreasonable/dots-hyprland).
   end-4's dots-hyprland is licensed under the GPL-3.0.
-- Also included, among others: Qt 6 (LGPL-3.0), the FFmpeg libraries of Qt Multimedia
-  (LGPL-2.1 or later), matugen
-  (GPL-2.0), VirtualDesktopAccessor (MIT), the Microsoft Visual C++ runtime (redistributable
-  files under Microsoft's license terms), the fonts JetBrainsMono Nerd Font, Rubik, Readex Pro,
-  Space Grotesk and Google Sans Flex (SIL Open Font License), Material Symbols (Apache-2.0) and
-  Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
+- Also included, among others: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT),
+  the Microsoft Visual C++ runtime (redistributable files under Microsoft's license terms), the
+  fonts JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open
+  Font License), Material Symbols (Apache-2.0) and Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
+  Material Symbols and Google Sans Flex ship modified: their GRAD axis, which ii doesn't use, is
+  pinned to its default with fontTools to make the files smaller.
 - `songrec.exe`: SongRec's recognizer (GPL-3.0-or-later). Its source is SongRec 0.7.5
   ([github.com/marin-m/SongRec](https://github.com/marin-m/SongRec)) plus the Windows front end
   in this project's `tools/songrec`.

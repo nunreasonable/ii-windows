@@ -2100,7 +2100,14 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 }
 
 fn restore_look(ctx: &mut Ctx, m: &Manifest) {
+	let autohide_owned = win::get_dword(win::QUICKSHELL_KEY, win::AUTOHIDE_OWNED) == Some(1);
+	let _ = win::delete_value(win::QUICKSHELL_KEY, win::AUTOHIDE_OWNED);
 	let Some(pre) = m.pre_install.clone() else {
+		if autohide_owned && win::taskbar_autohide() == Some(true) {
+			win::set_taskbar_autohide(false);
+			win::show_taskbars();
+			ctx.info("   taskbar auto-hide off (ii had turned it on)".to_string());
+		}
 		ctx.skip("restore", Msg::new("nothing_recorded", "nothing was recorded at install time"));
 		return;
 	};

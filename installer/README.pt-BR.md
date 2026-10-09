@@ -11,7 +11,7 @@ administrador, a não ser para o PowerShell 7 opcional.
 
 ## O que é instalado, e onde
 
-- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 250 MB): o Quickshell
+- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 210 MB): o Quickshell
   (`qs.exe`, `qsw.exe`), as bibliotecas do Qt, as fontes e os ícones que o ii usa, o
   `matugen.exe` (gera a paleta de cores a partir do papel de parede) e a
   `VirtualDesktopAccessor.dll` (duas versões: uma para o Windows 11 e uma para o Windows 10, em
@@ -116,7 +116,10 @@ tarefas se oculta automaticamente.
   Windows. Feche essas janelas com Alt+F4.
 - **Barra de tarefas:** por padrão a barra de tarefas do Windows fica escondida e aparece quando
   o ponteiro encosta na borda de baixo da tela. Para isso, o ii liga a ocultação automática da
-  barra enquanto roda (se ela estava desligada) e a desliga de novo quando fecha.
+  barra (se ela estava desligada) e a deixa ligada entre uma sessão e outra, para a tela não
+  pular toda vez que o ii abre ou fecha. Ela volta a ser desligada quando você desliga a barra
+  que só aparece com o ponteiro nas configurações do ii, e a desinstalação devolve o que você
+  tinha.
 - **Bandeja do sistema:** a barra do ii mostra os ícones que os apps põem na área de
   notificação. Para isso, enquanto roda, o ii põe uma janela escondida na frente da bandeja do
   Explorer: os apps falam com ela, e ela repassa tudo ao Explorer, cuja bandeja continua
@@ -316,11 +319,12 @@ O próprio ii também muda um pouco no Windows 10:
 - illogical-impulse para Windows, branch `ii-windows`:
   [github.com/nunreasonable/dots-hyprland](https://github.com/nunreasonable/dots-hyprland). O
   dots-hyprland do end-4 é licenciado sob a GPL-3.0.
-- Também incluídos, entre outros: Qt 6 (LGPL-3.0), as bibliotecas FFmpeg do Qt Multimedia
-  (LGPL-2.1 ou posterior), matugen (GPL-2.0), VirtualDesktopAccessor (MIT), o runtime do
-  Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da Microsoft), as fontes
-  JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk e Google Sans Flex (SIL Open Font
-  License), Material Symbols (Apache-2.0) e os ícones Adwaita (CC-BY-SA 3.0 / LGPL-3.0).
+- Também incluídos, entre outros: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor
+  (MIT), o runtime do Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da
+  Microsoft), as fontes JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk e Google Sans
+  Flex (SIL Open Font License), Material Symbols (Apache-2.0) e os ícones Adwaita (CC-BY-SA 3.0 /
+  LGPL-3.0). Material Symbols e Google Sans Flex vão modificadas: o eixo GRAD, que o ii não usa, é
+  fixado no valor padrão com o fontTools para os arquivos ficarem menores.
 - `songrec.exe`: o reconhecedor do SongRec (GPL-3.0 ou posterior). O código-fonte é o SongRec
   0.7.5 ([github.com/marin-m/SongRec](https://github.com/marin-m/SongRec)) mais a interface de
   linha de comando para Windows em `tools/songrec` deste projeto.
