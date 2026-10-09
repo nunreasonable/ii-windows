@@ -52,7 +52,7 @@ Windows, so they show the real RTX output.
 
 ## Status
 
-- All planned phases are done and released (0.1.0 to 0.6.2). Tested on Windows 11 25H2 in VMs (with
+- All planned phases are done and released (0.1.0 to 0.7.0). Tested on Windows 11 25H2 in VMs (with
   the RTX passed through and with WARP only), on a Windows 10 22H2 VM, and on real hardware (an
   i3-13100 with its iGPU, and a bare-metal install where Wi-Fi and Bluetooth were checked).
 - Not ported on purpose: ii's lock screen (Windows' own one is used), the polkit agent (UAC),

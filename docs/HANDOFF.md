@@ -172,6 +172,15 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.7.0 (2026-10-09)
+
+- **Estilo visual (etapa 1):** escolha entre o visual original do ii e o do fork end4-pC (pctrade), no instalador (instalar e atualizar, com uma imagem de cada) e em Configurações > Básico > Estilo. Os dois têm as mesmas funções e opções: o layout de Configurações do end4-pC (`modules/settingsPc`, cartão flutuante com trilho, avatar e busca pelo Spotlight/Overview) expõe exatamente as mesmas 277 opções do layout original (`tools/settings-parity.py` confere). O estilo end4-pC também liga números nas áreas de trabalho, seletor de cor na barra e controles rápidos na barra lateral (`services/VisualStyle.qml`); o instalador só grava `appearance.visualStyle` e o ii aplica o resto ao abrir. As funções exclusivas do fork ficam para as próximas etapas (`notes/end4pc-fork-only-keys.txt`, local).
+- **Segunda revisão agressiva** (mesma VM limitada da 0.6.2, A/B intercalado com o build anterior, 5 inicializações cada): configuração carregada 0,97 → 0,84 s e primeiro quadro da barra 1,79 → 1,63 s (mediana). Varredura do QML e bundle numa thread em paralelo com as fontes, varredura sem consultar o disco várias vezes por pasta, fonte Rubik (nunca usada, 14 das 49 faces) fora do pacote.
+- **Memória:** 265 → 239 MB privados 40 s depois de abrir (cheatsheet sem pré-carregamento aos 20 s; continua mantido depois da primeira abertura). Seletor de papel de parede e menu de sessão liberam a janela depois de 2 min fechados (−29 MB no seletor). JetBrains Mono NF: só o Regular quando a instalação por usuário está incompleta (eram 38 MB em memória).
+- **Pacote:** 208 → 182 MB (sem `opengl32sw.dll`, sem o `d3dcompiler_47.dll` que o Windows já tem, sem estilos Imagine/Universal, plugins de posição e Rubik).
+- **Corrigido:** depois de um kill, crash ou atualização a barra aparecia 45 px abaixo e pulava ~2 s depois (AppBar fantasma da instância morta); agora os registros ficam em `HKCU\Software\Quickshell\AppBars` e os de janelas mortas são removidos antes de posicionar. "Dots" no mostrador do relógio traduzido como "Pontos".
+- **Pendente:** duas instâncias ao mesmo tempo e mudança de DPI com a AppBar nova não testadas; carga dos tipos QML (~200 ms) e fontes (160–280 ms) são as próximas pistas de inicialização.
+
 ## 0.6.2 (2026-10-08)
 
 - **Como foi feito:** revisão do código todo por sete agentes (caminho de inicialização, backend Windows, janelas/painéis, QML de inicialização, módulos do ii, app de Configurações, deploy/Qt), medição nas VMs e implementação em seis branches paralelos (widgets e barra, serviços, Configurações, painéis, eventos C++, render/IO C++), com revisão, integração e testes por mim na `win10` e na `win11`.
