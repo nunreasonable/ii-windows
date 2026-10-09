@@ -2044,6 +2044,7 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		}
 
 		ctx.begin("ii_data");
+		let _ = win::delete_tree(win::QUICKSHELL_APPBARS_KEY);
 		let mut dirs = ctx.paths.quickshell_dirs();
 		dirs.push(ctx.paths.ii_temp());
 		dirs.push(ctx.paths.quickshell.join("ii.new"));

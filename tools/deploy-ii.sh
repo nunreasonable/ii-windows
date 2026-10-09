@@ -25,13 +25,13 @@ pin_unused_axes() {
 	cp -f "$cache" "$D/fonts/$(basename "$src")"
 }
 
+rm -rf "$D/fonts"
 mkdir -p "$D/fonts"
 for f in \
 	/usr/share/fonts/google-sans-flex-vf-fonts/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf \
 	/usr/share/fonts/jetbrains-mono-nerd-fonts/JetBrainsMonoNerdFont-*.ttf \
 	"/usr/share/fonts/google-material-symbols-vf-rounded-fonts/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf" \
 	"/usr/share/fonts/google-readex-pro-vf-fonts/Readexpro[HEXP,wght].ttf" \
-	/usr/share/fonts/google-rubik-vf-fonts/Rubik*.ttf \
 	/usr/share/fonts/florian-karsten-space-grotesk-fonts/SpaceGrotesk-*.otf; do
 	case "$f" in
 	*GoogleSansFlex* | *MaterialSymbolsRounded*) pin_unused_axes "$f" "GRAD=0" ;;

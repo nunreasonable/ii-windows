@@ -50,6 +50,7 @@ pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Th
 pub const DWM_KEY: &str = r"Software\Microsoft\Windows\DWM";
 pub const QUICKSHELL_KEY: &str = r"Software\Quickshell";
 pub const AUTOHIDE_OWNED: &str = "TaskbarAutoHideOwned";
+pub const QUICKSHELL_APPBARS_KEY: &str = r"Software\Quickshell\AppBars";
 pub const DESKTOP_KEY: &str = r"Control Panel\Desktop";
 pub const WALLPAPERS_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers";
 
