@@ -11,7 +11,7 @@ except for the optional PowerShell 7.
 
 ## What gets installed, and where
 
-- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 210 MB): Quickshell (`qs.exe`,
+- **The program** goes to `%LOCALAPPDATA%\ii-windows` (about 185 MB): Quickshell (`qs.exe`,
   `qsw.exe`), the Qt libraries, the fonts and icons ii uses, `matugen.exe` (makes the color
   palette from your wallpaper), `VirtualDesktopAccessor.dll` (two builds: one for Windows 11,
   one for Windows 10 in `win10`) and the Microsoft Visual C++ runtime DLLs the program needs
@@ -306,8 +306,8 @@ ii itself also differs a little on Windows 10:
   end-4's dots-hyprland is licensed under the GPL-3.0.
 - Also included, among others: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT),
   the Microsoft Visual C++ runtime (redistributable files under Microsoft's license terms), the
-  fonts JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open
-  Font License), Material Symbols (Apache-2.0) and Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
+  fonts JetBrainsMono Nerd Font, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open Font
+  License), Material Symbols (Apache-2.0) and Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
   Material Symbols and Google Sans Flex ship modified: their GRAD axis, which ii doesn't use, is
   pinned to its default with fontTools to make the files smaller.
 - `songrec.exe`: SongRec's recognizer (GPL-3.0-or-later). Its source is SongRec 0.7.5

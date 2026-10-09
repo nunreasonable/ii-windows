@@ -11,7 +11,7 @@ administrador, a não ser para o PowerShell 7 opcional.
 
 ## O que é instalado, e onde
 
-- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 210 MB): o Quickshell
+- **O programa** vai para `%LOCALAPPDATA%\ii-windows` (cerca de 185 MB): o Quickshell
   (`qs.exe`, `qsw.exe`), as bibliotecas do Qt, as fontes e os ícones que o ii usa, o
   `matugen.exe` (gera a paleta de cores a partir do papel de parede) e a
   `VirtualDesktopAccessor.dll` (duas versões: uma para o Windows 11 e uma para o Windows 10, em
@@ -330,8 +330,8 @@ O próprio ii também muda um pouco no Windows 10:
   dots-hyprland do end-4 é licenciado sob a GPL-3.0.
 - Também incluídos, entre outros: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor
   (MIT), o runtime do Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da
-  Microsoft), as fontes JetBrainsMono Nerd Font, Rubik, Readex Pro, Space Grotesk e Google Sans
-  Flex (SIL Open Font License), Material Symbols (Apache-2.0) e os ícones Adwaita (CC-BY-SA 3.0 /
+  Microsoft), as fontes JetBrainsMono Nerd Font, Readex Pro, Space Grotesk e Google Sans Flex
+  (SIL Open Font License), Material Symbols (Apache-2.0) e os ícones Adwaita (CC-BY-SA 3.0 /
   LGPL-3.0). Material Symbols e Google Sans Flex vão modificadas: o eixo GRAD, que o ii não usa, é
   fixado no valor padrão com o fontTools para os arquivos ficarem menores.
 - `songrec.exe`: o reconhecedor do SongRec (GPL-3.0 ou posterior). O código-fonte é o SongRec
