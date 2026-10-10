@@ -113,6 +113,13 @@
     <br><sub>On a real PC: Windows 11 26H2 with an RTX 5060 Ti, the cheatsheet's System tab</sub>
 </p>
 
+<details>
+<summary><b>Sensitive content (not explicit):</b> the desktop on the same PC, click to show</summary>
+<p align="center">
+    <img src="assets/pc-desktop.webp" alt="ii's bar and desktop clock on Windows 11, over an anime wallpaper of two characters in swimsuits">
+</p>
+</details>
+
 | Sidebar, colors from the Windows wallpaper | Cheatsheet (`Win`+`/`) |
 |:---|:---------------|
 | <img src="assets/sidebar.webp" alt="ii's right sidebar on Windows 11"> | <img src="assets/cheatsheet.webp" alt="ii's keybind cheatsheet on Windows 11"> |
