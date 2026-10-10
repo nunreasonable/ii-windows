@@ -172,6 +172,15 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.9.1 "Haunted Spatula" (2026-10-10)
+
+- **Ícones de app (issue #2):** no Windows o `AppSearch.guessIcon` descartava os ícones dos apps (`appicon:`), porque `Quickshell.iconPath(nome, true)` só conhecia o tema; janelas sem AUMID próprio (explorer, mspaint, cmd, powershell…) caíam na engrenagem genérica no dock, na barra, nos workspaces e no overview. Agora a varredura do menu guarda o .exe de destino de cada app (`System.Link.TargetParsingPath`), `DesktopEntries.byId` acha o app pelo .exe da janela (caminho completo, depois só o nome) e janelas sem app no menu usam o ícone do próprio .exe.
+- **Fixados padrão:** Explorador de Arquivos e Terminal do Windows (PowerShell onde o Terminal não existe) no lugar de Dolphin e kitty, no dock e no menu Iniciar do estilo waffle; configs antigas trocam uma vez (`windowsPort.pinsVersion`, `services/WindowsPins.qml`).
+- **Contorno da barra (issue #3):** com "Mostrar fundo" desligado o estilo flutuante ainda desenhava a borda de 1 px (igual no upstream).
+- **Painéis no monitor focado (issue #5):** painéis sem tela fixa (barras laterais, overview, cheatsheet…) abriam sempre no monitor principal, porque no Windows não há compositor escolhendo a saída. Agora abrem no monitor focado, e um clique em qualquer monitor (barra, área de trabalho ou janela) passa a focá-lo, como o foco que segue o mouse no Hyprland.
+- **Atalhos (issue #1):** era um mod do Windhawk interceptando os atalhos com Super; nada mudou no ii.
+- **Pendente:** captura de tela no segundo monitor (issue #4) sem reprodução, aguardando log; #5 só testado com um monitor (a `win10` tem um só).
+
 ## 0.9.0 "Exploding Baby" (2026-10-09)
 
 - **Nome:** a partir desta versão toda release tem um nome aleatório e engraçado (`RELEASE_NAME` na raiz; o instalador mostra "0.9.0 · Exploding Baby" na barra de título). As anteriores são "Unnamed". A 0.8.0 planejada foi junto: não existe 0.8.0.
