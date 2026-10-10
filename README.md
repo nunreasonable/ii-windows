@@ -108,6 +108,11 @@
     <h3></h3>
 </div>
 
+<p align="center">
+    <img src="assets/system.webp" alt="ii's cheatsheet on the System tab, running on a real PC with an RTX 5060 Ti">
+    <br><sub>On a real PC: Windows 11 26H2 with an RTX 5060 Ti, the cheatsheet's System tab</sub>
+</p>
+
 | Sidebar, colors from the Windows wallpaper | Cheatsheet (`Win`+`/`) |
 |:---|:---------------|
 | <img src="assets/sidebar.webp" alt="ii's right sidebar on Windows 11"> | <img src="assets/cheatsheet.webp" alt="ii's keybind cheatsheet on Windows 11"> |
