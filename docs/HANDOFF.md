@@ -172,6 +172,11 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.9.2 "Caffeinated Pigeon" (2026-10-10)
+
+- **Texto (issue #6):** no Windows o Qt desenhava com DirectWrite e ClearType (subpixel): franjas coloridas nos painéis escuros e translúcidos e dígitos irregulares em escala fracionária (150%). Agora `QT_QPA_PLATFORM` tem padrão `windows:fontengine=freetype` (`launch.cpp`; um valor definido pelo usuário vence): tons de cinza, como no Linux. Emoji colorido e fallback CJK conferidos na `win10`.
+- **Configurações abertas (issue #7):** opção `settings.keepOpen` ("Manter aberto ao clicar fora"), nos dois layouts. O cartão do end4-pC deixa de ser dispensável no `GlobalFocusGrab` e, no Windows, usa foco OnDemand (um painel Exclusive retoma o primeiro plano a cada desativação) com uma captura momentânea para pegar o teclado ao abrir. Os estilos ii e Dashboard são janelas normais e nunca fechavam sozinhos.
+
 ## 0.9.1 "Haunted Spatula" (2026-10-10)
 
 - **Ícones de app (issue #2):** no Windows o `AppSearch.guessIcon` descartava os ícones dos apps (`appicon:`), porque `Quickshell.iconPath(nome, true)` só conhecia o tema; janelas sem AUMID próprio (explorer, mspaint, cmd, powershell…) caíam na engrenagem genérica no dock, na barra, nos workspaces e no overview. Agora a varredura do menu guarda o .exe de destino de cada app (`System.Link.TargetParsingPath`), `DesktopEntries.byId` acha o app pelo .exe da janela (caminho completo, depois só o nome) e janelas sem app no menu usam o ícone do próprio .exe.
