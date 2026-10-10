@@ -178,8 +178,10 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 - **Fixados padrão:** Explorador de Arquivos e Terminal do Windows (PowerShell onde o Terminal não existe) no lugar de Dolphin e kitty, no dock e no menu Iniciar do estilo waffle; configs antigas trocam uma vez (`windowsPort.pinsVersion`, `services/WindowsPins.qml`).
 - **Contorno da barra (issue #3):** com "Mostrar fundo" desligado o estilo flutuante ainda desenhava a borda de 1 px (igual no upstream).
 - **Painéis no monitor focado (issue #5):** painéis sem tela fixa (barras laterais, overview, cheatsheet…) abriam sempre no monitor principal, porque no Windows não há compositor escolhendo a saída. Agora abrem no monitor focado, e um clique em qualquer monitor (barra, área de trabalho ou janela) passa a focá-lo, como o foco que segue o mouse no Hyprland.
+- **Captura no segundo monitor (issue #4):** o seletor de região de cada monitor capturava a tela durante a criação, antes de receber o próprio monitor; todos capturavam o principal e o arquivo do segundo nunca existia, então o recorte não ia para a área de transferência. A captura agora roda depois da criação (`TempScreenshotProcess.captureWindows`).
 - **Atalhos (issue #1):** era um mod do Windhawk interceptando os atalhos com Super; nada mudou no ii.
-- **Pendente:** captura de tela no segundo monitor (issue #4) sem reprodução, aguardando log; #5 só testado com um monitor (a `win10` tem um só).
+- **Testado com dois monitores** na `win10` (monitor virtual do Virtual Display Driver, 1920x1080 a 150% à direita do principal): painéis seguem o clique, recorte no segundo monitor copia a imagem certa.
+- **Pendente:** monitor ligado com o ii aberto mostra "special" na área de trabalho da barra nova até reiniciar; monitor à esquerda do principal (coordenadas negativas) não testado.
 
 ## 0.9.0 "Exploding Baby" (2026-10-09)
 
