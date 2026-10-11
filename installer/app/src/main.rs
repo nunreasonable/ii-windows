@@ -359,8 +359,11 @@ fn cancel(state: tauri::State<'_, AppState>) {
 }
 
 #[tauri::command]
-fn launch(state: tauri::State<'_, AppState>) -> Result<u32, String> {
-	ops::launch_ii(&state.paths).map_err(|e| e.to_string())
+async fn launch(state: tauri::State<'_, AppState>) -> Result<u32, Msg> {
+	let paths = state.paths.clone();
+	tauri::async_runtime::spawn_blocking(move || ops::launch_ii_checked(&paths))
+		.await
+		.map_err(|e| Msg::new("internal", e.to_string()))?
 }
 
 #[tauri::command]

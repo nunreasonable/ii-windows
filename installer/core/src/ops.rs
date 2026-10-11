@@ -1509,14 +1509,47 @@ fn restore_exec_policy(ctx: &mut Ctx, change: &ExecPolicyChange, step: &str) {
 
 fn launch(ctx: &mut Ctx) {
 	ctx.begin("launch");
-	match win::spawn_detached(&ctx.paths.qsw_exe(), &["-n", "-c", "ii"], &ctx.paths.install_dir) {
+	match launch_ii_checked(&ctx.paths) {
 		Ok(pid) => ctx.done_with("launch", Msg::new("launched", format!("started (pid {pid})"))),
-		Err(e) => ctx.warn("launch", io_msg("launch_failed", ctx.paths.qsw_exe().display(), e)),
+		Err(m) => ctx.warn("launch", m),
 	}
 }
 
 pub fn launch_ii(paths: &Paths) -> std::io::Result<u32> {
 	win::spawn_detached(&paths.qsw_exe(), &["-n", "-c", "ii"], &paths.install_dir)
+}
+
+const LAUNCH_POLL: Duration = Duration::from_millis(500);
+const LAUNCH_GONE: Duration = Duration::from_secs(4);
+const LAUNCH_CHECK: Duration = Duration::from_secs(10);
+
+fn ii_shell_running(paths: &Paths) -> bool {
+	ii_processes(paths).0.iter().any(|p| p.name.eq_ignore_ascii_case("qsw.exe"))
+}
+
+fn launch_exited_msg(paths: &Paths) -> Msg {
+	let folder = paths.quickshell.display().to_string();
+	Msg::new("launch_exited", format!("illogical-impulse closed right after starting; its logs are in {folder}"))
+		.with("folder", folder)
+}
+
+pub fn launch_ii_checked(paths: &Paths) -> Result<u32, Msg> {
+	let pid = launch_ii(paths).map_err(|e| io_msg("launch_failed", paths.qsw_exe().display(), e))?;
+	let mut waited = Duration::ZERO;
+	let mut missing = Duration::ZERO;
+	while waited < LAUNCH_CHECK {
+		std::thread::sleep(LAUNCH_POLL);
+		waited += LAUNCH_POLL;
+		if ii_shell_running(paths) {
+			missing = Duration::ZERO;
+		} else {
+			missing += LAUNCH_POLL;
+			if missing >= LAUNCH_GONE {
+				return Err(launch_exited_msg(paths));
+			}
+		}
+	}
+	if ii_shell_running(paths) { Ok(pid) } else { Err(launch_exited_msg(paths)) }
 }
 
 fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {

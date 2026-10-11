@@ -579,7 +579,10 @@
 
 	function noteHtml(m, kind) {
 		const path = m.params && m.params.path;
-		const btn = path && kind === "note" ? `<button type="button" class="mini-btn" data-open="${esc(path)}">${icon("folder")}${esc(t("open"))}</button>` : "";
+		const folder = m.params && m.params.folder;
+		let btn = path && kind === "note" ? `<button type="button" class="mini-btn" data-open="${esc(path)}">${icon("folder")}${esc(t("open"))}</button>` : "";
+		if (folder) btn += `<button type="button" class="mini-btn" data-open="${esc(folder)}">${icon("folder")}${esc(t("open"))}</button>`;
+		if (m.key === "launch_exited") btn += `<button type="button" class="mini-btn" data-url="https://github.com/nunreasonable/ii-windows/issues/new">${icon("info")}${esc(t("report"))}</button>`;
 		return `<div class="${kind === "note" ? "note-item" : kind === "error" ? "warn-item error-item" : "warn-item"}">${icon(kind === "note" ? "info" : kind === "error" ? "error" : "warn")}<span class="note-text">${esc(msg(m))}</span>${btn}</div>`;
 	}
 
@@ -685,14 +688,24 @@
 		$("#done-body").addEventListener("click", (e) => {
 			const b = e.target.closest("[data-open]");
 			if (b) invoke("open_path", { path: b.dataset.open });
+			const u = e.target.closest("[data-url]");
+			if (u) invoke("open_url", { url: u.dataset.url });
 		});
 		$("#done-log").addEventListener("click", () => invoke("open_path", { path: logPath() }));
 		$("#done-launch").addEventListener("click", async () => {
+			const btn = $("#done-launch");
+			btn.disabled = true;
+			toast(t("launched"));
 			try {
 				await invoke("launch");
-				toast(t("launched"));
-				$("#done-launch").hidden = true;
-			} catch (e) { toast(String(e)); }
+				btn.hidden = true;
+			} catch (e) {
+				btn.disabled = false;
+				if (e && e.key) {
+					$("#done-body").insertAdjacentHTML("beforeend", `<div class="card"><div class="card-title">${esc(t("done_warnings"))}</div>${noteHtml(e, "warn")}</div>`);
+					toast(msg(e));
+				} else toast(String(e));
+			}
 		});
 
 		document.addEventListener("contextmenu", (e) => { if (!e.target.closest(".readme, .log")) e.preventDefault(); });
