@@ -172,6 +172,15 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.9.2.1 "Sleepwalking Toaster" (2026-10-11)
+
+- **Versão com quatro partes:** o instalador compara versões parte a parte (`installer/core/src/version.rs`), então 0.9.2.1 é mais nova que 0.9.2 e a autoatualização funciona. O Cargo só aceita três partes: `installer/Cargo.toml` fica em 0.9.2 e o `tools/release.sh` aceita isso quando o `VERSION` tem uma quarta parte; o setup mostra o `VERSION` (via `build.rs`).
+- **Painéis seguem o mouse (issue #5, de novo):** o monitor focado do shim do Hyprland acompanhava também a janela ativa; ao fechar um painel o Windows devolve o primeiro plano para alguma janela, quase sempre no monitor principal, e o painel seguinte abria lá mesmo com o mouse no outro monitor. Agora o monitor focado é o do cursor (como o follow_mouse do Hyprland): o hook do mouse avisa quando o cursor muda de monitor, e os painéis sem tela fixa abrem no monitor do cursor.
+- **Cartão de Configurações com X (issue #7, de novo):** o cartão do end4-pC não tinha botão de fechar; com "Manter aberto ao clicar fora" ligado ele só fechava com Esc, e só com o teclado nele.
+- **Gravação com dois monitores (issue #8):** ao começar a gravar, os seletores dos outros monitores agora fecham.
+- **Capa um música atrás (issue #9):** o Spotify (via GSMTC) atualiza o título antes da capa; a capa lida logo depois da troca era a da música anterior e ficava salva no cache com o nome da música nova. Agora o cache é pelo conteúdo da imagem, a capa é relida a cada mudança e uma capa igual à da música anterior é relida algumas vezes antes de ser aceita.
+- **Testado na `win10`** com dois monitores (monitor virtual a 150%) e três músicas de teste com capas diferentes no Reprodutor Multimídia; o caso exato do Spotify (título antes da capa) não acontece com ele.
+
 ## 0.9.2 "Caffeinated Pigeon" (2026-10-10)
 
 - **Texto (issue #6):** no Windows o Qt desenhava com DirectWrite e ClearType (subpixel): franjas coloridas nos painéis escuros e translúcidos e dígitos irregulares em escala fracionária (150%). Agora `QT_QPA_PLATFORM` tem padrão `windows:fontengine=freetype` (`launch.cpp`; um valor definido pelo usuário vence): tons de cinza, como no Linux. Emoji colorido e fallback CJK conferidos na `win10`.
