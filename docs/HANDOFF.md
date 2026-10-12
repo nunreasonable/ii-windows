@@ -172,6 +172,11 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.0 "Dancing Lighthouse" (2026-10-12)
+
+- **Papel de parede animado:** um vídeo (MP4, WebM, MKV, AVI, MOV) escolhido como qualquer imagem toca atrás dos ícones do desktop. Media Foundation (IMFMediaEngine em modo frame server) numa thread própria, com o próprio device D3D11, escreve cada quadro numa textura D3D11 compartilhada que o Qt copia; um decodificador por arquivo para todos os monitores. As cores vêm de um quadro extraído (também usado como papel de parede do Windows, banner da barra lateral e tema do terminal). Pausa quando uma janela maximizada ou em tela cheia cobre o monitor (`background.pauseVideoWhenCovered`), com a tela bloqueada e no modo jogo. Pasta de vídeos no menu do desktop ("Live wallpaper...", `wallpaperSelector.liveWallpapersPath`) e miniaturas com selo de play no seletor.
+- **Testado** na `win11-gpu` (RTX: decodificação na GPU, ~0,3 s de CPU a cada 4 s, zero quando coberto) e na `win10` sem GPU (dois monitores; cai para 720p/15 fps: ~50–90% de um núcleo). Trocar de vídeo para vídeo derrubava o shell (liberação dupla da textura do Qt); corrigido e testado com trocas seguidas entre H.264 1080p/720p e VP9.
+
 ## 0.9.2.2 "Melomaniac Aviator" (2026-10-12)
 
 Correções do que apareceu gravando o Reel (`notes/reel-findings-2026-10-11.md`), testadas na `win11-gpu` (RTX 5060 Ti, 1920x1080) e instaladas lá pelo setup novo (0.9.2.1 → 0.9.2.2, pacote local).
