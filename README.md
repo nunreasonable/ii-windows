@@ -34,6 +34,7 @@
   - A System page in Settings for the Windows side of what end4-pC's Hyprland page does: displays (resolution, refresh rate, position, scale, HDR, with a keep-or-revert countdown), keyboard, mouse, touchpad and cursor, window borders and corners (Windows 11), tiling layouts (dwindle or master), screen-off and sleep times, and the apps that start with Windows or with ii
   - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on, or back in place of ii's bar with Ctrl+Super+P), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
   - Live wallpapers: pick a video (MP4, WebM, MKV, AVI, MOV) like any picture and it plays behind the desktop icons, with the colors taken from one of its frames. It pauses when a window covers the desktop, the screen is locked or game mode is on
+  - A Now Playing pill (1.0 beta): when the song changes, the cover flies out of the bar into a floating pill with the title, artists and album, which you can drag anywhere
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>
@@ -57,7 +58,7 @@
   <summary>Installation</summary>
 
   - Download **`ii-windows-setup.exe`** from the [latest release](https://github.com/nunreasonable/ii-windows/releases/latest) and run it
-    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.2) instead; the latest stable is 0.10.0
+    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.3) instead; the latest stable is 0.10.0
     - It shows a README with everything it changes on your PC, and you have to read it before installing
     - It lets you pick the look (ii's original or end4-pC), with a picture of each; you can switch later in *Settings → Quick → Style*
     - Everything goes into your Windows user, no administrator needed (except the optional PowerShell 7)
