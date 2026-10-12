@@ -22,7 +22,7 @@
 > [!WARNING]
 > This is an **unofficial** port. It isn't made or supported by end-4 or by the Quickshell
 > developers, so please don't take Windows problems to their repos: open an issue here instead.
-> It is experimental, expect rough edges.
+> It is still experimental: it's tested on Windows 10 and 11 and most of it should be stable, but expect some rough edges.
 
 <details>
   <summary>What this is/isn't</summary>
