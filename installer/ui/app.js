@@ -76,7 +76,12 @@
 			const d = (x[i] || 0) - (y[i] || 0);
 			if (d) return d;
 		}
-		return 0;
+		const pre = (v) => String(v || "").split("-").slice(1).join("-");
+		const pa = pre(a), pb = pre(b);
+		if (pa === pb) return 0;
+		if (!pa) return 1;
+		if (!pb) return -1;
+		return pa < pb ? -1 : 1;
 	}
 
 	let toastTimer = 0;

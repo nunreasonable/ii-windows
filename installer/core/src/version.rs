@@ -64,6 +64,10 @@ pub fn is_newer(candidate: &str, installed: &str) -> bool {
 	}
 }
 
+pub fn is_prerelease(text: &str) -> bool {
+	Version::parse(text).is_some_and(|v| v.pre.is_some())
+}
+
 pub fn same(a: &str, b: &str) -> bool {
 	match (Version::parse(a), Version::parse(b)) {
 		(Some(x), Some(y)) => x.cmp(&y) == Ordering::Equal,
@@ -93,6 +97,10 @@ mod tests {
 		assert!(is_newer("0.1.0", "0.1.0-rc.1"));
 		assert!(!is_newer("0.1.0-rc.1", "0.1.0"));
 		assert!(!is_newer("garbage", "0.1.0"));
+		assert!(is_prerelease("1.0.0-beta"));
+		assert!(!is_prerelease("v0.10.0"));
+		assert!(is_newer("1.0.0-beta", "0.10.0"));
+		assert!(is_newer("1.0.0", "1.0.0-beta"));
 		assert!(same("v0.1.0", "0.1.0"));
 		assert!(same("0.1", "0.1.0"));
 	}

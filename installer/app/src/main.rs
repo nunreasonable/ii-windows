@@ -275,6 +275,7 @@ async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Sou
 	let explicit = state.args.package.is_some();
 	let want = match action {
 		Action::Repair => Manifest::load(&state.paths.manifest()).ok().flatten().map(|m| m.version),
+		_ if version::is_prerelease(SETUP_VERSION) => Some(SETUP_VERSION.to_string()),
 		_ => None,
 	};
 	let src = tauri::async_runtime::spawn_blocking(move || ops::resolve_source(offline.as_deref(), explicit, want.as_deref()))
