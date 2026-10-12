@@ -335,7 +335,8 @@
 			const v = sourceVersion(a);
 			if (v) {
 				const newer = versionCmp(v, info.installed.version) > 0;
-				html += `<div class="card"><div class="card-title">${esc(newer ? t("update_available") : t("update_none"))}</div>
+				html += `<div class="card"><div class="card-title">${esc(t("card_after_update"))}</div>
+					<div class="update-status ${newer ? "newer" : "same"}">${icon(newer ? "update" : "check")}<span>${esc(newer ? t("update_available") : t("update_none"))}</span></div>
 					${newer ? "" : switchRow("force", "update", t("force_title"), esc(t("force_desc", { v })), S.force)}
 					${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}
 				</div>`;
