@@ -172,6 +172,25 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.9.2.2 "Melomaniac Aviator" (2026-10-12)
+
+Correções do que apareceu gravando o Reel (`notes/reel-findings-2026-10-11.md`), testadas na `win11-gpu` (RTX 5060 Ti, 1920x1080) e instaladas lá pelo setup novo (0.9.2.1 → 0.9.2.2, pacote local).
+
+- **Travamento com dock lateral:** aplicar um preset com a dock à esquerda/direita e ícone 33/34 travava o shell. A janela da dock e os filhos discordavam da orientação por um instante e a largura crescia sem parar (laço de polish). A janela agora segue o `DockStyle`, e a máscara de input de um painel fica limitada à própria janela. Testado aplicando o Everforest e reiniciando com a dock lateral.
+- **Emoji:** resultado exato primeiro e sem bandeiras no Windows (a Segoe UI Emoji não tem bandeiras); a grade do Spotlight não rola mais sozinha quando a lista muda.
+- **Layouts da barra:** trocar o estilo guarda o layout personalizado de cada estilo em vez de apagar.
+- **Configurações:** trocar o estilo com as Configurações abertas não fecha e reabre a janela (a nova aparece antes de a antiga sair).
+- **Seletor de papel de parede:** o lápis do caminho põe o foco no campo, e o texto não passa mais por cima do ícone.
+- **Widgets:** um widget ligado com o shell aberto vai para um espaço livre; Notas, Tarefas, Texto e Relógio mundial pegam o teclado ao entrar em edição; clicar no card do timer inicia/pausa.
+- **Barra:** mostra "Desktop" quando nada está em foco no monitor.
+- **Tiling:** Shift+Super+seta numa janela flutuante a leva para a borda da tela, sem o encaixe nativo.
+- **Atalhos (cheatsheet):** Esc fecha.
+- **Tooltips:** voltam a ser desenhados acima do resto da janela (desde a 0.6.2 ficavam presos ao botão).
+- **Opções:** um só switch para o card de mídia da barra lateral; Spicy Stuff saiu da página inicial das Configurações; "Esconder o nome do computador" (barra lateral e aba Sistema).
+- **Setup:** atualização, reparo e desinstalação não pedem mais para ler o readme; o aviso de versão nova tem linha própria; avisa quando o ii fecha logo depois de abrir.
+- **Ctrl+Super+P:** medido, sem mudança: o Explorer aplica o auto-ocultar ~300 ms depois da chamada e o resto é criar/destruir a barra do ii.
+- **Ferramentas:** fila de jobs por VM (`IIW_VM`) e jobs com BOM.
+
 ## 0.9.2.1 "Sleepwalking Toaster" (2026-10-11)
 
 - **Versão com quatro partes:** o instalador compara versões parte a parte (`installer/core/src/version.rs`), então 0.9.2.1 é mais nova que 0.9.2 e a autoatualização funciona. O Cargo só aceita três partes: `installer/Cargo.toml` fica em 0.9.2 e o `tools/release.sh` aceita isso quando o `VERSION` tem uma quarta parte; o setup mostra o `VERSION` (via `build.rs`).
