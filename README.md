@@ -63,6 +63,7 @@
     - Everything goes into your Windows user, no administrator needed (except the optional PowerShell 7)
     - It downloads the package from the release and checks its SHA-256 before installing anything
   - Update, repair and uninstall are in the same setup: *Settings → Apps → Installed apps → illogical-impulse (ii-windows) → Modify*
+  - Every time ii starts, it checks GitHub for a new version and, if there is one, shows a notification with an *Update* button that opens the setup. It never updates by itself: nothing changes until you confirm in the setup. Beta installs are told about newer betas too. You can turn the notification off in *Settings → About*
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
