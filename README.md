@@ -32,6 +32,7 @@
   - Two looks to pick from, with the same features and options: ii's original style or the one from pctrade's [end4-pC](https://github.com/pctrade/end4-pC) fork (its bar layout, settings card or dashboard, sidebar banner, workspace numbers, a color picker on the bar)
   - Most of what end4-pC adds, in both looks: a bar you can rearrange (with a dynamic island and a screen frame), a dock on any screen edge, more desktop widgets (calendar, notes, to-do, timers, world clock, media, images, stickers), Wallhaven in the wallpaper selector, a media card and reorderable sections in the sidebar, and presets
   - It lives next to Explorer: the Windows taskbar is still there (hidden until you touch the screen edge it sits on, or back in place of ii's bar with Ctrl+Super+P), and ii's widgets (clock, weather, CPU/RAM/disk) sit on the Windows desktop next to your icons, over the Windows wallpaper, which ii keeps the same as the one you pick
+  - Live wallpapers: pick a video (MP4, WebM, MKV, AVI, MOV) like any picture and it plays behind the desktop icons, with the colors taken from one of its frames. It pauses when a window covers the desktop, the screen is locked or game mode is on
   - NOT a Windows replacement: windows are still Windows' own and ii's workspaces are Windows' virtual desktops. Optional tiling (Hyprland's dwindle, off by default) works on top of them, with no extra window manager to install
 
 </details>
@@ -44,6 +45,7 @@
   - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, the media visualizer on a WASAPI loopback, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
   - **Helpers**: [SongRec](https://github.com/marin-m/SongRec)'s recognizer for music recognition and [MicroTeX](https://github.com/NanoMichael/MicroTeX) for LaTeX in the AI chat, both built for Windows
   - **ii for Windows**: a fork of ii where the services keep their public properties and swap only the implementation, so most modules are untouched
+  - **Live wallpapers**: Media Foundation decodes the video on the GPU in its own thread and hands frames to Qt through a shared D3D11 texture; one decoder per file for all monitors. Without a GPU it plays at up to 720p and 15 fps
   - **Colors**: `matugen.exe` with ii's own template, so the palette from a wallpaper is the same as on Linux. Windows' wallpaper and light/dark mode follow what you pick in ii, and its accent color follows the palette
   - Quickshell (based on upstream 0.3.1), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM
 
