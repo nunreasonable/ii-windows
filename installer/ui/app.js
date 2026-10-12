@@ -427,6 +427,15 @@
 		if (S.page === "options" && S.action === action) renderOptions();
 	}
 
+	function readmeNeeded() {
+		return S.action === "install";
+	}
+
+	function leaveWelcome() {
+		if (readmeNeeded()) showPage("readme");
+		else enterOptions();
+	}
+
 	async function enterOptions() {
 		const a = S.action;
 		showPage("options");
@@ -631,10 +640,10 @@
 		});
 		$("#actions").addEventListener("dblclick", (e) => {
 			const card = e.target.closest(".action");
-			if (card && !card.disabled) { selectAction(card.dataset.action); showPage("readme"); }
+			if (card && !card.disabled) { selectAction(card.dataset.action); leaveWelcome(); }
 		});
-		$("#welcome-next").addEventListener("click", () => showPage("readme"));
-		$$("[data-back]").forEach((b) => b.addEventListener("click", () => showPage(S.page === "options" ? "readme" : "welcome")));
+		$("#welcome-next").addEventListener("click", leaveWelcome);
+		$$("[data-back]").forEach((b) => b.addEventListener("click", () => showPage(S.page === "options" && readmeNeeded() ? "readme" : "welcome")));
 
 		$("#readme").addEventListener("scroll", updateReadProgress, { passive: true });
 		$("#readme").addEventListener("click", (e) => {
@@ -735,7 +744,7 @@
 			selectAction("install");
 		}
 		showPage("welcome");
-		if (page && actionAllowed(page)) setTimeout(() => showPage("readme"), 450);
+		if (page && actionAllowed(page)) setTimeout(leaveWelcome, 450);
 		requestAnimationFrame(() => invoke("ready"));
 		checkLatest();
 	}
