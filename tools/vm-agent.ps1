@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Continue'
 $utf8 = New-Object System.Text.UTF8Encoding $false
+$utf8Bom = New-Object System.Text.UTF8Encoding $true
 $OutputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
 
@@ -27,7 +28,7 @@ while ($true) {
 	$outFile = "$d\jobs\$id.out"
 	$body = "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding `$false`r`n" +
 		(($resp | Select-Object -Skip 1) -join "`r`n")
-	[IO.File]::WriteAllText($file, $body, $utf8)
+	[IO.File]::WriteAllText($file, $body, $utf8Bom)
 	$timeout = 120
 	if ($resp.Count -gt 1 -and $resp[1] -match '^#timeout=(\d+)') { $timeout = [int]$Matches[1] }
 	$psi = New-Object System.Diagnostics.ProcessStartInfo 'cmd.exe',
