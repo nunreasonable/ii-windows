@@ -17,7 +17,7 @@ if (Test-Path $bootFile) {
 }
 
 while ($true) {
-	$resp = @(& ssh.exe @sshArgs $gwHost poll 2>$null)
+	$resp = @(& ssh.exe @sshArgs $gwHost poll $env:COMPUTERNAME 2>$null)
 	if ($LASTEXITCODE -ne 0) { Start-Sleep 5; continue }
 	if ($resp.Count -eq 0 -or -not $resp[0]) { continue }
 

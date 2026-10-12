@@ -16,21 +16,50 @@ gw_host() {
 }
 serve() { sed "s/@IIW_GW_HOST@/$(gw_host)/g" "$1"; }
 
+next_job() {
+	local host=$1 job target
+	if [ -n "$host" ]; then
+		job=$(find "$Q/pending/$host" -maxdepth 1 -type f ! -name '.*' -printf '%f\n' | sort | head -1)
+		if [ -n "$job" ]; then
+			echo "$host/$job"
+			return
+		fi
+	fi
+	while read -r job; do
+		[ -n "$job" ] || continue
+		if [ -n "$host" ]; then
+			target=$(grep -m1 -oiP "COMPUTERNAME\s+-ne\s+'\K[^']+" "$Q/pending/$job" 2>/dev/null || true)
+			if [ -n "$target" ] && [ "${target^^}" != "${host^^}" ]; then continue; fi
+		fi
+		echo "$job"
+		return
+	done < <(find "$Q/pending" -maxdepth 1 -type f ! -name '.*' -printf '%f\n' | sort)
+}
+
 if [ -n "${SSH_ORIGINAL_COMMAND+x}" ]; then
 	read -r cmd a1 a2 _ <<<"$SSH_ORIGINAL_COMMAND"
 	date +%s > "$Q/agent.seen"
+	host=""
+	if [ "$cmd" = poll ] && [ -n "${a1:-}" ]; then
+		valid_name "$a1" || exit 2
+		host=${a1^^}
+		mkdir -p "$Q/seen" "$Q/pending/$host"
+		date +%s > "$Q/seen/$host"
+	fi
 	case "$cmd" in
 	agent) serve "$IIW/tools/vm-agent.ps1" ;;
 	poll)
 		for _ in $(seq 40); do
-			job=$(find "$Q/pending" -maxdepth 1 -type f ! -name '.*' -printf '%f\n' | sort | head -1)
-			if [ -n "$job" ] && mv "$Q/pending/$job" "$Q/running/$job" 2>/dev/null; then
-				printf '%s\n' "$job"
-				cat "$Q/running/$job"
+			job=$(next_job "$host")
+			id=${job##*/}
+			if [ -n "$job" ] && mv "$Q/pending/$job" "$Q/running/$id" 2>/dev/null; then
+				printf '%s\n' "$id"
+				cat "$Q/running/$id"
 				exit 0
 			fi
 			sleep 0.5
 			date +%s > "$Q/agent.seen"
+			[ -z "$host" ] || date +%s > "$Q/seen/$host"
 		done ;;
 	fetch)
 		valid_name "${a1:-}" && [ -d "$IIW/dist/$a1" ] || { echo "no such dist: ${a1:-}" >&2; exit 2; }

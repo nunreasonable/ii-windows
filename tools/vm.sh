@@ -7,17 +7,33 @@ mkdir -p "$Q/pending" "$Q/running" "$Q/done"
 virsh_() { virsh -c "$VM_URI" "$@"; }
 running() { virsh_ list --state-running --name 2>/dev/null | grep -qx "$1"; }
 
+TARGET=${IIW_VM:-}
+TARGET=${TARGET^^}
+if [ -n "$TARGET" ] && ! [[ "$TARGET" =~ ^[A-Z0-9._-]+$ ]]; then
+	echo "vm.sh: bad IIW_VM: $TARGET" >&2
+	exit 2
+fi
+
 agent_age() {
-	local seen
-	seen=$(cat "$Q/agent.seen" 2>/dev/null || echo 0)
+	local seen file="$Q/agent.seen"
+	[ -z "${1:-$TARGET}" ] || file="$Q/seen/${1:-$TARGET}"
+	seen=$(cat "$file" 2>/dev/null || echo 0)
 	echo $(($(date +%s) - seen))
 }
 
 job() {
-	local timeout="${1:-120}" id
+	local timeout="${1:-120}" id dir="$Q/pending"
 	id="$(date +%s%N)-$RANDOM"
-	{ echo "#timeout=$((timeout - 5))"; cat; } > "$Q/pending/.$id"
-	mv "$Q/pending/.$id" "$Q/pending/$id"
+	if [ -n "$TARGET" ]; then
+		dir="$Q/pending/$TARGET"
+		mkdir -p "$dir"
+	fi
+	{
+		echo "#timeout=$((timeout - 5))"
+		if [ -n "$TARGET" ]; then echo "if (\$env:COMPUTERNAME -ne '$TARGET') { 'WRONG-VM'; exit 86 }"; fi
+		cat
+	} > "$dir/.$id"
+	mv "$dir/.$id" "$dir/$id"
 	for _ in $(seq $((timeout * 2))); do
 		if [ -f "$Q/done/$id.rc" ]; then
 			cat "$Q/done/$id.out"
@@ -28,7 +44,7 @@ job() {
 		fi
 		sleep 0.5
 	done
-	rm -f "$Q/pending/$id"
+	rm -f "$dir/$id"
 	echo "vm.sh: job $id timed out (agent last seen $(agent_age)s ago)" >&2
 	return 124
 }
@@ -53,8 +69,11 @@ up)
 down)
 	running win11 && virsh_ shutdown win11 || echo "win11 is not running (win11-gpu is never stopped from here)" ;;
 status)
-	for d in win11 win11-gpu; do printf '%-10s %s\n' "$d" "$(virsh_ domstate $d)"; done
-	echo "agent last seen $(agent_age)s ago" ;;
+	for d in win10 win11 win11-gpu; do printf '%-10s %s\n' "$d" "$(virsh_ domstate $d)"; done
+	echo "agent last seen $(agent_age "")s ago"
+	for f in "$Q"/seen/*; do
+		[ -f "$f" ] && echo "  ${f##*/}: $(agent_age "${f##*/}")s ago"
+	done ;;
 job) job "${1:-120}" ;;
 push)
 	name="$1"
