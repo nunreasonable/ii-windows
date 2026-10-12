@@ -172,6 +172,16 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 1.0.0 "Jazz-Handed Octopus" (2026-10-12)
+
+Tudo o que faltava do end4-pC, nos dois visuais (inventário e plano em `build/inventory/`, notas por parte em `notes/comments.md`, seção "1.0.0 port"). Port feito por agentes em worktrees, integrado e testado por mim na `win10` e, para o que é só do Windows 11, na `win11-gpu`.
+- Barra: estilos M3, M3 Hug, Panel e Split Hug, OLED, data no relógio, switchers, contador de updates (winget), avatar, Dock to Panel; dock com menu de clique direito; aba de mídia na lateral esquerda; menu de texto em todos os campos; equalizador sobre o Equalizer APO (apps de som dos fabricantes só abrem).
+- Fundo: transições, prévia, centralizado, blur dividido, colagem (editor acima dos ícones com máscara só nos controles), soltar imagem no desktop (alvo OLE invisível acima do desktop, só imagem/vídeo; o resto o Explorer trata), provedores online, carrossel e submenus no menu do desktop, widgets novos.
+- Página Sistema (Windows): telas (CCD, contagem de 15 s), entrada/cursor/animações, bordas e cantos (Windows 11), layout master e opções do dwindle, inatividade/energia (bloqueio desligado por padrão), autostart do Windows e do ii.
+- Também: web apps, presets com zip/compartilhamento (via gh CLI), microfone na gravação (áudio do sistema ligado por padrão no Windows), regiões de conteúdo no recorte, velocidade de rede, checagem de atualização.
+- Testado no Windows 11: bordas/cantos (e restauração ao sair), HDR liga/desliga, imagem da tela de bloqueio (funciona sem pacote; desliga o Spotlight, que foi restaurado). Sem teste em hardware: touchpad, microfone, equalizador com APO.
+- Setup 1.0.0 com pacote local instalado na `win11-gpu` (0.9.2.2 → 1.0.0). A `win10` tem o build de dev da 1.0.
+
 ## 0.10.0 "Dancing Lighthouse" (2026-10-12)
 
 - **Papel de parede animado:** um vídeo (MP4, WebM, MKV, AVI, MOV) escolhido como qualquer imagem toca atrás dos ícones do desktop. Media Foundation (IMFMediaEngine em modo frame server) numa thread própria, com o próprio device D3D11, escreve cada quadro numa textura D3D11 compartilhada que o Qt copia; um decodificador por arquivo para todos os monitores. As cores vêm de um quadro extraído (também usado como papel de parede do Windows, banner da barra lateral e tema do terminal). Pausa quando uma janela maximizada ou em tela cheia cobre o monitor (`background.pauseVideoWhenCovered`), com a tela bloqueada e no modo jogo. Pasta de vídeos no menu do desktop ("Live wallpaper...", `wallpaperSelector.liveWallpapersPath`) e miniaturas com selo de play no seletor.
