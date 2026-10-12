@@ -181,6 +181,7 @@ Tudo o que faltava do end4-pC, nos dois visuais (inventário e plano em `build/i
 - Também: web apps, presets com zip/compartilhamento (via gh CLI), microfone na gravação (áudio do sistema ligado por padrão no Windows), regiões de conteúdo no recorte, velocidade de rede, checagem de atualização.
 - Testado no Windows 11: bordas/cantos (e restauração ao sair), HDR liga/desliga, imagem da tela de bloqueio (funciona sem pacote; desliga o Spotlight, que foi restaurado). Sem teste em hardware: touchpad, microfone, equalizador com APO.
 - Setup 1.0.0 com pacote local instalado na `win11-gpu` (0.9.2.2 → 1.0.0). A `win10` tem o build de dev da 1.0.
+- **1.0.0-beta.2:** crash ao desligar/remover o monitor (issue #10: a janela rastreada guardava o QScreen removido e o tiling usava na próxima troca de foco; agora esquece a tela no `screenRemoved`). Menos RAM: uma janela escondida há 10 s libera o device D3D11 e a swap chain (cada painel aberto uma vez prendia ~23 MB na VM sem GPU; reabrir custa ~20 ms a mais), o cheatsheet descarrega 2 min depois de fechado, `gc()` depois de descarregar painéis, segment heap no manifest. Na `win11` sem GPU, depois de abrir e fechar tudo: ~296 → ~195 MB privados.
 
 ## 0.10.0 "Dancing Lighthouse" (2026-10-12)
 
