@@ -174,7 +174,7 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 
 ## 0.10.1 "Tahiti Mangosellers" (2026-10-13)
 
-Estável em cima da 0.10.0, publicada da branch `release-0.10` (detalhes no HANDOFF dessa branch): `Ctrl+Win+/` e o lápis do cheatsheet copiam e abrem o keybinds.json do usuário (issue #11), mais as três correções guardadas. A mesma mudança de atalhos está no `windows` do ii (ab6a996a) para a próxima beta.
+Estável em cima da 0.10.0, publicada da branch `release-0.10` (detalhes no HANDOFF dessa branch): `Ctrl+Win+/` e o lápis do cheatsheet abrem um editor de atalhos (`modules/ii/keybindsEditor/`, issue #11: desligar devolve o atalho ao Windows, trocar teclas, restaurar, abrir o arquivo), mais as três correções guardadas. O mesmo editor está no `windows` do ii (fc225e98) para a próxima beta.
 
 ## 1.0.0 "Jazz-Handed Octopus" (2026-10-12)
 
