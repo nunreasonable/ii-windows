@@ -172,6 +172,13 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.1 "Tahiti Mangosellers" (2026-10-13)
+
+Atualização estável em cima da 0.10.0 (branch `release-0.10` aqui e `ii-windows-0.10` no fork do ii; binários iguais aos da 0.10.0, só QML mudou), por causa da issue #11 (escolher quais atalhos do Windows o ii toma).
+- **Editar atalhos:** `Ctrl+Win+/` e o lápis na aba Atalhos do cheatsheet copiam `defaults/windows/keybinds.json` para `%LOCALAPPDATA%\illogical-impulse\keybinds.json` (se ainda não existir) e abrem o arquivo; apagar uma linha devolve o atalho ao Windows. O bind novo tem `since`, então chega também a quem já tem um keybinds.json próprio. A cópia usa um `FileView` novo a cada vez (o `setText` de um FileView que já tem o mesmo texto não grava nada).
+- **Correções que estavam guardadas:** miniaturas de papel de parede em telas com escala, nome em português do papel de parede animado, resultado vazio de conta na busca.
+- Testado na `win10` com o `qsw.exe` da 0.10.0 e o QML da 0.10.1 (atalho com a tecla `/` do ABNT2, lápis duas vezes com o arquivo apagado no meio).
+
 ## 0.10.0 "Dancing Lighthouse" (2026-10-12)
 
 - **Papel de parede animado:** um vídeo (MP4, WebM, MKV, AVI, MOV) escolhido como qualquer imagem toca atrás dos ícones do desktop. Media Foundation (IMFMediaEngine em modo frame server) numa thread própria, com o próprio device D3D11, escreve cada quadro numa textura D3D11 compartilhada que o Qt copia; um decodificador por arquivo para todos os monitores. As cores vêm de um quadro extraído (também usado como papel de parede do Windows, banner da barra lateral e tema do terminal). Pausa quando uma janela maximizada ou em tela cheia cobre o monitor (`background.pauseVideoWhenCovered`), com a tela bloqueada e no modo jogo. Pasta de vídeos no menu do desktop ("Live wallpaper...", `wallpaperSelector.liveWallpapersPath`) e miniaturas com selo de play no seletor.
