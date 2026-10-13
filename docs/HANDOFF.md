@@ -172,6 +172,12 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.1-fix2 "Tahiti Mangosellers" (2026-10-13)
+
+Até a 1.0.0 não sai número novo: as correções vão para a 0.10.1 como `-fixN` (a 0.10.1 com o editor de atalhos conta como fix1). O instalador e o `versionCmp` tratam `fixN` como posterior à versão base (0.10.1 < 0.10.1-fix2 < 0.10.1-fix3) e não como pré-release.
+- **IA no Windows (issue #12):** o pedido montava um script e rodava `bash`, que no Windows sem Git é o lançador do WSL ("Class not registered ... REGDB_E_CLASSNOTREG" em UTF-16). Agora roda `curl.exe` direto, com o JSON num arquivo temporário (`%TEMP%\quickshell\ai\request.json`) e a chave na URL (Gemini) ou no `Authorization` (OpenAI/Mistral). A ferramenta de comandos da IA roda no PowerShell (com saída em UTF-8) e a descrição dela diz isso ao modelo. Anexos para modelos online ainda não funcionam no Windows (o upload do Gemini usava bash) e avisam no chat.
+- **`/guide`:** passo a passo de como começar (modelo, chave do AI Studio, `/key`, comandos, Ollama sem chave); o chat vazio indica o comando, e `/model` sem nome lista os modelos.
+
 ## 0.10.1 "Tahiti Mangosellers" (2026-10-13)
 
 Atualização estável em cima da 0.10.0 (branch `release-0.10` aqui e `ii-windows-0.10` no fork do ii; binários iguais aos da 0.10.0, só QML mudou), por causa da issue #11 (escolher quais atalhos do Windows o ii toma).

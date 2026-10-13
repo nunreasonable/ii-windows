@@ -76,7 +76,14 @@
 			const d = (x[i] || 0) - (y[i] || 0);
 			if (d) return d;
 		}
-		return 0;
+		const pre = (v) => String(v || "").split("-").slice(1).join("-");
+		const pa = pre(a), pb = pre(b);
+		const rank = (s) => (!s ? 0 : /^fix\d+$/i.test(s) ? 1 : -1);
+		const ra = rank(pa), rb = rank(pb);
+		if (ra !== rb) return ra - rb;
+		if (ra === 0 || pa === pb) return 0;
+		if (ra === 1) return parseInt(pa.slice(3), 10) - parseInt(pb.slice(3), 10);
+		return pa < pb ? -1 : 1;
 	}
 
 	let toastTimer = 0;

@@ -45,10 +45,32 @@ impl Ord for Version {
 		}
 		match (&self.pre, &other.pre) {
 			(None, None) => Ordering::Equal,
-			(None, Some(_)) => Ordering::Greater,
-			(Some(_), None) => Ordering::Less,
-			(Some(a), Some(b)) => a.cmp(b),
+			_ => {
+				let (ra, rb) = (pre_rank(self.pre.as_deref()), pre_rank(other.pre.as_deref()));
+				if ra != rb {
+					return ra.cmp(&rb);
+				}
+				match (self.pre.as_deref(), other.pre.as_deref()) {
+					(Some(a), Some(b)) => match (fix_number(a), fix_number(b)) {
+						(Some(x), Some(y)) => x.cmp(&y),
+						_ => a.cmp(b),
+					},
+					_ => Ordering::Equal,
+				}
+			}
 		}
+	}
+}
+
+fn fix_number(pre: &str) -> Option<u64> {
+	pre.to_ascii_lowercase().strip_prefix("fix").and_then(|n| n.parse::<u64>().ok())
+}
+
+fn pre_rank(pre: Option<&str>) -> i8 {
+	match pre {
+		None => 0,
+		Some(p) if fix_number(p).is_some() => 1,
+		Some(_) => -1,
 	}
 }
 
@@ -82,6 +104,16 @@ pub fn from_package_name(name: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn fix_releases() {
+		assert!(is_newer("0.10.1-fix2", "0.10.1"));
+		assert!(is_newer("0.10.1-fix3", "0.10.1-fix2"));
+		assert!(is_newer("0.10.1-fix10", "0.10.1-fix9"));
+		assert!(is_newer("0.10.1-fix2", "0.10.0"));
+		assert!(is_newer("1.0.0-beta.3", "0.10.1-fix2"));
+		assert!(!is_newer("0.10.1", "0.10.1-fix2"));
+	}
 
 	#[test]
 	fn ordering() {
