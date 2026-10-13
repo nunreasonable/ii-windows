@@ -58,7 +58,7 @@
   <summary>Installation</summary>
 
   - Download **`ii-windows-setup.exe`** from the [latest release](https://github.com/nunreasonable/ii-windows/releases/latest) and run it
-    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.3) instead; the latest stable is 0.10.1-fix2
+    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.3) instead; the latest stable is 0.10.1-fix3
     - It shows a README with everything it changes on your PC, and you have to read it before installing
     - It lets you pick the look (ii's original or end4-pC), with a picture of each; you can switch later in *Settings → Quick → Style*
     - Everything goes into your Windows user, no administrator needed (except the optional PowerShell 7)
