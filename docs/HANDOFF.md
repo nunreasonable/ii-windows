@@ -172,6 +172,16 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.1-fix3 "Tahiti Mangosellers" (2026-10-13)
+
+Correções do que apareceu tirando as prints novas do site na `win10` (presets da galeria aplicados um atrás do outro, papéis de parede animados, dock com mídia). Binários da 0.10.0, só QML mudou.
+- **Dock:** o card de mídia ficava 5 px maior que a faixa dos ícones e saía por cima da borda da dock, com cantos retos e a capa quadrada (os arredondamentos usavam `OpacityMask`, desligado no Windows). Agora usa as mesmas margens dos botões de app (`DockStyle.mTop/mLeft/...`), fundo e véu com `radius` e a capa num `ClippingRectangle`.
+- **Barra lateral esquerda:** o `contentChildren` do `SwipeView` chamava `createObject()` a cada mudança na lista de abas (ex.: aplicar um preset) e as páginas antigas ficavam desenhadas por baixo, meio transparentes. As páginas são criadas uma vez e só entram ou saem do `SwipeView`.
+- **Presets:** aplicar um preset sem paleta própria herdava a do anterior (o Glassy saía roxo depois do Catppuccin); agora as chaves de paleta que o preset não define voltam ao padrão quando ele traz paleta ou papel de parede. Os cards de presets baixados mostram o nome da galeria ("Tokyo Night") em vez do nome do arquivo ("pctrade--Tokyo_Night"). A lista de importados não mostra mais a pasta de instalação na primeira abertura (aparecia um "install-manifest").
+- **Configurações:** no estilo "minimal" o menu lateral rola em vez de vazar para fora do painel.
+- **Modo jogo:** não roda mais `hyprctl` no Windows (o log mostrava "Process failed to start").
+- Testado na `win10` com o `qsw.exe` da 0.10.0 e o QML da fix3: card da dock embaixo e na lateral, menu das configurações rolando até "Sobre", abas da barra esquerda mudando com a config, log sem avisos novos.
+
 ## 0.10.1-fix2 "Tahiti Mangosellers" (2026-10-13)
 
 Até a 1.0.0 não sai número novo: as correções vão para a 0.10.1 como `-fixN` (a 0.10.1 com o editor de atalhos conta como fix1). O instalador e o `versionCmp` tratam `fixN` como posterior à versão base (0.10.1 < 0.10.1-fix2 < 0.10.1-fix3) e não como pré-release.
