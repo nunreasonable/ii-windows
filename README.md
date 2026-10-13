@@ -63,7 +63,7 @@
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
-    - `Ctrl`+`Win`+`/` (or the pencil on the keybind list) = edit your keybinds: it copies the defaults to `%LOCALAPPDATA%\illogical-impulse\keybinds.json` and opens it. Delete a line to give that shortcut back to Windows (`Win` alone for the Start menu, `Win`+`V`, `Win`+`Shift`+`S`...); it reloads on save
+    - `Ctrl`+`Win`+`/` (or the pencil on the keybind list) = keybind editor: turn a shortcut off to give it back to Windows (`Win` alone for the Start menu, `Win`+`V`, `Win`+`Shift`+`S`...) or change its keys. *Open file* there shows the `keybinds.json` behind it
     - `Win` alone = Spotlight search: apps, files, clipboard, emoji, system actions and the web (Settings → Services → Search switches back to ii's original overview)
     - `Win`+`Tab` = workspaces and their windows
     - `Win`+`Enter` = terminal
