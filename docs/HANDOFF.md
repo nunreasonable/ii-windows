@@ -172,6 +172,10 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.1 "Tahiti Mangosellers" (2026-10-13)
+
+Estável em cima da 0.10.0, publicada da branch `release-0.10` (detalhes no HANDOFF dessa branch): `Ctrl+Win+/` e o lápis do cheatsheet copiam e abrem o keybinds.json do usuário (issue #11), mais as três correções guardadas. A mesma mudança de atalhos está no `windows` do ii (ab6a996a) para a próxima beta.
+
 ## 1.0.0 "Jazz-Handed Octopus" (2026-10-12)
 
 Tudo o que faltava do end4-pC, nos dois visuais (inventário e plano em `build/inventory/`, notas por parte em `notes/comments.md`, seção "1.0.0 port"). Port feito por agentes em worktrees, integrado e testado por mim na `win10` e, para o que é só do Windows 11, na `win11-gpu`.

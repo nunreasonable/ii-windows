@@ -58,7 +58,7 @@
   <summary>Installation</summary>
 
   - Download **`ii-windows-setup.exe`** from the [latest release](https://github.com/nunreasonable/ii-windows/releases/latest) and run it
-    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.3) instead; the latest stable is 0.10.0
+    - **1.0.0 is in beta**: everything from end4-pC and the System page described above. If you want to try it, get the setup from the [1.0.0 beta pre-release](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.0-beta.3) instead; the latest stable is 0.10.1
     - It shows a README with everything it changes on your PC, and you have to read it before installing
     - It lets you pick the look (ii's original or end4-pC), with a picture of each; you can switch later in *Settings → Quick → Style*
     - Everything goes into your Windows user, no administrator needed (except the optional PowerShell 7)
@@ -68,6 +68,7 @@
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
+    - `Ctrl`+`Win`+`/` (or the pencil on the keybind list) = edit your keybinds: it copies the defaults to `%LOCALAPPDATA%\illogical-impulse\keybinds.json` and opens it. Delete a line to give that shortcut back to Windows (`Win` alone for the Start menu, `Win`+`V`, `Win`+`Shift`+`S`...); it reloads on save
     - `Win` alone = Spotlight search: apps, files, clipboard, emoji, system actions and the web (Settings → Services → Search switches back to ii's original overview)
     - `Win`+`Tab` = workspaces and their windows
     - `Win`+`Enter` = terminal
