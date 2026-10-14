@@ -172,6 +172,14 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
   - o cheatsheet não cabe em 1024x768 (layout do upstream);
   - Super+arraste e a barra que encolhe ainda não foram vistos em hardware real.
 
+## 0.10.1-fix4 "Tahiti Mangosellers" (2026-10-14)
+
+Primeira fix com binários novos: Quickshell `6aa2611` (o da 0.10.0) com duas correções, no branch `release-0.10` do `quickshell/` (worktree `build/wt/qs-release-0.10`, build em `build/qs-0.10` com as mesmas opções do `build/qs`).
+- **Texto embaralhado (issue #13):** quem tem a Google Sans Flex instalada no Windows para todos os usuários (a 5.000 do Google Fonts) via letras trocadas por maiúsculas acentuadas em todo texto do ii: o processo tinha duas versões da mesma família (a nossa 3.007, por `addApplicationFont`, e a do sistema) e montava o texto com os índices de glifo de uma e desenhava com a outra (simulado com o fontTools: "Google Chrome" vira "ỂMMĶĻJ ÊƘŇMĿJ"). Agora uma fonte embutida cuja família o Windows já tem não é carregada (`QRawFont` lê o nome sem registrar). Fontes instaladas só para o usuário nem aparecem para o banco de fontes do Qt no modo FreeType, por isso não reproduzia assim; a lógica foi testada com uma cópia da Georgia na pasta `fonts`.
+- **Crash ao desligar/remover o monitor (issue #10):** a correção da 1.0.0-beta.2 (`af094c8`) agora também na estável.
+- **"special" na barra de um monitor recém-ligado:** o `WorkspaceModel` caía no rótulo de reserva "special" quando o monitor ainda não estava em `HyprlandData.monitors`; agora só há área especial quando o nome informado não é vazio (a mesma correção do end4-pC). Reproduzido e testado na `win10` desligando e religando o monitor virtual.
+- Monitor à esquerda do principal (coordenadas negativas) testado: barras nos dois e painéis no monitor do cursor.
+
 ## 0.10.1-fix3 "Tahiti Mangosellers" (2026-10-13)
 
 Correções do que apareceu tirando as prints novas do site na `win10` (presets da galeria aplicados um atrás do outro, papéis de parede animados, dock com mídia). Binários da 0.10.0, só QML mudou.
