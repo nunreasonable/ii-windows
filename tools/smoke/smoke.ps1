@@ -173,10 +173,18 @@ if ($zipOk) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [IO.Compression.ZipFile]::OpenRead($zip.Trim())
     $entries = @($archive.Entries | ForEach-Object Name)
+    $latestEntry = $archive.Entries | Where-Object Name -eq 'log-latest.txt' | Select-Object -First 1
+    $latestHead = ''
+    if ($latestEntry) {
+        $reader = New-Object IO.StreamReader($latestEntry.Open())
+        $latestHead = $reader.ReadLine()
+        $reader.Dispose()
+    }
     $archive.Dispose()
     Remove-Item -Force $zip.Trim()
 }
 Check 'problem report zip' ($zipOk -and ($entries -contains 'system-info.txt') -and ($entries -contains 'log-latest.txt')) ($entries -join ', ')
+Check 'problem report has the running shell log' ($latestHead -match 'Launching config: .*shell\.qml') $latestHead
 Check 'problem report leaves crash dumps out unless asked' (@($entries | Where-Object { $_ -like '*.dmp' }).Count -eq 0)
 
 $clip = Join-Path $env:TEMP 'iiw-smoke-clip.ps1'
