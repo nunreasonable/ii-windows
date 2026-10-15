@@ -24,7 +24,7 @@ if [ "$(seen)" -ge 10 ]; then
 	exit 2
 fi
 
-[ -d "$IIW/dist/ii-windows" ] || { echo "no dist/ii-windows - run tools/deploy-ii.sh first" >&2; exit 1; }
+"$IIW/tools/deploy-ii.sh" >/dev/null
 untracked=$(git -C "$IIW/ii" ls-files --others --exclude-standard | grep -E '\.(qml|js|ps1|json)$' || true)
 if [ -n "$untracked" ]; then
 	echo "WARN: untracked files in ii are not packaged by deploy-ii.sh:" >&2
