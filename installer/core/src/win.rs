@@ -18,8 +18,9 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
 	CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::Threading::{
-	OpenProcess, QueryFullProcessImageNameW, TerminateProcess, WaitForSingleObject, PROCESS_NAME_WIN32,
-	PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, PROCESS_TERMINATE,
+	CreateProcessW, OpenProcess, QueryFullProcessImageNameW, TerminateProcess, WaitForSingleObject,
+	PROCESS_CREATION_FLAGS, PROCESS_INFORMATION, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+	PROCESS_SYNCHRONIZE, PROCESS_TERMINATE, STARTUPINFOW,
 };
 use windows::Win32::UI::Shell::{
 	DesktopWallpaper, FOLDERID_Desktop, FOLDERID_Documents, FOLDERID_LocalAppData, FOLDERID_Pictures,
@@ -338,6 +339,63 @@ pub fn spawn_detached(exe: &Path, args: &[&str], cwd: &Path) -> std::io::Result<
 		.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
 		.spawn()?;
 	Ok(child.id())
+}
+
+fn quote_arg(arg: &std::ffi::OsStr) -> String {
+	let s = arg.to_string_lossy();
+	if !s.is_empty() && !s.contains([' ', '\t', '"']) {
+		return s.into_owned();
+	}
+	let mut out = String::from("\"");
+	let mut backslashes = 0;
+	for c in s.chars() {
+		if c == '\\' {
+			backslashes += 1;
+			continue;
+		}
+		if c == '"' {
+			out.push_str(&"\\".repeat(backslashes * 2 + 1));
+		} else {
+			out.push_str(&"\\".repeat(backslashes));
+		}
+		backslashes = 0;
+		out.push(c);
+	}
+	out.push_str(&"\\".repeat(backslashes * 2));
+	out.push('"');
+	out
+}
+
+pub fn spawn_clean(exe: &Path, args: &[std::ffi::OsString]) -> bool {
+	let mut line = quote_arg(exe.as_os_str());
+	for a in args {
+		line.push(' ');
+		line.push_str(&quote_arg(a));
+	}
+	let mut wide: Vec<u16> = line.encode_utf16().chain(std::iter::once(0)).collect();
+	let app = HSTRING::from(exe.as_os_str());
+	let si = STARTUPINFOW { cb: std::mem::size_of::<STARTUPINFOW>() as u32, ..Default::default() };
+	let mut pi = PROCESS_INFORMATION::default();
+	let ok = unsafe {
+		CreateProcessW(
+			&app,
+			Some(PWSTR(wide.as_mut_ptr())),
+			None,
+			None,
+			false,
+			PROCESS_CREATION_FLAGS(0),
+			None,
+			PCWSTR::null(),
+			&si,
+			&mut pi,
+		)
+	}
+	.is_ok();
+	if ok {
+		let _ = unsafe { CloseHandle(pi.hThread) };
+		let _ = unsafe { CloseHandle(pi.hProcess) };
+	}
+	ok
 }
 
 pub fn spawn_cmd_raw(line: &str) -> std::io::Result<()> {

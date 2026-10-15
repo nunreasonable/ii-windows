@@ -24,6 +24,7 @@ struct Args {
 	page: Option<String>,
 	package: Option<PathBuf>,
 	relaunched: bool,
+	clean: bool,
 	session: Option<PathBuf>,
 	origin: Option<PathBuf>,
 	after: Option<u32>,
@@ -50,6 +51,7 @@ fn parse_args() -> Args {
 				})
 			}
 			"--relaunched" => a.relaunched = true,
+			"--clean" => a.clean = true,
 			"--session" => a.session = it.next().map(PathBuf::from),
 			"--origin" => a.origin = it.next().map(PathBuf::from),
 			"--after" => a.after = it.next().and_then(|p| p.to_string_lossy().parse().ok()),
@@ -430,6 +432,14 @@ fn main() {
 	let mut args = parse_args();
 	let paths = win::detect_paths();
 	let self_exe = std::env::current_exe().unwrap_or_default();
+
+	if args.page.as_deref() == Some("update") && !args.clean && !args.relaunched {
+		let mut rest: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+		rest.push("--clean".into());
+		if win::spawn_clean(&self_exe, &rest) {
+			return;
+		}
+	}
 
 	if !args.relaunched && win::path_in(&self_exe, &paths.install_dir) && relaunch_from_temp(&self_exe, &paths) {
 		return;
