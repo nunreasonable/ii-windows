@@ -38,7 +38,7 @@ pub struct RunOptions {
 	pub remove_tools: bool,
 	pub remove_pwsh7: bool,
 	pub remove_ffmpeg: bool,
-	pub keep_settings: bool,
+	pub delete_user_data: bool,
 	pub restore_look: bool,
 	pub force: bool,
 }
@@ -2078,7 +2078,15 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 
 		ctx.begin("ii_data");
 		let _ = win::delete_tree(win::QUICKSHELL_APPBARS_KEY);
+		let user_state = ctx.paths.user_state();
 		let mut dirs = ctx.paths.quickshell_dirs();
+		if !run.delete_user_data {
+			let state = ctx.paths.quickshell.join("State");
+			dirs.retain(|d| *d != state);
+			if let Ok(rd) = std::fs::read_dir(&state) {
+				dirs.extend(rd.flatten().map(|e| e.path()).filter(|p| *p != user_state));
+			}
+		}
 		dirs.push(ctx.paths.ii_temp());
 		dirs.push(ctx.paths.quickshell.join("ii.new"));
 		dirs.push(ctx.paths.quickshell.join("ii.old"));
@@ -2087,7 +2095,7 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		if pre.thumbnails_existed == Some(false) {
 			dirs.push(ctx.paths.generic_cache().join("thumbnails"));
 		}
-		if !run.keep_settings {
+		if run.delete_user_data {
 			dirs.push(ctx.paths.settings.clone());
 		}
 		let mut failed = false;
@@ -2110,7 +2118,7 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		{
 			let _ = std::fs::remove_dir(ctx.paths.generic_cache());
 		}
-		if !run.keep_settings {
+		if run.delete_user_data {
 			match win::delete_generic_credential(crate::CREDENTIAL_TARGET) {
 				Ok(true) => ctx.info(format!("   removed the {} credential", crate::CREDENTIAL_TARGET)),
 				Ok(false) => {}
@@ -2125,10 +2133,18 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 				}
 			}
 		}
-		if run.keep_settings && ctx.paths.settings.exists() {
+		if !run.delete_user_data && (ctx.paths.settings.exists() || user_state.exists()) {
 			ctx.note(
-				Msg::new("settings_kept", format!("Your settings were kept in {}", ctx.paths.settings.display()))
-					.with("path", ctx.paths.settings.display().to_string()),
+				Msg::new(
+					"user_data_kept",
+					format!(
+						"Your settings were kept in {} and your notes, to-dos and AI chats in {}",
+						ctx.paths.settings.display(),
+						user_state.display()
+					),
+				)
+				.with("path", ctx.paths.settings.display().to_string())
+				.with("state", user_state.display().to_string()),
 			);
 		}
 		if !failed {

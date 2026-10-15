@@ -93,6 +93,7 @@ struct AppState {
 	offline: Option<PathBuf>,
 	offline_error: Option<String>,
 	running: Arc<AtomicBool>,
+	self_updating: AtomicBool,
 	cancel: Arc<AtomicBool>,
 	sources: Mutex<Vec<(Action, Source)>>,
 	lang_pt: bool,
@@ -138,6 +139,7 @@ struct Info {
 	offline_error: Option<String>,
 	install_dir: String,
 	settings_dir: String,
+	user_data_dir: String,
 	settings_exist: bool,
 	current_style: Option<String>,
 	unmanaged_files: bool,
@@ -193,6 +195,7 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		offline_error: state.offline_error.clone(),
 		install_dir: p.install_dir.display().to_string(),
 		settings_dir: p.settings.display().to_string(),
+		user_data_dir: p.user_state().display().to_string(),
 		settings_exist: p.settings.exists(),
 		current_style: iiw_setup_core::style::read(&p.settings.join(iiw_setup_core::style::CONFIG_FILE)),
 	}
@@ -229,7 +232,8 @@ async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, S
 		Ok(r) => r,
 		Err(e) => return Ok(LatestInfo { version: None, setup_newer: false, error: Some(e.to_string()) }),
 	};
-	let may_update = !state.args.no_self_update && state.args.package.is_none();
+	let may_update =
+		!state.args.no_self_update && state.args.package.is_none() && state.args.page.as_deref() != Some("uninstall");
 	let setup_newer = may_update
 		&& !release.setup_url.is_empty()
 		&& !release.setup_sha256.is_empty()
@@ -242,10 +246,17 @@ async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, S
 #[tauri::command]
 async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
 	let Some(release) = state.latest.lock().unwrap().clone() else { return Err("no release".into()) };
+	if state.self_updating.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+		return Err("already updating".into());
+	}
+	if state.running.load(Ordering::SeqCst) {
+		state.self_updating.store(false, Ordering::SeqCst);
+		return Err("an operation is running".into());
+	}
 	let paths = state.paths.clone();
 	let page = state.args.page.clone();
 	let origin = state.args.origin.clone().or_else(|| state.self_exe.parent().map(Path::to_path_buf));
-	tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+	let spawned = tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
 		let session = new_session_dir(&paths);
 		let exe = session.join(SETUP_EXE);
 		let got = release::download(&release.setup_url, &exe, release.setup_size, &mut |_, _| {}, &|| false)
@@ -266,7 +277,12 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 		cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
 	})
 	.await
-	.map_err(|e| e.to_string())??;
+	.map_err(|e| e.to_string())
+	.and_then(|r| r);
+	if let Err(e) = spawned {
+		state.self_updating.store(false, Ordering::SeqCst);
+		return Err(e);
+	}
 	app.exit(0);
 	Ok(())
 }
@@ -307,6 +323,10 @@ impl Reporter for UiReporter {
 fn start(app: AppHandle, state: tauri::State<'_, AppState>, action: Action, opts: RunOptions) -> Result<(), String> {
 	if state.running.swap(true, Ordering::SeqCst) {
 		return Err("already running".into());
+	}
+	if state.self_updating.load(Ordering::SeqCst) {
+		state.running.store(false, Ordering::SeqCst);
+		return Err("the setup is updating itself".into());
 	}
 	let source = state.sources.lock().unwrap().iter().find(|(a, _)| *a == action).map(|(_, s)| s.clone());
 	if action != Action::Uninstall && source.is_none() {
@@ -484,6 +504,7 @@ fn main() {
 		offline,
 		offline_error,
 		running: Arc::new(AtomicBool::new(false)),
+		self_updating: AtomicBool::new(false),
 		cancel: Arc::new(AtomicBool::new(false)),
 		sources: Mutex::new(Vec::new()),
 		lang_pt: win::ui_language_is_portuguese(),
@@ -535,9 +556,11 @@ fn main() {
 		.build(tauri::generate_context!())
 		.expect("error while building the setup window");
 
-	app.run(move |_handle, event| {
-		if let RunEvent::Exit = event {
-			ops::schedule_cleanup(&session, &[]);
+	app.run(move |handle, event| match event {
+		RunEvent::ExitRequested { api, .. } if handle.state::<AppState>().running.load(Ordering::SeqCst) => {
+			api.prevent_exit();
 		}
+		RunEvent::Exit => ops::schedule_cleanup(&session, &[]),
+		_ => {}
 	});
 }

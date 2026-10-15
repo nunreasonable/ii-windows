@@ -69,6 +69,9 @@ impl Paths {
 	pub fn quickshell_dirs(&self) -> Vec<PathBuf> {
 		["ii", "State", "cache", "run"].iter().map(|d| self.quickshell.join(d)).collect()
 	}
+	pub fn user_state(&self) -> PathBuf {
+		self.quickshell.join("State").join("user")
+	}
 	pub fn generic_cache(&self) -> PathBuf {
 		self.local.join("cache")
 	}

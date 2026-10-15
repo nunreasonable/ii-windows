@@ -64,7 +64,8 @@ tarefas se oculta automaticamente.
     `%LOCALAPPDATA%\Microsoft\Windows\Fonts` e registrada em `HKCU`); arquivos de fonte que você
     já tem não são mexidos;
   - no Windows 10, se o winget (Instalador de Aplicativo) ainda não estiver lá, uma opção dentro
-    desta (ligada por padrão) baixa e o instala primeiro: veja *winget* em "Windows 10" abaixo;
+    desta (ligada por padrão na instalação, desligada na atualização e no reparo) baixa e o
+    instala primeiro: veja *winget* em "Windows 10" abaixo;
   - o *Oh My Posh*, o *Starship* e o *eza* são instalados com `winget install --scope user`, a
     não ser que já estejam lá; no Windows 10, o *Windows Terminal* é instalado do mesmo jeito se
     ele ainda não estiver lá (no Windows 11 ele já está, então nada acontece lá). O winget roda
@@ -216,12 +217,14 @@ A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
   este instalador que os instalou), depois remove o próprio winget (`Remove-AppxPackage`) se foi
   este instalador que o instalou no Windows 10, e remove as fontes que ele instalou;
 - apaga a pasta do fragmento do Windows Terminal, `%LOCALAPPDATA%\ii-windows`, as pastas do ii em
-  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
-  e `%TEMP%\quickshell`, e também `%LOCALAPPDATA%\cache\thumbnails` se essa pasta não existia
-  antes da instalação;
-- apaga as suas configurações em `%LOCALAPPDATA%\illogical-impulse` e a credencial
-  `illogical-impulse` (as chaves de API), a não ser que você marque *Manter minhas
-  configurações*;
+  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`, mas não `State\user`),
+  `%LOCALAPPDATA%\cache\quickshell` e `%TEMP%\quickshell`, e também
+  `%LOCALAPPDATA%\cache\thumbnails` se essa pasta não existia antes da instalação;
+- mantém as suas configurações e presets em `%LOCALAPPDATA%\illogical-impulse` (com os backups
+  dos reparos), as suas notas, tarefas e conversas da IA em `%LOCALAPPDATA%\quickshell\State\user`
+  e a credencial `illogical-impulse` (as chaves de API), para uma instalação futura encontrar
+  tudo. Ligue *Também apagar minhas configurações e dados* para apagar isso também; o botão passa
+  a dizer *Desinstalar e apagar dados*;
 - volta o papel de parede, o modo claro/escuro, a cor de destaque e a ocultação automática da
   barra de tarefas anotados antes da primeira instalação, e garante que a barra de tarefas fique
   visível (uma opção, ligada por padrão).
@@ -255,7 +258,9 @@ arquivos do programa e os arquivos do próprio ii, mantém as suas configuraçõ
   para as ferramentas de terminal e para o FFmpeg.
 - Toda vez que abre, o instalador procura o último release no GitHub. Se ele mesmo for mais
   velho, baixa o instalador mais novo desse release, confere com o SHA-256 que o GitHub publica
-  para ele e reabre com ele (não quando aberto com `--package`). Um pacote ao lado do instalador
+  para ele e reabre com ele (não quando aberto com `--package`). Isso só acontece na primeira
+  tela, antes de qualquer coisa começar, e nunca na desinstalação: enquanto o instalador novo
+  baixa, os botões esperam, e se der errado ele segue com ele mesmo. Um pacote ao lado do instalador
   mais velho que o último release é deixado de lado pelo mais novo. Sem internet, ele segue com o
   que tem.
 - O log do instalador é `%LOCALAPPDATA%\ii-windows\setup.log`. Enquanto roda, o instalador
@@ -284,8 +289,9 @@ O ii-windows também instala no Windows 10 versão 2004 ou mais nova (build 1904
 - O **winget** (Instalador de Aplicativo) também não vem com o Windows 10; ele costuma chegar
   depois, pela Microsoft Store. Se a *Configuração do terminal* ou o *Instalar o FFmpeg*
   estiverem ligados e o winget não for encontrado, este instalador pode instalá-lo primeiro,
-  antes das ferramentas de terminal e do FFmpeg abaixo: uma opção mostrada ao lado dessas, ligada
-  por padrão, baixa o pacote do Instalador de Aplicativo e as dependências dele (cerca de 300 MB
+  antes das ferramentas de terminal e do FFmpeg abaixo: uma opção mostrada ao lado dessas (ligada
+  por padrão na instalação; desligada na atualização e no reparo, para uma atualização nunca
+  trazer um winget que você não pediu) baixa o pacote do Instalador de Aplicativo e as dependências dele (cerca de 300 MB
   juntos) da versão mais nova do [microsoft/winget-cli](https://github.com/microsoft/winget-cli)
   no GitHub, e o instala para o seu usuário com `Add-AppxPackage` - sem precisar de permissão de
   administrador. Algumas versões do winget-cli publicam o SHA-256 do msixbundle ao lado dele;

@@ -34,6 +34,7 @@
 	const $ = (sel, root = document) => root.querySelector(sel);
 	const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 	const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+	const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 	const mb = (bytes) => (bytes >= 1073741824 ? `${(bytes / 1073741824).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1048576))} MB`);
 
 	let lang = "en";
@@ -55,7 +56,11 @@
 		result: null,
 		logOpen: false,
 		runningAction: null,
+		selfUpdating: false,
+		leaving: false,
+		welcomeNote: "",
 	};
+	let latestCheck = null;
 
 	function t(key, params) {
 		let s = (I18N[lang] && I18N[lang][key]) ?? I18N.en[key] ?? key;
@@ -165,22 +170,22 @@
 			$(".action-title", card).textContent = t(reinstall ? "act_reinstall" : `act_${a}`);
 			const allowed = actionAllowed(a);
 			$(".action-desc", card).textContent = allowed ? t(reinstall ? "act_reinstall_desc" : `act_${a}_desc`) : t("need_install");
-			card.disabled = !allowed;
+			card.disabled = !allowed || S.selfUpdating;
 			card.classList.toggle("selected", S.action === a);
 		}
-		$("#welcome-next").disabled = !S.action;
-		$("#welcome-note").textContent = info.offline_error || "";
+		$("#welcome-next").disabled = !S.action || S.selfUpdating || S.leaving;
+		$("#welcome-note").textContent = S.welcomeNote || info.offline_error || "";
 	}
 
 	function selectAction(a) {
-		if (!actionAllowed(a)) return;
+		if (S.selfUpdating || S.leaving || !actionAllowed(a)) return;
 		if (S.action !== a) {
 			S.action = a;
 			S.opts = null;
 			S.uopts = null;
 			S.force = false;
 			S.launch = true;
-			S.installWinget = true;
+			S.installWinget = a === "install";
 		}
 		renderWelcome();
 	}
@@ -281,6 +286,15 @@
 		return `<div class="card"><div class="card-title">${esc(t("card_checks"))}</div>${body}</div>`;
 	}
 
+	function win10NoWinget(pf) {
+		return !!(pf && !pf.winget && pf.windows_build >= 19041 && pf.windows_build < 22000);
+	}
+
+	function wingetRow(pf, terminal, ffmpeg) {
+		if (!win10NoWinget(pf) || !(terminal || ffmpeg)) return "";
+		return switchRow("install_winget", "box", t("o_install_winget"), esc(t("o_install_winget_desc")), S.installWinget);
+	}
+
 	function sourceVersion(action) {
 		const src = S.sources[action];
 		if (!src || !src.value) return null;
@@ -315,21 +329,20 @@
 			if (pwshPresent && !(info.installed && info.installed.pwsh7_ours)) o.pwsh7 = false;
 			const ffmpegPresent = pf && pf.ffmpeg_present;
 			if (ffmpegPresent && !(info.installed && info.installed.ffmpeg_ours)) o.ffmpeg = false;
-			const win10NoWinget = !!(pf && !pf.winget && pf.windows_build >= 19041 && pf.windows_build < 22000);
-			if (!win10NoWinget) S.installWinget = true;
+			const noWinget = win10NoWinget(pf);
 			let terminalExtra = "", terminalExtraCls = "warn";
 			if (pf && !pf.winget) {
-				if (!(win10NoWinget && S.installWinget)) terminalExtra = esc(t("o_terminal_nowinget"));
+				if (!(noWinget && S.installWinget)) terminalExtra = esc(t("o_terminal_nowinget"));
 			} else if (pf && !pf.windows_terminal_present) {
 				terminalExtra = esc(t("o_terminal_wt"));
 				terminalExtraCls = "info";
 			}
 			let ffmpegExtra = "", ffmpegExtraCls = "warn";
-			if (pf && !pf.winget && !(win10NoWinget && S.installWinget)) ffmpegExtra = esc(t("o_ffmpeg_nowinget"));
+			if (pf && !pf.winget && !(noWinget && S.installWinget)) ffmpegExtra = esc(t("o_ffmpeg_nowinget"));
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
 				${switchRow("autostart", "power", t("o_autostart"), esc(t("o_autostart_desc")), o.autostart)}
 				${switchRow("terminal", "terminal", t("o_terminal"), esc(t("o_terminal_desc")), o.terminal, { extra: terminalExtra, extraCls: terminalExtraCls })}
-				${win10NoWinget && (o.terminal || o.ffmpeg) ? switchRow("install_winget", "box", t("o_install_winget"), esc(t("o_install_winget_desc")), S.installWinget) : ""}
+				${wingetRow(pf, o.terminal, o.ffmpeg)}
 				${switchRow("pwsh7", "pwsh", t("o_pwsh7"), esc(t("o_pwsh7_desc")), o.pwsh7, { disabled: !!pwshPresent, extra: pwshPresent ? esc(t("o_pwsh7_present")) : "", extraCls: "ok" })}
 				${switchRow("ffmpeg", "box", t("o_ffmpeg"), esc(t("o_ffmpeg_desc")), o.ffmpeg, { disabled: !!ffmpegPresent, extra: ffmpegPresent ? esc(t("o_ffmpeg_present")) : ffmpegExtra, extraCls: ffmpegPresent ? "ok" : ffmpegExtraCls })}
 				${switchRow("exec_policy", "shield", t("o_policy"), esc(t("o_policy_desc")).replace("Set-ExecutionPolicy -Scope CurrentUser RemoteSigned", "<code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>"), o.exec_policy, { disabled: policyDisabled, extra: policyExtra, extraCls: policyCls, caution: true })}
@@ -346,6 +359,7 @@
 					<div class="update-status ${newer ? "newer" : "same"}">${icon(newer ? "update" : "check")}<span>${esc(newer ? t("update_available") : t("update_none"))}</span></div>
 					${newer ? "" : switchRow("force", "update", t("force_title"), esc(t("force_desc", { v })), S.force)}
 					${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}
+					${wingetRow(pf, info.installed.options.terminal, info.installed.options.ffmpeg)}
 				</div>`;
 			}
 			html += styleCard(S.opts);
@@ -357,18 +371,18 @@
 				<li>${esc(t("r_b2", { v: info.installed.version }))}</li>
 				<li>${esc(t("r_b3"))}</li>
 				<li>${esc(t("r_b4"))}</li>
-			</ul>${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}</div>`;
+			</ul>${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}${wingetRow(pf, info.installed.options.terminal, info.installed.options.ffmpeg)}</div>`;
 			html += checksCard(a);
 		} else if (a === "uninstall") {
 			const inst = info.installed;
-			if (!S.uopts) S.uopts = { remove_tools: inst.tools.length > 0, remove_pwsh7: inst.pwsh7_ours, remove_ffmpeg: inst.ffmpeg_ours, keep_settings: false, restore_look: inst.has_pre_install };
+			if (!S.uopts) S.uopts = { remove_tools: inst.tools.length > 0, remove_pwsh7: inst.pwsh7_ours, remove_ffmpeg: inst.ffmpeg_ours, delete_user_data: false, restore_look: inst.has_pre_install };
 			const u = S.uopts;
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
 				${switchRow("remove_tools", "terminal", t("u_tools"), esc(inst.tools.length ? inst.tools.join(", ") : t("u_tools_none")), u.remove_tools, { disabled: !inst.tools.length })}
 				${inst.pwsh7_ours ? switchRow("remove_pwsh7", "pwsh", t("u_pwsh7"), esc(t("u_pwsh7_desc")), u.remove_pwsh7) : ""}
 				${inst.ffmpeg_ours ? switchRow("remove_ffmpeg", "box", t("u_ffmpeg"), esc(t("u_ffmpeg_desc")), u.remove_ffmpeg) : ""}
-				${switchRow("keep_settings", "sliders", t("u_keep"), esc(t("u_keep_desc", { p: info.settings_dir })), u.keep_settings)}
 				${switchRow("restore_look", "palette", t("u_restore"), esc(inst.has_pre_install ? t("u_restore_desc") : t("u_restore_none")), u.restore_look, { disabled: !inst.has_pre_install })}
+				${switchRow("delete_user_data", "sliders", t("u_delete"), esc(t("u_delete_desc", { p: info.settings_dir, s: info.user_data_dir })), u.delete_user_data, { caution: true })}
 			</div>`;
 			html += checksCard(a);
 		}
@@ -383,7 +397,8 @@
 		const a = S.action;
 		const go = $("#options-go");
 		const reinstall = a === "install" && info.installed;
-		go.textContent = t(reinstall ? "go_reinstall" : `go_${a}`);
+		const wipe = a === "uninstall" && S.uopts && S.uopts.delete_user_data;
+		go.textContent = t(reinstall ? "go_reinstall" : wipe ? "go_uninstall_data" : `go_${a}`);
 		go.classList.toggle("danger", a === "uninstall");
 		const pf = S.preflight[a];
 		const src = S.sources[a];
@@ -438,7 +453,21 @@
 		return S.action === "install";
 	}
 
-	function leaveWelcome() {
+	async function leaveWelcome() {
+		if (S.leaving || S.selfUpdating || !S.action || S.page !== "welcome") return;
+		if (S.action !== "uninstall" && latestCheck) {
+			S.leaving = true;
+			const slow = setTimeout(() => {
+				S.welcomeNote = t("checking_setup");
+				renderWelcome();
+			}, 300);
+			await Promise.race([latestCheck, sleep(5000)]);
+			clearTimeout(slow);
+			S.leaving = false;
+			if (S.welcomeNote === t("checking_setup")) S.welcomeNote = "";
+			renderWelcome();
+			if (S.selfUpdating || S.page !== "welcome") return;
+		}
 		if (readmeNeeded()) showPage("readme");
 		else enterOptions();
 	}
@@ -565,15 +594,16 @@
 	}
 
 	async function start() {
+		if (S.selfUpdating) return;
 		const a = S.action;
 		const opts = {
 			options: S.opts || defaultOpts(),
 			launch: S.launch,
-			install_winget: S.installWinget !== false,
+			install_winget: !!S.installWinget,
 			remove_tools: !!(S.uopts && S.uopts.remove_tools),
 			remove_pwsh7: !!(S.uopts && S.uopts.remove_pwsh7),
 			remove_ffmpeg: !!(S.uopts && S.uopts.remove_ffmpeg),
-			keep_settings: !!(S.uopts && S.uopts.keep_settings),
+			delete_user_data: !!(S.uopts && S.uopts.delete_user_data),
 			restore_look: !!(S.uopts && S.uopts.restore_look),
 			force: S.force,
 		};
@@ -751,9 +781,12 @@
 			selectAction("install");
 		}
 		showPage("welcome");
-		if (page && actionAllowed(page)) setTimeout(leaveWelcome, 450);
 		requestAnimationFrame(() => invoke("ready"));
-		checkLatest();
+		latestCheck = checkLatest();
+		if (page && actionAllowed(page)) {
+			await sleep(450);
+			leaveWelcome();
+		}
 	}
 
 	async function checkLatest() {
@@ -764,16 +797,16 @@
 			return;
 		}
 		if (!latest || !latest.setup_newer) return;
-		const note = $("#welcome-note");
-		const next = $("#welcome-next");
-		const wasDisabled = next.disabled;
-		next.disabled = true;
-		note.textContent = t("self_updating", { version: latest.version });
+		if (S.page !== "welcome" || S.action === "uninstall" || S.runningAction) return;
+		S.selfUpdating = true;
+		S.welcomeNote = t("self_updating", { version: latest.version });
+		renderWelcome();
 		try {
 			await invoke("self_update");
 		} catch (e) {
-			note.textContent = t("self_update_failed", { error: String(e) });
-			next.disabled = wasDisabled;
+			S.selfUpdating = false;
+			S.welcomeNote = t("self_update_failed", { error: String(e) });
+			renderWelcome();
 		}
 	}
 

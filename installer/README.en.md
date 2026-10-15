@@ -58,7 +58,8 @@ light or dark mode, the accent color and whether the taskbar hides automatically
     `%LOCALAPPDATA%\Microsoft\Windows\Fonts` and registered under `HKCU`); font files you
     already have are left alone;
   - on Windows 10, if winget (App Installer) isn't there yet, a toggle in this option (on by
-    default) downloads it and installs it first: see *winget* under "Windows 10" below;
+    default when installing, off for an update or a repair) downloads it and installs it first:
+    see *winget* under "Windows 10" below;
   - *Oh My Posh*, *Starship* and *eza* are installed with `winget install --scope user`, unless
     they are already there; on Windows 10, *Windows Terminal* is installed the same way if it
     isn't already there (Windows 11 already has it, so nothing happens there). winget runs with
@@ -201,11 +202,14 @@ Uninstall reads `install-manifest.json` and undoes what it lists:
   removes winget itself (`Remove-AppxPackage`) if this setup installed it on Windows 10, and
   removes the fonts it installed;
 - deletes the Windows Terminal fragment folder, `%LOCALAPPDATA%\ii-windows`, ii's folders in
-  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`), `%LOCALAPPDATA%\cache\quickshell`
-  and `%TEMP%\quickshell`, plus `%LOCALAPPDATA%\cache\thumbnails` if that folder wasn't there
-  before the install;
-- deletes your settings in `%LOCALAPPDATA%\illogical-impulse` and the `illogical-impulse`
-  credential (the API keys), unless you tick *Keep my settings*;
+  `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`, but not `State\user`),
+  `%LOCALAPPDATA%\cache\quickshell` and `%TEMP%\quickshell`, plus
+  `%LOCALAPPDATA%\cache\thumbnails` if that folder wasn't there before the install;
+- keeps your settings and presets in `%LOCALAPPDATA%\illogical-impulse` (with the backups from
+  repairs), your notes, to-dos and AI chats in `%LOCALAPPDATA%\quickshell\State\user` and the
+  `illogical-impulse` credential (the API keys), so a later install picks them up. Turn on *Also
+  delete my settings and data* to delete those too; the button then says *Uninstall and delete
+  data*;
 - puts back the wallpaper, light/dark mode, accent color and taskbar auto-hide recorded before
   the first install, and makes sure the taskbar is visible (an option, on by default).
 
@@ -237,7 +241,9 @@ replaces the program files and ii's own files, keeps your settings, and restarts
   for FFmpeg.
 - Every time it opens, the setup looks for the latest release on GitHub. If the setup itself is
   older, it downloads the newer setup from that release, checks it against the SHA-256 GitHub
-  publishes for it, and reopens with it (not when started with `--package`). A package sitting
+  publishes for it, and reopens with it (not when started with `--package`). It only does that
+  on the first page, before anything has started, and never for an uninstall: while the newer
+  setup downloads, the buttons wait, and if that fails it carries on with itself. A package sitting
   next to the setup that is older than the latest release is skipped for the newer one. Without
   network it carries on with what it has.
 - The setup's log is `%LOCALAPPDATA%\ii-windows\setup.log`. While it runs, the setup keeps its
@@ -264,7 +270,8 @@ recommended), next to Windows 11. A few things work differently there:
 - **winget** (App Installer) isn't built into Windows 10 either; it usually arrives later through
   the Microsoft Store. If *Terminal setup* or *Install FFmpeg* is on and winget can't be found,
   this setup can install it first, before the terminal tools and FFmpeg below: a toggle shown
-  next to those options, on by default, downloads the App Installer package and its dependencies
+  next to those options (on by default when installing; off when updating or repairing, so an
+  update never adds winget you didn't ask for) downloads the App Installer package and its dependencies
   (about 300 MB together) from the latest release of
   [microsoft/winget-cli](https://github.com/microsoft/winget-cli) on GitHub, and installs it for
   your user with `Add-AppxPackage` - no administrator permission. Some winget-cli releases
