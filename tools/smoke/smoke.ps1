@@ -177,6 +177,7 @@ if ($zipOk) {
     Remove-Item -Force $zip.Trim()
 }
 Check 'problem report zip' ($zipOk -and ($entries -contains 'system-info.txt') -and ($entries -contains 'log-latest.txt')) ($entries -join ', ')
+Check 'problem report leaves crash dumps out unless asked' (@($entries | Where-Object { $_ -like '*.dmp' }).Count -eq 0)
 
 $clip = Join-Path $env:TEMP 'iiw-smoke-clip.ps1'
 [IO.File]::WriteAllText($clip, "Add-Type -AssemblyName System.Windows.Forms; [Windows.Forms.Clipboard]::SetText(('smoke ' * 20000)); Start-Sleep -Milliseconds 300; [Windows.Forms.Clipboard]::SetText('smoke small')")
