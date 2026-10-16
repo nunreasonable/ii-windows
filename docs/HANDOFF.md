@@ -37,6 +37,7 @@ Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.
 5. **Pacote com o MESMO binário testado:** `tools/deploy-ii.sh`, depois `SKIP_SETUP_BUILD=1 tools/release.sh`. Não recompilar depois do teste, e conferir que o hash do `qsw.exe` dentro do zip é o testado.
 6. **Envio à Microsoft antes de publicar:** o `qsw.exe` e o `ii-windows-setup.exe` do pacote vão pra https://www.microsoft.com/wdsi/filesubmission como "Software developer". O login é do mantenedor. Esperar o resultado quando der (a 1.0.7 voltou em algumas horas).
 7. **Publicação:** push dos três repositórios, `gh release create`, e conferir os digests dos assets contra os arquivos locais.
+8. **Da 1.1.0 em diante, as notas da release** terminam com uma seção "Code signing policy": a frase "Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)" e o link pra seção do README. A SignPath exige a política na home e nas páginas de download/release.
 
 ## Branches
 
