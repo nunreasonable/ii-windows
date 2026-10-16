@@ -63,6 +63,7 @@ mod platform {
 
 	const MAX_PATHS: usize = 16;
 	const MAX_PROCESSES: u32 = 64;
+	const MAX_RM_QUERY: u32 = 4096;
 
 	fn wide(s: &std::ffi::OsStr) -> Vec<u16> {
 		use std::os::windows::ffi::OsStrExt;
@@ -89,13 +90,13 @@ mod platform {
 			if status != ERROR_MORE_DATA || needed == 0 {
 				return Vec::new();
 			}
-			let mut count = needed.min(MAX_PROCESSES);
+			let mut count = needed.min(MAX_RM_QUERY);
 			let mut buf: Vec<RM_PROCESS_INFO> = vec![RM_PROCESS_INFO::default(); count as usize];
 			let status = unsafe { RmGetList(session, &mut needed, &mut count, Some(buf.as_mut_ptr()), &mut reason) };
 			if status != ERROR_SUCCESS {
 				return Vec::new();
 			}
-			buf.truncate(count as usize);
+			buf.truncate((count as usize).min(MAX_PROCESSES as usize));
 			buf.into_iter()
 				.filter_map(|info| {
 					let pid = info.Process.dwProcessId;
