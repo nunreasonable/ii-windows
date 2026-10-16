@@ -62,6 +62,7 @@ mod platform {
 	use super::LockingApp;
 
 	const MAX_PATHS: usize = 16;
+	const MAX_FILES: usize = 2048;
 	const MAX_PROCESSES: u32 = 64;
 	const MAX_RM_QUERY: u32 = 4096;
 
@@ -70,7 +71,37 @@ mod platform {
 		s.encode_wide().chain(std::iter::once(0)).collect()
 	}
 
+	fn expand(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
+		let explicit: std::collections::HashSet<&std::path::PathBuf> = paths.iter().collect();
+		let mut files = Vec::new();
+		let mut stack: Vec<std::path::PathBuf> = paths.to_vec();
+		while let Some(path) = stack.pop() {
+			if files.len() >= MAX_FILES {
+				break;
+			}
+			match std::fs::symlink_metadata(&path) {
+				Ok(meta) if meta.is_dir() => {
+					if let Ok(entries) = std::fs::read_dir(&path) {
+						stack.extend(entries.flatten().map(|e| e.path()));
+					}
+				}
+				Ok(meta) if meta.is_file() && (explicit.contains(&path) || is_module(&path)) => files.push(path),
+				_ => {}
+			}
+		}
+		files
+	}
+
+	fn is_module(path: &std::path::Path) -> bool {
+		path.extension()
+			.and_then(|e| e.to_str())
+			.is_some_and(|e| e.eq_ignore_ascii_case("exe") || e.eq_ignore_ascii_case("dll"))
+	}
+
 	fn query(paths: &[std::path::PathBuf]) -> Vec<LockingApp> {
+		if paths.is_empty() {
+			return Vec::new();
+		}
 		let wide_paths: Vec<Vec<u16>> = paths.iter().map(|p| wide(p.as_os_str())).collect();
 		let ptrs: Vec<PCWSTR> = wide_paths.iter().map(|w| PCWSTR(w.as_ptr())).collect();
 		let mut session: u32 = 0;
@@ -123,9 +154,9 @@ mod platform {
 		let owned: Vec<std::path::PathBuf> = paths.iter().take(MAX_PATHS).map(|p| p.to_path_buf()).collect();
 		let (tx, rx) = std::sync::mpsc::channel();
 		std::thread::spawn(move || {
-			let _ = tx.send(query(&owned));
+			let _ = tx.send(query(&expand(&owned)));
 		});
-		rx.recv_timeout(Duration::from_secs(4)).unwrap_or_default()
+		rx.recv_timeout(Duration::from_secs(8)).unwrap_or_default()
 	}
 }
 
