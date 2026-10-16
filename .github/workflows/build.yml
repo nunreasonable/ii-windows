@@ -1,0 +1,130 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      QT_VERSION: 6.11.2
+      RUST_VERSION: 1.97.1
+      AQTINSTALL_COMMIT: 076e1659807d0b362a3ed684d54c2e9c775eb9c7
+      FONTTOOLS_VERSION: 4.67.0
+      MATUGEN_VERSION: 4.1.0
+      CLI11_TAG: v2.5.0
+
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - name: Check out quickshell and ii at the locked commits
+        run: |
+          while read -r name url sha; do
+            [ -z "$name" ] && continue
+            git init -q "$name"
+            git -C "$name" fetch -q --depth 1 "$url" "$sha"
+            git -C "$name" checkout -q FETCH_HEAD
+            echo "$name $(git -C "$name" rev-parse HEAD)"
+          done < sources.lock
+
+      - name: Paths
+        run: |
+          tmp="$(cygpath -m "$RUNNER_TEMP")"
+          {
+            echo "QT_ROOT=$tmp/qt"
+            echo "QT_WIN=$tmp/qt/$QT_VERSION/msvc2022_64"
+            echo "CLI11_DIR=$tmp/cli11"
+            echo "PYTHON=python"
+          } >> "$GITHUB_ENV"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tools
+        run: |
+          python -m pip install --quiet "aqtinstall @ git+https://github.com/miurahr/aqtinstall@$AQTINSTALL_COMMIT" "fonttools==$FONTTOOLS_VERSION" ninja
+          rustup toolchain install "$RUST_VERSION" --profile minimal --target x86_64-pc-windows-msvc
+          rustup default "$RUST_VERSION"
+          clang-cl --version
+          cmake --version
+          ninja --version
+          cargo --version
+
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/qt
+          key: qt-${{ env.QT_VERSION }}-msvc2022_64-qt5compat-qtimageformats-qtpositioning-qtshadertools-qtsvg
+
+      - name: Install Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        run: aqt install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qt5compat qtimageformats qtpositioning qtshadertools qtsvg -O "$QT_ROOT"
+
+      - name: CLI11
+        run: git clone -q --depth 1 --branch "$CLI11_TAG" https://github.com/CLIUtils/CLI11.git "$CLI11_DIR"
+
+      - name: Build quickshell
+        run: |
+          cmake -S quickshell -B build/qs -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DCMAKE_PREFIX_PATH="$QT_WIN" -DCLI11_INCLUDE_DIR="$CLI11_DIR/include" \
+            -DQS_PRODUCT_NAME=ii-windows -DQS_VERSION_FILE="$(cygpath -m "$PWD/VERSION")"
+          cmake --build build/qs
+
+      - name: Build the setup
+        run: cd installer && cargo build --release --locked --target x86_64-pc-windows-msvc -p ii-windows-setup
+
+      - name: Build matugen
+        run: cargo install matugen --version "$MATUGEN_VERSION" --locked --root build/matugen
+
+      - name: Build SongRec
+        run: NATIVE=1 tools/songrec/build.sh
+
+      - name: Build MicroTeX
+        run: NATIVE=1 tools/microtex/build.sh
+
+      - name: Visual C++ runtime
+        run: |
+          crt="$(cygpath -u "$VCToolsRedistDir")/x64/Microsoft.VC143.CRT"
+          mkdir -p build/vcredist
+          for f in msvcp140.dll msvcp140_1.dll msvcp140_2.dll msvcp140_atomic_wait.dll vcruntime140.dll vcruntime140_1.dll; do
+            cp -f "$crt/$f" build/vcredist/
+          done
+
+      - name: Package
+        env:
+          FONTTOOLS: python -m fontTools
+          MATUGEN_EXE: build/matugen/bin/matugen.exe
+          VCREDIST_DIR: build/vcredist
+          SKIP_SETUP_BUILD: "1"
+        run: |
+          export QMLCACHEGEN="$QT_WIN/bin/qmlcachegen.exe"
+          tools/deploy-ii.sh
+          tools/release.sh
+          (cd dist/release && sha256sum ii-windows-setup.exe ii-windows-*.zip)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
+          path: dist/release/
+          if-no-files-found: error
