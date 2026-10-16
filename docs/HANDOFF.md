@@ -27,7 +27,7 @@ Confirmado na VM em 2026-10-02:
 
 Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.0.8 como `Trojan:Win32/Bearfoos.A!ml`, uma detecção do ML da nuvem pra arquivo novo e sem assinatura. A Microsoft removeu a detecção da 1.0.7 depois do envio como falso positivo, mas a liberação vale só pra aquele hash.
 
-1. **Bump:** atualizar o `VERSION`, o `installer/Cargo.toml` e o `installer/Cargo.lock`, e escrever a entrada aqui.
+1. **Bump:** atualizar o `VERSION`, o `installer/Cargo.toml` e o `installer/Cargo.lock`, e escrever a entrada aqui. Com os commits do `quickshell/` e do `ii/` prontos, rodar `tools/update-sources-lock.sh`: ele grava no `sources.lock` os commits que o build do GitHub Actions (`.github/workflows/build.yml`) vai usar.
 2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs -DQS_PRODUCT_NAME=ii-windows -DQS_VERSION_FILE=$PWD/VERSION; cmake --build build/qs`. As duas opções ficam no cache e a versão dos metadados acompanha o `VERSION`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
 3. **win10:** `tools/smoke-test.sh --start` precisa terminar em "RESULT: all passed".
 4. **win11 com o Defender ligado:**
