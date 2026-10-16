@@ -22,6 +22,7 @@ jobs:
       FONTTOOLS_VERSION: 4.67.0
       MATUGEN_VERSION: 4.1.0
       CLI11_TAG: v2.5.0
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER: lld-link
 
     steps:
       - name: Keep line endings as committed
