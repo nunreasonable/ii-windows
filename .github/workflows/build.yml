@@ -39,6 +39,7 @@ jobs:
             git init -q "$name"
             git -C "$name" fetch -q --depth 1 "$url" "$sha"
             git -C "$name" checkout -q FETCH_HEAD
+            git -C "$name" submodule update -q --init --recursive
             echo "$name $(git -C "$name" rev-parse HEAD)"
           done < sources.lock
 

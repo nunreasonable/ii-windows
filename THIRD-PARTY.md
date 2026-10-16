@@ -6,6 +6,7 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 |---|---|---|---|---|
 | ii-windows (setup, scripts, packaging) | this release | GPL-3.0 | https://github.com/nunreasonable/ii-windows | `ii-windows-setup.exe`, `config/ii/scripts` |
 | illogical-impulse (ii), Windows port | `sources.lock` | GPL-3.0 | https://github.com/nunreasonable/dots-hyprland (branch `ii-windows`), from https://github.com/end-4/dots-hyprland | `config/ii` |
+| rounded-polygon-qmljs | pinned by ii (`git submodule`) | Apache-2.0 | https://github.com/end-4/rounded-polygon-qmljs | `config/ii/modules/common/widgets/shapes` |
 | Quickshell, Windows port | `sources.lock` | LGPL-3.0 | https://github.com/nunreasonable/quickshell (branch `windows`), from https://github.com/quickshell-mirror/quickshell | `qs.exe`, `qsw.exe`, `qml/Quickshell` |
 | Qt | 6.11.2 | LGPL-3.0 | https://download.qt.io/archive/qt/ | `Qt6*.dll`, `plugins`, `qml` |
 | cpptrace | 1.0.4 | MIT | https://github.com/jeremy-rifkin/cpptrace | built into `qs.exe`, `qsw.exe` |
