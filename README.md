@@ -134,6 +134,26 @@
 | <img src="assets/terminal.webp" alt="Windows Terminal with ii's color scheme and prompt"> | <img src="assets/setup.webp" alt="The ii-windows setup showing its README"> |
 
 <div align="center">
+    <h2>• privacy •</h2>
+    <h3></h3>
+</div>
+
+ii-windows has no telemetry and sends nothing to its developers. A few things go online on their own (the update checks) and some features talk to outside services when you use them: [PRIVACY.md](PRIVACY.md) lists every one, with what is sent and when.
+
+<div align="center">
+    <h2>• Code signing policy •</h2>
+    <h3></h3>
+</div>
+
+Starting with 1.1.0, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases are signed. Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+They are built from this repository by [GitHub Actions](.github/workflows/build.yml), from the source commits pinned in [sources.lock](sources.lock), and every signing request is approved by hand. The third-party programs in the package (matugen, SongRec, MicroTeX, VirtualDesktopAccessor, Qt) keep their own signatures or none.
+
+- Committers and reviewers: [nunreasonable](https://github.com/nunreasonable)
+- Approvers: [nunreasonable](https://github.com/nunreasonable)
+- Privacy policy: [PRIVACY.md](PRIVACY.md)
+
+<div align="center">
     <h2>• credits •</h2>
     <h3></h3>
 </div>
@@ -157,5 +177,5 @@ All of the design and nearly all of the shell are other people's work. This repo
 
 - This repo (the setup and the packaging scripts) is GPL-3.0, like ii. See [LICENSE](LICENSE)
 - The forks keep their upstream licenses: Quickshell for Windows is LGPL-3.0 and ii for Windows is GPL-3.0
-- The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT), SongRec's recognizer (GPL-3.0-or-later, source in [tools/songrec](tools/songrec)), MicroTeX (MIT, build in [tools/microtex](tools/microtex)), the Visual C++ runtime and fonts under the SIL Open Font License and Apache-2.0. The setup's README lists them all
+- The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT), SongRec's recognizer (GPL-3.0-or-later, source in [tools/songrec](tools/songrec)), MicroTeX (MIT, build in [tools/microtex](tools/microtex)), the Visual C++ runtime and fonts under the SIL Open Font License and Apache-2.0. [THIRD-PARTY.md](THIRD-PARTY.md) lists them all with their versions and sources, and the license texts are in the package's `licenses` folder
 - Copying: go ahead, just follow the licenses, like upstream asks

@@ -20,6 +20,7 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 | Readex Pro | `563dfbb` | OFL-1.1 | https://github.com/ThomasJockin/readexpro | `fonts` |
 | Space Grotesk | `03507d0` | OFL-1.1 | https://github.com/floriankarsten/space-grotesk | `fonts` |
 | JetBrains Mono Nerd Font | 3.4.0 | OFL-1.1 (font), MIT (Nerd Fonts) | https://github.com/ryanoasis/nerd-fonts | `fonts` |
+| Rubik (setup window only) | — | OFL-1.1 | https://github.com/googlefonts/rubik | inside `ii-windows-setup.exe` (`installer/ui/fonts`) |
 | Adwaita icons (a few) | — | CC-BY-SA-3.0 / LGPL-3.0 | https://gitlab.gnome.org/GNOME/adwaita-icon-theme | `icons/adwaita-*` |
 | Microsoft Visual C++ runtime | 14.x | Microsoft Visual C++ Redistributable (system library) | Visual Studio | `msvcp140*.dll`, `vcruntime140*.dll` |
 
