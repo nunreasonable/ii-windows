@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "illogical-impulse Setup",
+  "productName": "ii-windows",
   "mainBinaryName": "ii-windows-setup",
   "identifier": "io.github.nunreasonable.ii-windows-setup",
   "build": { "frontendDist": "../ui" },
