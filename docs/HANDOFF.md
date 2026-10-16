@@ -28,7 +28,7 @@ Confirmado na VM em 2026-10-02:
 Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.0.8 como `Trojan:Win32/Bearfoos.A!ml`, uma detecção do ML da nuvem pra arquivo novo e sem assinatura. A Microsoft removeu a detecção da 1.0.7 depois do envio como falso positivo, mas a liberação vale só pra aquele hash.
 
 1. **Bump:** atualizar o `VERSION`, o `installer/Cargo.toml` e o `installer/Cargo.lock`, e escrever a entrada aqui.
-2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs; cmake --build build/qs`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
+2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs -DQS_PRODUCT_NAME=ii-windows -DQS_VERSION_FILE=$PWD/VERSION; cmake --build build/qs`. As duas opções ficam no cache e a versão dos metadados acompanha o `VERSION`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
 3. **win10:** `tools/smoke-test.sh --start` precisa terminar em "RESULT: all passed".
 4. **win11 com o Defender ligado:**
    - `IIW_VM=WIN11V SMOKE_DOMAIN=win11 tools/smoke-test.sh --start`;
@@ -190,6 +190,12 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 ## 0.10.1 "Tahiti Mangosellers" (2026-10-13)
 
 Estável em cima da 0.10.0, publicada da branch `release-0.10` (detalhes no HANDOFF dessa branch): `Ctrl+Win+/` e o lápis do cheatsheet abrem um editor de atalhos (`modules/ii/keybindsEditor/`, issue #11: desligar devolve o atalho ao Windows, trocar teclas, restaurar, abrir o arquivo), mais as três correções guardadas. O mesmo editor está no `windows` do ii (fc225e98) para a próxima beta.
+
+## 1.1.0 "Bureaucratic Hamster" (em andamento)
+
+A 1.1.0 vai sair assinada pela SignPath Foundation e com claro/escuro automático. Até lá, as versões dela saem como pre-release ("Unstable") no GitHub: o aviso de atualização e o setup de quem está na 1.0.x só olham `/releases/latest`, então não as oferecem; quem instalar uma unstable passa a receber as seguintes e a 1.1.0 final.
+
+- **1.1.0-unstable (2026-10-16):** preparação pra SignPath. O `qsw.exe` e o `qs.exe` ganham recurso de versão (ProductName `ii-windows`, versão do `VERSION`, quickshell 66c5984; opções `QS_PRODUCT_NAME` e `QS_VERSION_FILE` no CMake) e o setup passa a se chamar "ii-windows" nos metadados (o título da janela continua "illogical-impulse Setup"). Checklist de release no topo deste arquivo.
 
 ## 1.0.0 "Jazz-Handed Octopus" (2026-10-12)
 
