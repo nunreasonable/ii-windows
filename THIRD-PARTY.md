@@ -1,0 +1,26 @@
+# Third-party components
+
+Everything in the ii-windows package is open source, except the Microsoft Visual C++ runtime, which is a system library. The release build fetches each component from the source below at a fixed version: see `sources.lock`, `tools/deps.lock` and `.github/workflows/build.yml`. The license texts are in the package's `licenses` folder.
+
+| Component | Version | License | Source | In the package |
+|---|---|---|---|---|
+| ii-windows (setup, scripts, packaging) | this release | GPL-3.0 | https://github.com/nunreasonable/ii-windows | `ii-windows-setup.exe`, `config/ii/scripts` |
+| illogical-impulse (ii), Windows port | `sources.lock` | GPL-3.0 | https://github.com/nunreasonable/dots-hyprland (branch `ii-windows`), from https://github.com/end-4/dots-hyprland | `config/ii` |
+| Quickshell, Windows port | `sources.lock` | LGPL-3.0 | https://github.com/nunreasonable/quickshell (branch `windows`), from https://github.com/quickshell-mirror/quickshell | `qs.exe`, `qsw.exe`, `qml/Quickshell` |
+| Qt | 6.11.2 | LGPL-3.0 | https://download.qt.io/archive/qt/ | `Qt6*.dll`, `plugins`, `qml` |
+| cpptrace | 1.0.4 | MIT | https://github.com/jeremy-rifkin/cpptrace | built into `qs.exe`, `qsw.exe` |
+| CLI11 | 2.5.0 | BSD-3-Clause | https://github.com/CLIUtils/CLI11 | built into `qs.exe`, `qsw.exe` |
+| matugen | 4.1.0 | GPL-2.0 | https://github.com/InioX/matugen | `matugen.exe` |
+| MicroTeX | `0e3707f` | MIT; resources GPL-3.0 and their own font licenses | https://github.com/NanoMichael/MicroTeX | `LaTeX.exe`, `res` |
+| tinyxml2 | `8224e42` | Zlib | https://github.com/leethomason/tinyxml2 | built into `LaTeX.exe` |
+| SongRec | 0.7.5 | GPL-3.0-or-later | https://github.com/marin-m/SongRec | `songrec.exe` |
+| VirtualDesktopAccessor | `2024-12-16-windows11`, `2019-windows10` | MIT | https://github.com/Ciantic/VirtualDesktopAccessor | `VirtualDesktopAccessor.dll`, `win10` |
+| Google Sans Flex | `251aa5a` | OFL-1.1 | https://github.com/end-4/google-sans-flex | `fonts` |
+| Material Symbols Rounded | `bb04090` | Apache-2.0 | https://github.com/google/material-design-icons | `fonts` |
+| Readex Pro | `563dfbb` | OFL-1.1 | https://github.com/ThomasJockin/readexpro | `fonts` |
+| Space Grotesk | `03507d0` | OFL-1.1 | https://github.com/floriankarsten/space-grotesk | `fonts` |
+| JetBrains Mono Nerd Font | 3.4.0 | OFL-1.1 (font), MIT (Nerd Fonts) | https://github.com/ryanoasis/nerd-fonts | `fonts` |
+| Adwaita icons (a few) | — | CC-BY-SA-3.0 / LGPL-3.0 | https://gitlab.gnome.org/GNOME/adwaita-icon-theme | `icons/adwaita-*` |
+| Microsoft Visual C++ runtime | 14.x | Microsoft Visual C++ Redistributable (system library) | Visual Studio | `msvcp140*.dll`, `vcruntime140*.dll` |
+
+The setup (`ii-windows-setup.exe`) is built with Tauri 2 and Rust crates under permissive licenses (MIT, Apache-2.0 and similar); `installer/Cargo.lock` lists them. It uses the Microsoft Edge WebView2 Runtime that comes with Windows. `songrec.exe` and `matugen.exe` are also Rust programs, and their crates are listed in their own `Cargo.lock`.

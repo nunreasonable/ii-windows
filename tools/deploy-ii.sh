@@ -64,6 +64,17 @@ cp -f "$DEPS/vda/VirtualDesktopAccessor.dll" "$D/"
 mkdir -p "$D/win10"
 cp -f "$DEPS/vda/win10/VirtualDesktopAccessor.dll" "$D/win10/"
 
+rm -rf "$D/licenses"
+mkdir -p "$D/licenses/ii-windows" "$D/licenses/quickshell" "$D/licenses/Qt"
+cp -f "$IIW/LICENSE" "$D/licenses/ii-windows/LICENSE.txt"
+cp -f "$IIW/THIRD-PARTY.md" "$D/licenses/THIRD-PARTY.md"
+cp -f "$IIW/quickshell/LICENSE" "$D/licenses/quickshell/LICENSE.txt"
+cp -f "$IIW/quickshell/LICENSE-GPL" "$D/licenses/quickshell/LICENSE-GPL.txt"
+cp -f "$IIW/quickshell/LICENSE" "$D/licenses/Qt/LICENSE-LGPL-3.0.txt"
+cp -f "$IIW/quickshell/LICENSE-GPL" "$D/licenses/Qt/LICENSE-GPL-3.0.txt"
+printf 'Qt %s (The Qt Company Ltd. and other contributors) is used under the GNU Lesser General Public License v3.\nIts source code is available at https://download.qt.io/archive/qt/ and https://code.qt.io/.\nThe Qt libraries shipped with ii-windows (Qt6*.dll, plugins and qml) are unmodified and can be replaced with other builds of the same version.\n' "$QT_VERSION" > "$D/licenses/Qt/NOTICE.txt"
+cp -rf "$DEPS"/licenses/. "$D/licenses/"
+
 MATUGEN_EXE="${MATUGEN_EXE:-$IIW/toolchain/matugen.exe}"
 if [ -f "$MATUGEN_EXE" ]; then
 	cp -f "$MATUGEN_EXE" "$D/matugen.exe"

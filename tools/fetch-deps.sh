@@ -18,13 +18,19 @@ while read -r dest sum url; do
 	mv "$out.part" "$out"
 done < "$IIW/tools/deps.lock"
 
-"${PYTHON:-python3}" - "$DEPS/archives/JetBrainsMono-nerd-3.4.0.zip" "$DEPS/fonts" <<'PY'
+mkdir -p "$DEPS/fonts" "$DEPS/licenses/fonts"
+"${PYTHON:-python3}" - "$DEPS/archives/JetBrainsMono-nerd-3.4.0.zip" "$DEPS/fonts" "$DEPS/licenses/fonts/JetBrainsMono-OFL.txt" <<'PY'
 import os, sys, zipfile
 with zipfile.ZipFile(sys.argv[1]) as z:
     for name in z.namelist():
         base = os.path.basename(name)
         if base.startswith("JetBrainsMonoNerdFont-") and base.endswith(".ttf"):
-            with z.open(name) as src, open(os.path.join(sys.argv[2], base), "wb") as dst:
-                dst.write(src.read())
+            target = os.path.join(sys.argv[2], base)
+        elif base == "OFL.txt":
+            target = sys.argv[3]
+        else:
+            continue
+        with z.open(name) as src, open(target, "wb") as dst:
+            dst.write(src.read())
 PY
 echo "deps ready in $DEPS"
