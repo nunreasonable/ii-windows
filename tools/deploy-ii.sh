@@ -13,6 +13,10 @@ FONTTOOLS="${FONTTOOLS:-uv run -q --with fonttools fonttools}"
 
 "$IIW/tools/deploy.sh" "$D" "$QS_BUILD/qs.exe" "$QS_BUILD/qsw.exe" >/dev/null
 
+native_path() {
+	if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s\n' "$1"; fi
+}
+
 pin_unused_axes() {
 	local src="$1" axes="$2" key cache
 	key=$(sha256sum "$src" | cut -c1-16)
@@ -20,7 +24,8 @@ pin_unused_axes() {
 	if [ ! -f "$cache" ]; then
 		mkdir -p "$IIW/build/fonts"
 		# shellcheck disable=SC2086
-		if ! $FONTTOOLS varLib.instancer "$src" $axes -o "$cache.tmp" >/dev/null 2>&1; then
+		if ! $FONTTOOLS varLib.instancer "$(native_path "$src")" $axes -o "$(native_path "$cache.tmp")" >/dev/null 2>&1; then
+			echo "warning: could not pin the axes of $(basename "$src"), shipping it as is" >&2
 			rm -f "$cache.tmp"
 			cp -f "$src" "$D/fonts/"
 			return

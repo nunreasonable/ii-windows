@@ -9,13 +9,14 @@ while read -r dest sum url; do
 	out="$DEPS/$dest"
 	if [ -f "$out" ] && echo "$sum  $out" | sha256sum -c --status; then continue; fi
 	mkdir -p "$(dirname "$out")"
-	curl -fsSL --retry 3 -o "$out.part" "$url"
-	if ! echo "$sum  $out.part" | sha256sum -c --status; then
+	tmp="$DEPS/download.part"
+	curl -fsSL --retry 3 -o "$tmp" "$url"
+	if ! echo "$sum  $tmp" | sha256sum -c --status; then
 		echo "checksum mismatch: $url" >&2
-		rm -f "$out.part"
+		rm -f "$tmp"
 		exit 1
 	fi
-	mv "$out.part" "$out"
+	mv "$tmp" "$out"
 done < "$IIW/tools/deps.lock"
 
 mkdir -p "$DEPS/fonts" "$DEPS/licenses/fonts"
