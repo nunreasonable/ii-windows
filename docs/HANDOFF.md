@@ -23,6 +23,21 @@ Confirmado na VM em 2026-10-02:
   - C++: relaunch, qFatal, error mode herdado, ordem do filtro, use-after-free no Thumbnailer, caminhos nativos no OCR e no wallpaper, ethernet exigindo gateway, retomada do barramento de notificações e o vazamento do clipboard.
   - Pendentes, de baixo impacto: corrida no `CaptureHandle` (live alternando), `captureScreen` sem limite de espera, toasts fantasmas ao religar o acesso e nome do perfil de Wi-Fi diferente do SSID.
 
+## Checklist de release (vale até a 1.1.0 sair assinada)
+
+Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.0.8 como `Trojan:Win32/Bearfoos.A!ml`, uma detecção do ML da nuvem pra arquivo novo e sem assinatura. A Microsoft removeu a detecção da 1.0.7 depois do envio como falso positivo, mas a liberação vale só pra aquele hash.
+
+1. **Bump:** atualizar o `VERSION`, o `installer/Cargo.toml` e o `installer/Cargo.lock`, e escrever a entrada aqui.
+2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs; cmake --build build/qs`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
+3. **win10:** `tools/smoke-test.sh --start` precisa terminar em "RESULT: all passed".
+4. **win11 com o Defender ligado:**
+   - `IIW_VM=WIN11V SMOKE_DOMAIN=win11 tools/smoke-test.sh --start`;
+   - deixar o build rodando ~10 min e conferir `Get-MpThreatDetection`;
+   - se for marcado, gerar outro build (o hash muda) e repetir.
+5. **Pacote com o MESMO binário testado:** `tools/deploy-ii.sh`, depois `SKIP_SETUP_BUILD=1 tools/release.sh`. Não recompilar depois do teste, e conferir que o hash do `qsw.exe` dentro do zip é o testado.
+6. **Envio à Microsoft antes de publicar:** o `qsw.exe` e o `ii-windows-setup.exe` do pacote vão pra https://www.microsoft.com/wdsi/filesubmission como "Software developer". O login é do mantenedor. Esperar o resultado quando der (a 1.0.7 voltou em algumas horas).
+7. **Publicação:** push dos três repositórios, `gh release create`, e conferir os digests dos assets contra os arquivos locais.
+
 ## Branches
 
 | Repo | Branch | Estado |
