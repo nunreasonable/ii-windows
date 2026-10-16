@@ -5,7 +5,7 @@ set -euo pipefail
 VERSION="$(tr -d '[:space:]' < "$IIW/VERSION")"
 SRC="$IIW/dist/ii-windows"
 OUT="$IIW/dist/release"
-SETUP="$IIW/installer/target/x86_64-pc-windows-msvc/release/ii-windows-setup.exe"
+SETUP="${SETUP_EXE:-$IIW/installer/target/x86_64-pc-windows-msvc/release/ii-windows-setup.exe}"
 [ -d "$SRC" ] || { echo "no dist/ii-windows - run tools/deploy-ii.sh first" >&2; exit 1; }
 
 CARGO_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$IIW/installer/Cargo.toml" | head -n1)"
@@ -32,7 +32,11 @@ cp -f "$SETUP" "$STAGE/ii-windows-setup.exe"
 
 ZIP="ii-windows-$VERSION.zip"
 rm -f "$OUT/$ZIP" "$OUT/$ZIP.sha256"
-(cd "$STAGE" && zip -rqX "$OUT/$ZIP" .)
+if command -v zip >/dev/null; then
+	(cd "$STAGE" && zip -rqX "$OUT/$ZIP" .)
+else
+	"${PYTHON:-python3}" "$IIW/tools/zipdir.py" "$STAGE" "$OUT/$ZIP"
+fi
 (cd "$OUT" && sha256sum "$ZIP" > "$ZIP.sha256")
 cp -f "$SETUP" "$OUT/ii-windows-setup.exe"
 

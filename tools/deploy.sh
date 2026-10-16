@@ -43,10 +43,11 @@ for q in QtQuick QtQml QtCore Qt5Compat QtPositioning Qt; do
 	[ -d "$QT_WIN/qml/$q" ] && copy_tree "$QT_WIN/qml/$q" "$dest/qml/$q"
 done
 rm -rf "$dest/qml/Qt/test" "$dest/qml/QtQuick/Controls/Imagine" "$dest/qml/QtQuick/Controls/Universal"
-if [ -d "$IIW/toolchain/vcredist" ]; then
-	cp -f "$IIW"/toolchain/vcredist/*.dll "$dest/"
+VCREDIST_DIR="${VCREDIST_DIR:-$IIW/toolchain/vcredist}"
+if [ -d "$VCREDIST_DIR" ]; then
+	cp -f "$VCREDIST_DIR"/*.dll "$dest/"
 else
-	echo "warning: no toolchain/vcredist - qs.exe won't start where the VC++ runtime isn't installed" >&2
+	echo "warning: no $VCREDIST_DIR - qs.exe won't start where the VC++ runtime isn't installed" >&2
 fi
 
 printf '[Paths]\nPrefix = .\nPlugins = plugins\nQmlImports = qml\n' > "$dest/qt.conf"

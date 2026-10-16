@@ -1,8 +1,8 @@
 IIW="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export IIW
 export QT_VERSION=6.11.2
-export QT_WIN="$IIW/toolchain/qt/$QT_VERSION/msvc2022_64"
-export QT_HOST="$IIW/toolchain/qt/$QT_VERSION/gcc_64"
+export QT_WIN="${QT_WIN:-$IIW/toolchain/qt/$QT_VERSION/msvc2022_64}"
+export QT_HOST="${QT_HOST:-$IIW/toolchain/qt/$QT_VERSION/gcc_64}"
 export XWIN="$IIW/toolchain/xwin"
 
 export PATH="$PATH:$IIW/toolchain/bin"

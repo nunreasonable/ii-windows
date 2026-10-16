@@ -11,9 +11,13 @@ fi
 git -C "$HERE/upstream" fetch --tags --quiet || true
 git -C "$HERE/upstream" checkout --quiet "$SONGREC_TAG"
 
-export XWIN_CACHE_DIR="${XWIN_CACHE_DIR:-$IIW/toolchain/xwin-cache}"
 cd "$HERE/songrec-win"
-cargo xwin build --release --target x86_64-pc-windows-msvc -j "${JOBS:-4}"
+if [ -n "${NATIVE:-}" ]; then
+	cargo build --release --target x86_64-pc-windows-msvc -j "${JOBS:-4}"
+else
+	export XWIN_CACHE_DIR="${XWIN_CACHE_DIR:-$IIW/toolchain/xwin-cache}"
+	cargo xwin build --release --target x86_64-pc-windows-msvc -j "${JOBS:-4}"
+fi
 
 mkdir -p "$HERE/bin"
 cp target/x86_64-pc-windows-msvc/release/songrec.exe "$HERE/bin/"

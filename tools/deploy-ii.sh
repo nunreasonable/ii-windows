@@ -6,7 +6,12 @@ D="$IIW/dist/ii-windows"
 SHIMS="${SHIMS:-$IIW/quickshell/shims}"
 [ -d "$SHIMS" ] || SHIMS="$IIW/quickshell-shims/shims"
 
-"$IIW/tools/deploy.sh" "$D" "$IIW/build/qs/qs.exe" "$IIW/build/qs/qsw.exe" >/dev/null
+QS_BUILD="${QS_BUILD:-$IIW/build/qs}"
+DEPS="${DEPS_DIR:-$IIW/build/deps}"
+FONTTOOLS="${FONTTOOLS:-uv run -q --with fonttools fonttools}"
+"$IIW/tools/fetch-deps.sh" >/dev/null
+
+"$IIW/tools/deploy.sh" "$D" "$QS_BUILD/qs.exe" "$QS_BUILD/qsw.exe" >/dev/null
 
 pin_unused_axes() {
 	local src="$1" axes="$2" key cache
@@ -15,7 +20,7 @@ pin_unused_axes() {
 	if [ ! -f "$cache" ]; then
 		mkdir -p "$IIW/build/fonts"
 		# shellcheck disable=SC2086
-		if ! uv run -q --with fonttools fonttools varLib.instancer "$src" $axes -o "$cache.tmp" >/dev/null 2>&1; then
+		if ! $FONTTOOLS varLib.instancer "$src" $axes -o "$cache.tmp" >/dev/null 2>&1; then
 			rm -f "$cache.tmp"
 			cp -f "$src" "$D/fonts/"
 			return
@@ -27,12 +32,7 @@ pin_unused_axes() {
 
 rm -rf "$D/fonts"
 mkdir -p "$D/fonts"
-for f in \
-	/usr/share/fonts/google-sans-flex-vf-fonts/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf \
-	/usr/share/fonts/jetbrains-mono-nerd-fonts/JetBrainsMonoNerdFont-*.ttf \
-	"/usr/share/fonts/google-material-symbols-vf-rounded-fonts/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf" \
-	"/usr/share/fonts/google-readex-pro-vf-fonts/Readexpro[HEXP,wght].ttf" \
-	/usr/share/fonts/florian-karsten-space-grotesk-fonts/SpaceGrotesk-*.otf; do
+for f in "$DEPS"/fonts/*; do
 	case "$f" in
 	*GoogleSansFlex* | *MaterialSymbolsRounded*) pin_unused_axes "$f" "GRAD=0" ;;
 	*) cp -f "$f" "$D/fonts/" ;;
@@ -60,35 +60,34 @@ else
 	echo "warning: no shims found ($SHIMS)" >&2
 fi
 
-if [ -f "$IIW/toolchain/VirtualDesktopAccessor.dll" ]; then
-	cp -f "$IIW/toolchain/VirtualDesktopAccessor.dll" "$D/"
-fi
-if [ -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" ]; then
-	mkdir -p "$D/win10"
-	cp -f "$IIW/toolchain/win10/VirtualDesktopAccessor.dll" "$D/win10/"
-fi
+cp -f "$DEPS/vda/VirtualDesktopAccessor.dll" "$D/"
+mkdir -p "$D/win10"
+cp -f "$DEPS/vda/win10/VirtualDesktopAccessor.dll" "$D/win10/"
 
-if [ -f "$IIW/toolchain/matugen.exe" ]; then
-	cp -f "$IIW/toolchain/matugen.exe" "$D/"
+MATUGEN_EXE="${MATUGEN_EXE:-$IIW/toolchain/matugen.exe}"
+if [ -f "$MATUGEN_EXE" ]; then
+	cp -f "$MATUGEN_EXE" "$D/matugen.exe"
 else
-	echo "warning: no matugen.exe (toolchain/matugen.exe) - Windows wallpaper theming will fail" >&2
+	echo "warning: no $MATUGEN_EXE - Windows wallpaper theming will fail" >&2
 fi
 
-if [ -f "$IIW/tools/songrec/bin/songrec.exe" ]; then
-	cp -f "$IIW/tools/songrec/bin/songrec.exe" "$D/"
+SONGREC_DIR="${SONGREC_DIR:-$IIW/tools/songrec/bin}"
+if [ -f "$SONGREC_DIR/songrec.exe" ]; then
+	cp -f "$SONGREC_DIR/songrec.exe" "$D/"
 	mkdir -p "$D/licenses/songrec"
-	cp -f "$IIW/tools/songrec/bin/COPYING" "$IIW/tools/songrec/bin/SOURCE.txt" "$D/licenses/songrec/"
+	cp -f "$SONGREC_DIR/COPYING" "$SONGREC_DIR/SOURCE.txt" "$D/licenses/songrec/"
 else
-	echo "warning: no tools/songrec/bin/songrec.exe - music recognition will be unavailable" >&2
+	echo "warning: no $SONGREC_DIR/songrec.exe - music recognition will be unavailable" >&2
 fi
 
-if [ -f "$IIW/toolchain/microtex/LaTeX.exe" ]; then
-	cp -f "$IIW/toolchain/microtex/LaTeX.exe" "$D/"
-	rm -rf "$D/res" && cp -r "$IIW/toolchain/microtex/res" "$D/res"
+MICROTEX_DIR="${MICROTEX_DIR:-$IIW/toolchain/microtex}"
+if [ -f "$MICROTEX_DIR/LaTeX.exe" ]; then
+	cp -f "$MICROTEX_DIR/LaTeX.exe" "$D/"
+	rm -rf "$D/res" && cp -r "$MICROTEX_DIR/res" "$D/res"
 	mkdir -p "$D/licenses/microtex"
-	cp -rf "$IIW"/toolchain/microtex/licenses/. "$D/licenses/microtex/"
+	cp -rf "$MICROTEX_DIR"/licenses/. "$D/licenses/microtex/"
 else
-	echo "warning: no toolchain/microtex/LaTeX.exe - LaTeX rendering in the AI chat will be unavailable" >&2
+	echo "warning: no $MICROTEX_DIR/LaTeX.exe - LaTeX rendering in the AI chat will be unavailable" >&2
 fi
 
 rm -rf "$D/config/ii"
@@ -99,9 +98,10 @@ mkdir -p "$D/config"
 done
 
 QMLCACHE_GEN="${QMLCACHE_GEN:-$IIW/quickshell/tools/qmlcache-bundle.py}"
+QMLCACHEGEN="${QMLCACHEGEN:-$QT_HOST/libexec/qmlcachegen}"
 if [ -f "$QMLCACHE_GEN" ]; then
-	python3 "$QMLCACHE_GEN" "$D/config/ii" -q \
-		--qmlcachegen "$QT_HOST/libexec/qmlcachegen" --qt-version "$QT_VERSION" ||
+	"${PYTHON:-python3}" "$QMLCACHE_GEN" "$D/config/ii" -q \
+		--qmlcachegen "$QMLCACHEGEN" --qt-version "$QT_VERSION" ||
 		echo "warning: no QML bytecode bundle - ii will compile its QML from source at startup" >&2
 else
 	echo "warning: no $QMLCACHE_GEN - ii will compile its QML from source at startup" >&2
