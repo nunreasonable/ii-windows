@@ -235,6 +235,7 @@ window.I18N = {
 		m_restore_uncertain: "Another copy of ii was running when the setup recorded your taskbar settings, so they may not be exactly yours.",
 		m_cancelled: "Cancelled. Nothing was changed.",
 		m_files_in_use: "Some program files are in use: {error}",
+		m_files_locked: "Close {apps} and try again.",
 		m_internal: "Internal error: {error}"
 	},
 	pt: {
@@ -473,6 +474,7 @@ window.I18N = {
 		m_restore_uncertain: "Outra cópia do ii estava aberta quando o instalador anotou as configurações da barra de tarefas, então elas podem não ser exatamente as suas.",
 		m_cancelled: "Cancelado. Nada foi mudado.",
 		m_files_in_use: "Alguns arquivos do programa estão em uso: {error}",
+		m_files_locked: "Feche {apps} e tente de novo.",
 		m_internal: "Erro interno: {error}"
 	}
 };

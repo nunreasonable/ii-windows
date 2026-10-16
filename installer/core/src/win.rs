@@ -165,7 +165,7 @@ pub fn find_processes(names: &[&str]) -> Vec<Proc> {
 	out
 }
 
-fn image_path(pid: u32) -> Option<PathBuf> {
+pub(crate) fn image_path(pid: u32) -> Option<PathBuf> {
 	let h = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) }.ok()?;
 	let mut buf = vec![0u16; 32768];
 	let mut len = buf.len() as u32;

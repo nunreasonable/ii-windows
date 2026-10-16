@@ -13,7 +13,7 @@ use crate::package::{self, PackageInfo};
 use crate::paths::Paths;
 use crate::progress::{Event, Msg, Reporter, Status};
 use crate::release::{self, ReleaseInfo};
-use crate::{appinstaller, profile, style, ttf, version, win};
+use crate::{appinstaller, profile, restartmgr, style, ttf, version, win};
 
 type R<T> = Result<T, Msg>;
 
@@ -666,8 +666,16 @@ fn install_files(ctx: &mut Ctx, pkg: &PackageInfo) -> R<Swap> {
 	ctx.progress("files", 0.95, None);
 	let swap = Swap::run(&staging, &ctx.paths.install_dir, &ctx.paths.previous(), &KEEP).map_err(|e| {
 		let _ = fsops::remove_any(&staging);
-		let m =
-			Msg::new("files_in_use", format!("Couldn't replace the program files: {e}")).with("error", e.to_string());
+		let apps = restartmgr::describe(&restartmgr::locking(&[ctx.paths.install_dir.as_path()]));
+		let m = match apps {
+			Some(apps) => {
+				Msg::new("files_locked", format!("Couldn't replace the program files: close {apps} and try again"))
+					.with("apps", apps)
+					.with("error", e.to_string())
+			}
+			None => Msg::new("files_in_use", format!("Couldn't replace the program files: {e}"))
+				.with("error", e.to_string()),
+		};
 		ctx.fail("files", &m);
 		m
 	})?;
@@ -977,10 +985,16 @@ fn remove_fonts(ctx: &mut Ctx, m: &mut Manifest, step: &str) -> Vec<PathBuf> {
 		match fsops::remove_any(&f.file) {
 			Ok(()) => ctx.info(format!("   removed {}", f.file.display())),
 			Err(e) => {
-				ctx.info(format!(
-					"   {} is in use ({e}); it will be deleted after this setup closes",
-					f.file.display()
-				));
+				match restartmgr::describe(&restartmgr::locking(&[f.file.as_path()])) {
+					Some(apps) => ctx.info(format!(
+						"   {} is in use by {apps}; it will be deleted after this setup closes",
+						f.file.display()
+					)),
+					None => ctx.info(format!(
+						"   {} is in use ({e}); it will be deleted after this setup closes",
+						f.file.display()
+					)),
+				}
 				leftover.push(f.file.clone());
 			}
 		}
@@ -2155,7 +2169,16 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 		let _ = fsops::remove_any(&ctx.paths.staging());
 		let _ = fsops::remove_any(&ctx.paths.previous());
 		if let Err(e) = fsops::remove_any(&ctx.paths.install_dir) {
-			let m2 = io_msg("files_in_use", ctx.paths.install_dir.display(), e);
+			let apps = restartmgr::describe(&restartmgr::locking(&[ctx.paths.install_dir.as_path()]));
+			let m2 = match apps {
+				Some(apps) => Msg::new(
+					"files_locked",
+					format!("Couldn't remove {}: close {apps} and try again", ctx.paths.install_dir.display()),
+				)
+				.with("apps", apps)
+				.with("error", e.to_string()),
+				None => io_msg("files_in_use", ctx.paths.install_dir.display(), e),
+			};
 			ctx.fail("files", &m2);
 			return Err(m2);
 		}
