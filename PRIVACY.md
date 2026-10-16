@@ -8,9 +8,9 @@ Some features talk to other services over the internet. This page lists all of t
 
 These happen without you opening a feature.
 
-- **Update check (ii).** Once at startup and then once a day, ii asks GitHub (`api.github.com`) for the latest ii-windows release. The request carries no personal data beyond what any web request does (your IP address). The notification about a new version can be turned off in Settings → About. The check itself always runs.
+- **Update check (ii).** Once at startup and then once a day, ii asks GitHub (`api.github.com`) for the latest ii-windows release. The request carries no personal data beyond what any web request does (your IP address). Both the check and its notification can be turned off in Settings → About, with the "Check for updates automatically" and "Notify me when a new version is available" switches.
 - **Update check (setup).** Every time you open `ii-windows-setup.exe`, it asks GitHub for the latest release. If its own copy is older, it downloads the newer setup from the GitHub release, checks it against the SHA-256 that GitHub publishes, and reopens with it. It doesn't do this when uninstalling.
-- **App updates count.** At startup and every 2 hours, ii runs `winget upgrade` to count apps with updates. winget contacts its configured sources (Microsoft's by default). To turn it off, set `updates.enableCheck` to `false` in `%LOCALAPPDATA%\illogical-impulse\config.json`.
+- **App updates count.** At startup and every 2 hours, ii runs `winget upgrade` to count apps with updates. winget contacts its configured sources (Microsoft's by default). Turn it off in Settings → Services → App updates, with the "Count apps with available updates" switch.
 - **Weather (off by default).** If you turn the weather widget on, ii asks `wttr.in` for the forecast of the city you typed, every 10 minutes by default.
 
 ## Only when you use a feature
