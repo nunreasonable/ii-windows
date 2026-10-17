@@ -107,10 +107,13 @@ foreach ($panel in $panels) {
     IpcT $panel[0] $panel[1]; Start-Sleep 2
     IpcT $panel[2] $panel[3]; Start-Sleep 1
 }
+$shotDir = Join-Path $env:TEMP 'quickshell\media\screenshot'
 IpcT region screenshot; Start-Sleep 4
-PressEscape; Start-Sleep 2
-$shot = Get-ChildItem (Join-Path $env:TEMP 'quickshell\media\screenshot') -Filter 'image-*' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $shell.StartTime } | Select-Object -First 1
+$shot = Get-ChildItem $shotDir -Filter 'image-*' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $shell.StartTime -and $_.Name -notlike '*.tmp-*' } | Select-Object -First 1
 Check 'region screenshot captured (async)' ($null -ne $shot)
+PressEscape; Start-Sleep 2
+$left = @(Get-ChildItem $shotDir -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $shell.StartTime -and ($_.Name -like 'image-*' -or $_.Name -like '*.tmp-*') })
+Check 'region screenshot cleaned up after closing' ($left.Count -eq 0) "$($left.Count) files"
 Start-Sleep 10
 Check 'shell alive after opening every panel' (-not $shell.HasExited)
 $errors = LogErrors $log
