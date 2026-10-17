@@ -9,7 +9,9 @@ SETUP="${SETUP_EXE:-$IIW/installer/target/x86_64-pc-windows-msvc/release/ii-wind
 [ -d "$SRC" ] || { echo "no dist/ii-windows - run tools/deploy-ii.sh first" >&2; exit 1; }
 
 CARGO_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$IIW/installer/Cargo.toml" | head -n1)"
-if [ "$CARGO_VERSION" != "$VERSION" ] && [ "$CARGO_VERSION" != "$(echo "$VERSION" | cut -d. -f1-3)" ]; then
+VERSION_CORE="${VERSION%%[-+]*}"
+CARGO_EXPECTED="$(echo "$VERSION_CORE" | cut -d. -f1-3)${VERSION#"$VERSION_CORE"}"
+if [ "$CARGO_VERSION" != "$VERSION" ] && [ "$CARGO_VERSION" != "$CARGO_EXPECTED" ]; then
 	echo "installer/Cargo.toml says $CARGO_VERSION, VERSION says $VERSION" >&2
 	exit 1
 fi
