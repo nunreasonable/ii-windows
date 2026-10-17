@@ -122,6 +122,22 @@ mod tests {
 	}
 
 	#[test]
+	fn year_versions() {
+		assert!(is_newer("26.1.1.0", "1.0.8"));
+		assert!(is_newer("26.1.1.0", "26.1.1.0-unstable"));
+		assert!(is_newer("26.1.1.0-fix1", "26.1.1.0"));
+		assert!(is_newer("26.1.1.0-fix2", "26.1.1.0-fix1"));
+		assert!(is_newer("26.1.1.1", "26.1.1.0-fix9"));
+		assert!(is_newer("26.1.2.0", "26.1.1.3"));
+		assert!(is_newer("27.1.2.0", "26.1.1.3-fix4"));
+		assert!(is_newer("27.2.0.0", "27.1.9.9"));
+		assert!(!is_newer("26.1.1.0", "26.1.1.0"));
+		assert!(!is_prerelease("26.1.1.0-fix1"));
+		assert!(is_prerelease("26.1.1.0-unstable"));
+		assert_eq!(from_package_name("ii-windows-26.1.1.0-fix1.zip").as_deref(), Some("26.1.1.0-fix1"));
+	}
+
+	#[test]
 	fn ordering() {
 		assert!(is_newer("0.2.0", "0.1.0"));
 		assert!(is_newer("v0.10.0", "0.9.9"));

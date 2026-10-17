@@ -67,6 +67,7 @@
     - It downloads the package from the release and checks its SHA-256 before installing anything
   - Update, repair and uninstall are in the same setup: *Settings → Apps → Installed apps → illogical-impulse (ii-windows) → Modify*
   - Every time ii starts, it checks GitHub for a new version and, if there is one, shows a notification with an *Update* button that opens the setup. It never updates by itself: nothing changes until you confirm in the setup. Beta installs are told about newer betas too. You can turn the notification off in *Settings → About*
+  - Versions read **year.major.feature.fix** since 26.1.1.0, the release after 1.0.8: the year it came out, then the usual major, feature and fix numbers. A `-fixN` at the end is a hotfix of that release
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
@@ -148,7 +149,7 @@ ii-windows has no telemetry and sends nothing to its developers. A few things go
     <h3></h3>
 </div>
 
-Starting with 1.1.0, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases are signed. Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+Starting with 26.1.1.0, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases are signed. Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
 They are built from this repository by [GitHub Actions](.github/workflows/build.yml), from the source commits pinned in [sources.lock](sources.lock), and every signing request is approved by hand. The third-party programs in the package (matugen, SongRec, MicroTeX, VirtualDesktopAccessor, Qt) keep their own signatures or none.
 

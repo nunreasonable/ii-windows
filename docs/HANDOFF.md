@@ -23,12 +23,12 @@ Confirmado na VM em 2026-10-02:
   - C++: relaunch, qFatal, error mode herdado, ordem do filtro, use-after-free no Thumbnailer, caminhos nativos no OCR e no wallpaper, ethernet exigindo gateway, retomada do barramento de notificações e o vazamento do clipboard.
   - Pendentes, de baixo impacto: corrida no `CaptureHandle` (live alternando), `captureScreen` sem limite de espera, toasts fantasmas ao religar o acesso e nome do perfil de Wi-Fi diferente do SSID.
 
-## Checklist de release (vale até a 1.1.0 sair assinada)
+## Checklist de release (vale até a 26.1.1.0 sair assinada)
 
 Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.0.8 como `Trojan:Win32/Bearfoos.A!ml`, uma detecção do ML da nuvem pra arquivo novo e sem assinatura. A Microsoft removeu a detecção da 1.0.7 depois do envio como falso positivo, mas a liberação vale só pra aquele hash.
 
-1. **Bump:** atualizar o `VERSION`, o `installer/Cargo.toml` e o `installer/Cargo.lock`, e escrever a entrada aqui. Com os commits do `quickshell/` e do `ii/` prontos, rodar `tools/update-sources-lock.sh`: ele grava no `sources.lock` os commits que o build do GitHub Actions (`.github/workflows/build.yml`) vai usar.
-2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs -DQS_PRODUCT_NAME=ii-windows -DQS_VERSION_FILE=$PWD/VERSION; cmake --build build/qs`. As duas opções ficam no cache e a versão dos metadados acompanha o `VERSION`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
+1. **Bump:** atualizar o `VERSION` (`AA.X.Y.Z[-fixN]`, ver a seção da 26.1.1.0), o `installer/Cargo.toml` (`AA.X.Y`, o Cargo só aceita três números) e o `installer/Cargo.lock`, e escrever a entrada aqui. Com os commits do `quickshell/` e do `ii/` prontos, rodar `tools/update-sources-lock.sh`: ele grava no `sources.lock` os commits que o build do GitHub Actions (`.github/workflows/build.yml`) vai usar.
+2. **Build:** `. tools/env.sh; cmake -S quickshell -B build/qs -DQS_PRODUCT_NAME=ii-windows -DQS_COMPANY_NAME=nunreasonable -DQS_VERSION_FILE=$PWD/VERSION; cmake --build build/qs`. As três opções ficam no cache e a versão dos metadados acompanha o `VERSION`, mais o setup (`cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup`).
 3. **win10:** `tools/smoke-test.sh --start` precisa terminar em "RESULT: all passed".
 4. **win11 com o Defender ligado:**
    - `IIW_VM=WIN11V SMOKE_DOMAIN=win11 tools/smoke-test.sh --start`;
@@ -37,7 +37,7 @@ Desde 2026-10-15 o Defender marcou o `qsw.exe` da 1.0.7 e o primeiro build da 1.
 5. **Pacote com o MESMO binário testado:** `tools/deploy-ii.sh`, depois `SKIP_SETUP_BUILD=1 tools/release.sh`. Não recompilar depois do teste, e conferir que o hash do `qsw.exe` dentro do zip é o testado.
 6. **Envio à Microsoft antes de publicar:** o `qsw.exe` e o `ii-windows-setup.exe` do pacote vão pra https://www.microsoft.com/wdsi/filesubmission como "Software developer". O login é do mantenedor. Esperar o resultado quando der (a 1.0.7 voltou em algumas horas).
 7. **Publicação:** push dos três repositórios, `gh release create`, e conferir os digests dos assets contra os arquivos locais.
-8. **Da 1.1.0 em diante, as notas da release** terminam com uma seção "Code signing policy": a frase "Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)" e o link pra seção do README. A SignPath exige a política na home e nas páginas de download/release.
+8. **Da 26.1.1.0 em diante, as notas da release** terminam com uma seção "Code signing policy": a frase "Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)" e o link pra seção do README. A SignPath exige a política na home e nas páginas de download/release.
 
 ## Branches
 
@@ -192,9 +192,11 @@ Cada agente deixou os passos no próprio relatório. Os resumos estão em `docs/
 
 Estável em cima da 0.10.0, publicada da branch `release-0.10` (detalhes no HANDOFF dessa branch): `Ctrl+Win+/` e o lápis do cheatsheet abrem um editor de atalhos (`modules/ii/keybindsEditor/`, issue #11: desligar devolve o atalho ao Windows, trocar teclas, restaurar, abrir o arquivo), mais as três correções guardadas. O mesmo editor está no `windows` do ii (fc225e98) para a próxima beta.
 
-## 1.1.0 "Bureaucratic Hamster" (em andamento)
+## 26.1.1.0 "Bureaucratic Hamster" (em andamento, antes chamada 1.1.0)
 
-A 1.1.0 vai sair assinada pela SignPath Foundation e com claro/escuro automático. Até lá, as versões dela saem como pre-release ("Unstable") no GitHub: o aviso de atualização e o setup de quem está na 1.0.x só olham `/releases/latest`, então não as oferecem; quem instalar uma unstable passa a receber as seguintes e a 1.1.0 final.
+A 26.1.1.0 vai sair assinada pela SignPath Foundation e com claro/escuro automático. Até lá, as versões dela saem como pre-release ("Unstable") no GitHub: o aviso de atualização e o setup de quem está na 1.0.x só olham `/releases/latest`, então não as oferecem; quem instalar uma unstable passa a receber as seguintes e a 26.1.1.0 final.
+
+**Versões a partir daqui:** `AA.X.Y.Z[-fixN]`. AA é o ano da release (26 em 2026, 27 a partir de janeiro), X a major, Y as features e Z as correções; X, Y e Z não zeram na virada do ano. `-fixN` é hotfix da mesma release (N soma as correções aplicadas em cima dela e zera no próximo Z). O ii (`SelfUpdate.qml`) e o setup (`version.rs`) já comparam quatro números e tratam `fixN` como posterior à base e `unstable`/`beta` como anterior. O Cargo só aceita três números, então ele fica em `AA.X.Y[-pre]`, e o `installer/app/build.rs` grava a versão completa do `VERSION` no recurso do setup (texto completo, número `AA.X.Y.0`). O `qsw.exe`/`qs.exe` levam o `VERSION` inteiro (`QS_VERSION_FILE`) e o mesmo CompanyName (`QS_COMPANY_NAME=nunreasonable`), pra os três executáveis assinados terem os mesmos metadados.
 
 - **1.1.0-unstable (2026-10-16):** preparação pra SignPath. O `qsw.exe` e o `qs.exe` ganham recurso de versão (ProductName `ii-windows`, versão do `VERSION`, quickshell 66c5984; opções `QS_PRODUCT_NAME` e `QS_VERSION_FILE` no CMake) e o setup passa a se chamar "ii-windows" nos metadados (o título da janela continua "illogical-impulse Setup"). Checklist de release no topo deste arquivo.
 

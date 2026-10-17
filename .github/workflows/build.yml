@@ -90,7 +90,7 @@ jobs:
           cmake -S quickshell -B build/qs -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
             -DCMAKE_PREFIX_PATH="$QT_WIN" -DCLI11_INCLUDE_DIR="$CLI11_DIR/include" \
-            -DQS_PRODUCT_NAME=ii-windows -DQS_VERSION_FILE="$(cygpath -m "$PWD/VERSION")"
+            -DQS_PRODUCT_NAME=ii-windows -DQS_COMPANY_NAME=nunreasonable -DQS_VERSION_FILE="$(cygpath -m "$PWD/VERSION")"
           cmake --build build/qs
 
       - name: Build the setup
