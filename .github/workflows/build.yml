@@ -131,3 +131,54 @@ jobs:
           name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
           path: dist/release/
           if-no-files-found: error
+
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - name: Check out ii at the locked commit
+        run: |
+          read -r name url sha < <(grep '^ii ' sources.lock)
+          git init -q ii
+          git -C ii fetch -q --depth 1 "$url" "$sha"
+          git -C ii checkout -q FETCH_HEAD
+          git -C ii submodule update -q --init --recursive
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
+          path: pkg
+
+      - name: List every QML file for the compile check
+        run: python tools/qml-compile-check.py ii > pkg/compilecheck.qml
+
+      - name: Smoke test
+        shell: powershell
+        run: |
+          $zip = Get-ChildItem pkg -Filter 'ii-windows-*.zip' | Where-Object Name -notlike '*.sha256' | Select-Object -First 1
+          & tools\smoke\ci-smoke.ps1 -Package $zip.FullName -Setup pkg\ii-windows-setup.exe -CompileCheck pkg\compilecheck.qml -Work "$env:RUNNER_TEMP\iiw" -Output "$env:RUNNER_TEMP\iiw\smoke.txt"
+          exit $LASTEXITCODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.runner }}-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/iiw/smoke.txt
+            ${{ runner.temp }}/iiw/logs/
+          if-no-files-found: ignore
