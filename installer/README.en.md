@@ -51,8 +51,17 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   if it doesn't exist yet and the choice isn't the default); ii applies the rest the next time it
   starts. You can switch any time in Settings > Quick > Style. Update shows the same choice,
   preselected with the style you have now.
-- **Start with Windows** (on by default): adds `illogical-impulse` to the "Run" list of your
-  user (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), so ii starts when you sign in.
+- **Start with Windows** (on by default): starts ii when you sign in, in one of two ways (only
+  one of them is there at a time, and ii's Settings > System > Autostart has the same choice):
+  - *Scheduled task (starts sooner)*, the default: a task in the Task Scheduler Library called
+    `illogical-impulse-<your account's SID>`, made for your user without administrator
+    permission, that starts ii a second or two after you sign in. Task Manager's Startup tab
+    doesn't list scheduled tasks: turn it off in ii's Settings, or here. If Windows doesn't let
+    the setup create the task (a policy, for example), it uses the registry entry below instead
+    and says so.
+  - *Startup registry entry*: `illogical-impulse` in the "Run" list of your user
+    (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), which Windows starts with the other
+    startup apps, about 15 seconds after you sign in. Earlier versions always used this.
 - **Terminal setup** (on by default), the Windows version of ii's terminal look:
   - the *JetBrainsMono Nerd Font* is installed for your user (copied to
     `%LOCALAPPDATA%\Microsoft\Windows\Fonts` and registered under `HKCU`); font files you
@@ -193,7 +202,8 @@ light or dark mode, the accent color and whether the taskbar hides automatically
 
 Uninstall reads `install-manifest.json` and undoes what it lists:
 
-- closes ii; removes the "Run" entry, the Start menu shortcuts and the Apps & features entry;
+- closes ii; removes the scheduled task or the "Run" entry, the Start menu shortcuts and the
+  Apps & features entry;
 - takes the marked block out of your PowerShell profiles (a copy of each profile from before is
   saved in `%TEMP%`, and the uninstall tells you where);
 - puts the PowerShell execution policy back, if this setup changed it;
@@ -226,10 +236,13 @@ installing stay installed.
 `%LOCALAPPDATA%\illogical-impulse\backups\repair-<date>`, so ii starts with its defaults. Then it
 reinstalls the program files of the installed version (downloading them if needed), resets the
 color palette to the default one, clears Quickshell's QML cache, applies the options you
-installed with again, and restarts ii.
+installed with again, and restarts ii. How ii starts with Windows stays as it is now, including a
+change you made in ii's Settings.
 
 **Update** looks for a newer release on GitHub. If there is one, it downloads and checks it,
-replaces the program files and ii's own files, keeps your settings, and restarts ii.
+replaces the program files and ii's own files, keeps your settings, and restarts ii. It also keeps
+how ii starts with Windows, except that an install that still starts from the "Run" list (what
+versions before the scheduled task did) moves to the scheduled task.
 
 ## Good to know
 

@@ -1,12 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+use crate::startup::{self, StartupMethod};
+
 pub const SCHEMA: u32 = 1;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Options {
 	pub autostart: bool,
+	#[serde(deserialize_with = "startup::lenient_method")]
+	pub autostart_method: Option<StartupMethod>,
 	pub terminal: bool,
 	pub pwsh7: bool,
 	pub exec_policy: bool,
@@ -20,6 +24,12 @@ pub struct RunValue {
 	pub name: String,
 	pub previous: Option<String>,
 	pub set: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct StartupTask {
+	pub name: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -66,6 +76,7 @@ pub struct Items {
 	pub shortcuts: Vec<PathBuf>,
 	pub uninstall_key: Option<String>,
 	pub run_value: Option<RunValue>,
+	pub startup_task: Option<StartupTask>,
 	pub fonts: Vec<Font>,
 	pub winget: Vec<WingetPackage>,
 	pub profiles: Vec<ProfileEdit>,
@@ -174,6 +185,8 @@ mod tests {
 		let mut m = Manifest::new(&dir);
 		m.version = "0.1.0".into();
 		m.options.autostart = true;
+		m.options.autostart_method = Some(StartupMethod::Run);
+		m.items.startup_task = Some(StartupTask { name: "illogical-impulse-S-1-5-21-1".into() });
 		m.items.fonts.push(Font { file: "C:\\x.ttf".into(), registry_name: "X (TrueType)".into() });
 		m.pre_install = Some(PreInstall { taskbar_autohide: Some(false), ..Default::default() });
 		m.save(&path).unwrap();
@@ -183,6 +196,13 @@ mod tests {
 		let partial = Manifest::load(&path).unwrap().unwrap();
 		assert_eq!(partial.version, "0.2.0");
 		assert!(partial.options.autostart);
+		assert_eq!(partial.options.autostart_method, None);
+		std::fs::write(&path, br#"{"options":{"autostart":true,"autostart_method":"service"}}"#).unwrap();
+		let future = Manifest::load(&path).unwrap().unwrap();
+		assert!(future.options.autostart);
+		assert_eq!(future.options.autostart_method, None);
+		std::fs::write(&path, br#"{"options":{"autostart_method":"task"}}"#).unwrap();
+		assert_eq!(Manifest::load(&path).unwrap().unwrap().options.autostart_method, Some(StartupMethod::Task));
 		assert!(Manifest::load(&dir.join("missing.json")).unwrap().is_none());
 		std::fs::remove_dir_all(&dir).unwrap();
 	}

@@ -56,9 +56,19 @@ tarefas se oculta automaticamente.
   escolha não for a padrão); o ii aplica o resto na próxima vez que abrir. Dá para trocar quando
   quiser em Configurações > Básico > Estilo. A atualização mostra a mesma escolha, já marcada com
   o estilo que você usa agora.
-- **Iniciar com o Windows** (ligada por padrão): adiciona `illogical-impulse` à lista "Run" do
-  seu usuário (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), para o ii abrir quando você
-  entra no Windows.
+- **Iniciar com o Windows** (ligada por padrão): abre o ii quando você entra no Windows, de um
+  de dois jeitos (só um deles existe de cada vez, e Configurações > Sistema > Inicialização do ii
+  tem a mesma escolha):
+  - *Tarefa agendada (abre mais cedo)*, a padrão: uma tarefa na Biblioteca do Agendador de
+    Tarefas chamada `illogical-impulse-<o SID da sua conta>`, criada para o seu usuário sem
+    permissão de administrador, que abre o ii um ou dois segundos depois que você entra. A aba
+    Inicializar do Gerenciador de Tarefas não lista tarefas agendadas: desligue nas
+    Configurações do ii, ou aqui. Se o Windows não deixar o instalador criar a tarefa (por uma
+    política, por exemplo), ele usa a entrada no Registro abaixo e avisa.
+  - *Entrada de inicialização no Registro*: `illogical-impulse` na lista "Run" do seu usuário
+    (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), que o Windows abre junto com os outros
+    apps de inicialização, uns 15 segundos depois que você entra. As versões anteriores sempre
+    usavam esta.
 - **Configuração do terminal** (ligada por padrão), a versão Windows do visual de terminal do ii:
   - a fonte *JetBrainsMono Nerd Font* é instalada para o seu usuário (copiada para
     `%LOCALAPPDATA%\Microsoft\Windows\Fonts` e registrada em `HKCU`); arquivos de fonte que você
@@ -207,8 +217,8 @@ tarefas se oculta automaticamente.
 
 A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
 
-- fecha o ii; remove a entrada "Run", os atalhos do menu Iniciar e a entrada de Aplicativos
-  instalados;
+- fecha o ii; remove a tarefa agendada ou a entrada "Run", os atalhos do menu Iniciar e a
+  entrada de Aplicativos instalados;
 - tira o bloco marcado dos seus perfis do PowerShell (uma cópia de cada perfil de antes é salva
   em `%TEMP%`, e a desinstalação diz onde);
 - volta a política de execução do PowerShell, se este instalador a mudou;
@@ -243,10 +253,13 @@ instaladas.
 `%LOCALAPPDATA%\illogical-impulse\backups\repair-<data>`, para o ii abrir com os padrões.
 Depois reinstala os arquivos do programa da versão instalada (baixando-os se preciso), volta a
 paleta de cores para a padrão, limpa o cache de QML do Quickshell, aplica de novo as opções com
-que você instalou e abre o ii outra vez.
+que você instalou e abre o ii outra vez. O jeito como o ii inicia com o Windows fica como está
+agora, inclusive se você mudou nas Configurações do ii.
 
 **Atualizar** procura uma versão mais nova no GitHub. Se houver, baixa e confere, substitui os
 arquivos do programa e os arquivos do próprio ii, mantém as suas configurações e reabre o ii.
+Também mantém o jeito como o ii inicia com o Windows, só que uma instalação que ainda abre pela
+lista "Run" (o que as versões de antes da tarefa agendada faziam) passa para a tarefa agendada.
 
 ## Bom saber
 

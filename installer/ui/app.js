@@ -223,7 +223,8 @@
 	];
 
 	function defaultOpts() {
-		const o = info.installed ? { ...info.installed.options } : { autostart: true, terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
+		const o = info.installed ? { ...info.installed.options } : { autostart: true, autostart_method: "task", terminal: true, pwsh7: false, exec_policy: false, ffmpeg: false };
+		o.autostart_method = o.autostart_method === "run" ? "run" : "task";
 		o.visual_style = info.current_style || (STYLES.some((s) => s.id === o.visual_style) ? o.visual_style : "ii");
 		return o;
 	}
@@ -252,6 +253,17 @@
 			<span class="row-text"><span class="row-title">${esc(title)}</span><span class="row-desc">${desc}</span>${extra ? `<span class="row-extra ${extraCls}">${extra}</span>` : ""}</span>
 			<span class="switch"><input type="checkbox" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}><span class="track"></span><span class="thumb"></span></span>
 		</label>`;
+	}
+
+	function methodGroup(o) {
+		const items = ["task", "run"].map((m) => {
+			const on = o.autostart_method === m;
+			return `<button type="button" class="method-opt${on ? " selected" : ""}" data-method="${m}" role="radio" aria-checked="${on}">
+				<span class="method-dot"></span>
+				<span class="method-text"><span class="method-name">${esc(t(`o_method_${m}`))}</span><span class="method-sub">${esc(t(`o_method_${m}_desc`))}</span></span>
+			</button>`;
+		}).join("");
+		return `<div class="method-group" role="radiogroup" aria-label="${esc(t("o_method"))}">${items}</div>`;
 	}
 
 	function sourceCard(action) {
@@ -341,6 +353,7 @@
 			if (pf && !pf.winget && !(noWinget && S.installWinget)) ffmpegExtra = esc(t("o_ffmpeg_nowinget"));
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
 				${switchRow("autostart", "power", t("o_autostart"), esc(t("o_autostart_desc")), o.autostart)}
+				${o.autostart ? methodGroup(o) : ""}
 				${switchRow("terminal", "terminal", t("o_terminal"), esc(t("o_terminal_desc")), o.terminal, { extra: terminalExtra, extraCls: terminalExtraCls })}
 				${wingetRow(pf, o.terminal, o.ffmpeg)}
 				${switchRow("pwsh7", "pwsh", t("o_pwsh7"), esc(t("o_pwsh7_desc")), o.pwsh7, { disabled: !!pwshPresent, extra: pwshPresent ? esc(t("o_pwsh7_present")) : "", extraCls: "ok" })}
@@ -415,7 +428,7 @@
 		else if (id === "install_winget") S.installWinget = checked;
 		else if (S.action === "uninstall") S.uopts[id] = checked;
 		else S.opts[id] = checked;
-		if (id === "terminal" || id === "ffmpeg" || id === "force" || id === "install_winget") renderOptions();
+		if (id === "autostart" || id === "terminal" || id === "ffmpeg" || id === "force" || id === "install_winget") renderOptions();
 		else updateGo();
 	}
 
@@ -705,6 +718,12 @@
 			const zoom = e.target.closest("[data-zoom]");
 			if (zoom) {
 				openZoom(zoom.dataset.zoom);
+				return;
+			}
+			const method = e.target.closest("[data-method]");
+			if (method && S.opts && S.opts.autostart_method !== method.dataset.method) {
+				S.opts.autostart_method = method.dataset.method;
+				renderOptions();
 				return;
 			}
 			const style = e.target.closest("[data-style]");

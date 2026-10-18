@@ -7,12 +7,14 @@ use crate::fsops::{self, Swap};
 use crate::knownfolders::{self, KnownFolder};
 use crate::log::{self, Log};
 use crate::manifest::{
-	AppInstaller, ExecPolicyChange, Font, Manifest, Options, PreInstall, ProfileEdit, RunValue, WingetPackage,
+	AppInstaller, ExecPolicyChange, Font, Manifest, Options, PreInstall, ProfileEdit, RunValue, StartupTask,
+	WingetPackage,
 };
 use crate::package::{self, PackageInfo};
 use crate::paths::Paths;
 use crate::progress::{Event, Msg, Reporter, Status};
 use crate::release::{self, ReleaseInfo};
+use crate::startup::{self, Refresh, StartupMethod};
 use crate::{appinstaller, profile, restartmgr, style, ttf, version, win};
 
 type R<T> = Result<T, Msg>;
@@ -859,44 +861,245 @@ fn shortcuts_and_entry(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 }
 
-fn run_command(p: &Paths) -> String {
-	format!("\"{}\" -n -c ii", p.qsw_exe().display())
+fn qsw_command(p: &Paths) -> String {
+	startup::run_command(&p.qsw_exe().display().to_string())
 }
 
-fn set_autostart(ctx: &mut Ctx, m: &mut Manifest, on: bool) {
-	ctx.begin("autostart");
-	let name = crate::RUN_VALUE;
-	if on {
-		let current = win::get_string(win::RUN_KEY, name);
-		let wanted = run_command(&ctx.paths);
-		if m.items.run_value.is_none() {
-			let previous =
-				current.filter(|v| !v.to_lowercase().contains(&ctx.paths.install_dir.to_string_lossy().to_lowercase()));
-			m.items.run_value = Some(RunValue { name: name.into(), previous, set: false });
-		}
-		match win::set_string(win::RUN_KEY, name, &wanted) {
-			Ok(()) => {
-				if let Some(r) = m.items.run_value.as_mut() {
-					r.set = true;
-				}
-				ctx.done("autostart");
+fn run_value_ours(p: &Paths) -> bool {
+	let dir = p.install_dir.to_string_lossy().to_lowercase();
+	win::get_string(win::RUN_KEY, crate::RUN_VALUE).is_some_and(|v| v.to_lowercase().contains(&dir))
+}
+
+struct SelfTask {
+	name: String,
+	user_id: String,
+}
+
+fn self_task() -> Result<SelfTask, String> {
+	let account =
+		win::current_account().ok_or_else(|| "couldn't read this account's security identifier".to_string())?;
+	Ok(SelfTask { name: startup::task_name(&account.sid), user_id: account.user_id })
+}
+
+fn live_autostart(p: &Paths) -> (startup::Live, Option<String>) {
+	let run = run_value_ours(p).then(|| !win::startup_approved_disabled(crate::RUN_VALUE));
+	let (task, error) = match self_task().and_then(|t| win::task_enabled(&t.name)) {
+		Ok(task) => (task, None),
+		Err(e) => (None, Some(e)),
+	};
+	(startup::Live { task, run }, error)
+}
+
+pub fn current_autostart(p: &Paths, recorded: Option<StartupMethod>) -> (bool, StartupMethod) {
+	startup::current(recorded, live_autostart(p).0)
+}
+
+fn register_self_task(ctx: &Ctx, m: &mut Manifest) -> Result<(), String> {
+	let t = self_task()?;
+	let p = &ctx.paths;
+	let xml = startup::task_xml(&t.user_id, &p.qsw_exe().display().to_string(), &p.install_dir.display().to_string());
+	win::register_task(&t.name, &xml)?;
+	ctx.info(format!("   scheduled task \\{} (logon of {})", t.name, t.user_id));
+	m.items.startup_task = Some(StartupTask { name: t.name });
+	Ok(())
+}
+
+fn delete_self_task(ctx: &Ctx, m: &mut Manifest) -> Result<bool, String> {
+	let mut names: Vec<String> = m.items.startup_task.iter().map(|t| t.name.clone()).collect();
+	match self_task() {
+		Ok(t) => {
+			if !names.iter().any(|n| n.eq_ignore_ascii_case(&t.name)) {
+				names.push(t.name);
 			}
-			Err(e) => ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e)),
 		}
-	} else if let Some(r) = m.items.run_value.take() {
+		Err(e) => ctx.info(format!("   {e}")),
+	}
+	let mut removed = false;
+	for name in &names {
+		if win::delete_task(name)? {
+			removed = true;
+			ctx.info(format!("   deleted the scheduled task \\{name}"));
+		}
+	}
+	m.items.startup_task = None;
+	Ok(removed)
+}
+
+fn write_run_value(ctx: &Ctx, m: &mut Manifest, enable: bool) -> std::io::Result<()> {
+	let name = crate::RUN_VALUE;
+	if m.items.run_value.is_none() {
+		let dir = ctx.paths.install_dir.to_string_lossy().to_lowercase();
+		let previous = win::get_string(win::RUN_KEY, name).filter(|v| !v.to_lowercase().contains(&dir));
+		m.items.run_value = Some(RunValue { name: name.into(), previous, set: false });
+	}
+	win::set_string(win::RUN_KEY, name, &qsw_command(&ctx.paths))?;
+	if let Some(r) = m.items.run_value.as_mut() {
+		r.set = true;
+	}
+	if enable {
+		let _ = win::delete_value(win::APPROVED_RUN_KEY, name);
+	}
+	Ok(())
+}
+
+fn remove_run_value(ctx: &Ctx, m: &mut Manifest) -> std::io::Result<bool> {
+	let name = crate::RUN_VALUE;
+	if let Some(r) = m.items.run_value.take() {
 		let res = match &r.previous {
 			Some(prev) => win::set_string(win::RUN_KEY, name, prev),
-			None => win::delete_value(win::RUN_KEY, name),
+			None => win::delete_value(win::RUN_KEY, name).map(|_| {
+				let _ = win::delete_value(win::APPROVED_RUN_KEY, name);
+			}),
 		};
-		match res {
-			Ok(()) => ctx.done_with("autostart", Msg::new("autostart_off", "Start with Windows turned off")),
+		return match res {
+			Ok(()) => {
+				ctx.info("   removed the startup registry entry");
+				Ok(true)
+			}
 			Err(e) => {
 				m.items.run_value = Some(r);
-				ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e));
+				Err(e)
 			}
+		};
+	}
+	if !run_value_ours(&ctx.paths) {
+		return Ok(false);
+	}
+	win::delete_value(win::RUN_KEY, name)?;
+	let _ = win::delete_value(win::APPROVED_RUN_KEY, name);
+	ctx.info("   removed the startup registry entry");
+	Ok(true)
+}
+
+fn task_failed_msg(e: &str) -> Msg {
+	Msg::new(
+		"autostart_task_failed",
+		format!("Couldn't create the scheduled task ({e}); ii starts from the startup registry entry instead"),
+	)
+	.with("error", e.to_string())
+}
+
+fn task_delete_failed_msg(e: &str) -> Msg {
+	Msg::new("autostart_task_delete_failed", format!("Couldn't delete the scheduled task: {e}"))
+		.with("error", e.to_string())
+}
+
+fn set_autostart(ctx: &mut Ctx, m: &mut Manifest, on: bool, method: StartupMethod) -> (bool, Option<StartupMethod>) {
+	ctx.begin("autostart");
+	if !on {
+		let task = delete_self_task(ctx, m);
+		let run = remove_run_value(ctx, m);
+		if let Err(e) = &task {
+			ctx.warn("autostart", task_delete_failed_msg(e));
 		}
-	} else {
-		ctx.skip("autostart", Msg::new("autostart_not_set", "not starting with Windows"));
+		if let Err(e) = &run {
+			ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e));
+		}
+		match (&task, &run) {
+			(Ok(true), Ok(_)) | (Ok(_), Ok(true)) => {
+				ctx.done_with("autostart", Msg::new("autostart_off", "Start with Windows turned off"))
+			}
+			(Ok(false), Ok(false)) => ctx.skip("autostart", Msg::new("autostart_not_set", "not starting with Windows")),
+			_ => {}
+		}
+		return (false, Some(method));
+	}
+	match method {
+		StartupMethod::Task => match register_self_task(ctx, m) {
+			Ok(()) => {
+				match remove_run_value(ctx, m) {
+					Ok(_) => ctx.done_with("autostart", Msg::new("autostart_task", "Scheduled task")),
+					Err(e) => ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e)),
+				}
+				(true, Some(StartupMethod::Task))
+			}
+			Err(e) => {
+				ctx.info(format!("   couldn't create the scheduled task: {e}"));
+				match write_run_value(ctx, m, true) {
+					Ok(()) => {
+						ctx.warn("autostart", task_failed_msg(&e));
+						(true, Some(StartupMethod::Run))
+					}
+					Err(re) => {
+						ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", re));
+						(false, Some(StartupMethod::Task))
+					}
+				}
+			}
+		},
+		StartupMethod::Run => match write_run_value(ctx, m, true) {
+			Ok(()) => {
+				match delete_self_task(ctx, m) {
+					Ok(_) => ctx.done_with("autostart", Msg::new("autostart_run", "Startup registry entry")),
+					Err(e) => ctx.warn("autostart", task_delete_failed_msg(&e)),
+				}
+				(true, Some(StartupMethod::Run))
+			}
+			Err(e) => {
+				ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e));
+				let task = live_autostart(&ctx.paths).0.task;
+				(task == Some(true), Some(if task.is_some() { StartupMethod::Task } else { StartupMethod::Run }))
+			}
+		},
+	}
+}
+
+fn refresh_autostart(ctx: &mut Ctx, m: &mut Manifest) -> (bool, Option<StartupMethod>) {
+	ctx.begin("autostart");
+	let recorded = m.options.autostart_method;
+	let (live, error) = live_autostart(&ctx.paths);
+	if let Some(e) = &error {
+		ctx.info(format!("   couldn't read the scheduled task: {e}"));
+	}
+	let plan = startup::refresh_plan(recorded, live);
+	ctx.info(format!("   recorded {recorded:?}, task {:?}, Run {:?}: {plan:?}", live.task, live.run));
+	let disabled = || Msg::new("autostart_disabled", "Turned off outside ii; left as it is");
+	match plan {
+		Refresh::Task { enabled } => {
+			if enabled {
+				if let Err(e) = register_self_task(ctx, m) {
+					ctx.info(format!("   couldn't refresh the scheduled task, kept it as it was: {e}"));
+				}
+			}
+			match remove_run_value(ctx, m) {
+				Err(e) => ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e)),
+				Ok(_) if enabled => ctx.done_with("autostart", Msg::new("autostart_task", "Scheduled task")),
+				Ok(_) => ctx.done_with("autostart", disabled()),
+			}
+			(enabled, Some(StartupMethod::Task))
+		}
+		Refresh::Run { enabled } => {
+			match write_run_value(ctx, m, false) {
+				Err(e) => ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e)),
+				Ok(()) if enabled => ctx.done_with("autostart", Msg::new("autostart_run", "Startup registry entry")),
+				Ok(()) => ctx.done_with("autostart", disabled()),
+			}
+			(enabled, recorded.map(|_| StartupMethod::Run))
+		}
+		Refresh::Migrate => match register_self_task(ctx, m) {
+			Ok(()) => {
+				match remove_run_value(ctx, m) {
+					Ok(_) => ctx.done_with(
+						"autostart",
+						Msg::new("autostart_migrated", "Moved from the startup registry entry to a scheduled task"),
+					),
+					Err(e) => ctx.warn("autostart", io_msg("autostart_failed", "HKCU Run", e)),
+				}
+				(true, Some(StartupMethod::Task))
+			}
+			Err(e) => {
+				ctx.info(format!("   couldn't create the scheduled task: {e}"));
+				if let Err(re) = write_run_value(ctx, m, false) {
+					ctx.info(format!("   couldn't refresh the startup registry entry: {re}"));
+				}
+				ctx.warn("autostart", task_failed_msg(&e));
+				(true, Some(StartupMethod::Run))
+			}
+		},
+		Refresh::Off => {
+			ctx.skip("autostart", Msg::new("autostart_not_set", "not starting with Windows"));
+			(false, recorded)
+		}
 	}
 }
 
@@ -1596,10 +1799,23 @@ fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
 	}
 }
 
-fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous: &Options, run: &RunOptions) {
+fn apply_integrations(
+	ctx: &mut Ctx,
+	m: &mut Manifest,
+	opts: &Options,
+	previous: &Options,
+	run: &RunOptions,
+	explicit_autostart: bool,
+) {
 	shortcuts_and_entry(ctx, m);
 	save(ctx, m);
-	set_autostart(ctx, m, opts.autostart);
+	let (autostart, autostart_method) = if explicit_autostart {
+		set_autostart(ctx, m, opts.autostart, opts.autostart_method.unwrap_or_default())
+	} else {
+		refresh_autostart(ctx, m)
+	};
+	m.options.autostart = autostart;
+	m.options.autostart_method = autostart_method;
 	save(ctx, m);
 	if opts.terminal {
 		install_fonts(ctx, m);
@@ -1639,7 +1855,7 @@ fn apply_integrations(ctx: &mut Ctx, m: &mut Manifest, opts: &Options, previous:
 	if opts.exec_policy || m.items.exec_policy.as_ref().is_some_and(|c| c.changed) {
 		apply_exec_policy(ctx, m, opts.exec_policy);
 	}
-	m.options = opts.clone();
+	m.options = Options { autostart, autostart_method, ..opts.clone() };
 	save(ctx, m);
 }
 
@@ -1721,7 +1937,7 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		apply_style(ctx, &opts.visual_style);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
-		apply_integrations(ctx, &mut m, &opts, &previous_opts, run);
+		apply_integrations(ctx, &mut m, &opts, &previous_opts, run, true);
 		ctx.begin("finish");
 		m.state = "installed".into();
 		save(ctx, &m);
@@ -1742,7 +1958,7 @@ pub fn update(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		return ctx.finish(Err(Msg::new("not_installed", "ii-windows isn't installed by this setup")), false);
 	};
 	let mut plan = source_steps(source);
-	plan.extend(["stop", "files", "config", "shortcuts", "finish"]);
+	plan.extend(["stop", "files", "config", "shortcuts", "autostart", "finish"]);
 	plan.push("launch");
 	ctx.plan(&plan);
 	ctx.log.open(&ctx.paths.log());
@@ -1775,9 +1991,10 @@ pub fn update(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		}
 		copy_setup_exe(ctx, &pkg);
 		shortcuts_and_entry(ctx, &mut m);
-		if m.options.autostart {
-			let _ = win::set_string(win::RUN_KEY, crate::RUN_VALUE, &run_command(&ctx.paths));
-		}
+		save(ctx, &m);
+		let (autostart, autostart_method) = refresh_autostart(ctx, &mut m);
+		m.options.autostart = autostart;
+		m.options.autostart_method = autostart_method;
 		ctx.begin("finish");
 		m.state = "installed".into();
 		save(ctx, &m);
@@ -1863,7 +2080,7 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		apply_style(ctx, &opts.visual_style);
 		copy_setup_exe(ctx, &pkg);
 		save(ctx, &m);
-		apply_integrations(ctx, &mut m, &opts, &opts, run);
+		apply_integrations(ctx, &mut m, &opts, &opts, run, false);
 		ctx.begin("finish");
 		m.state = "installed".into();
 		save(ctx, &m);
@@ -1928,7 +2145,10 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 	let result = (|| -> R<()> {
 		stop_ii(ctx, Some(&m));
 
-		set_autostart(ctx, &mut m, false);
+		let method = m.options.autostart_method.unwrap_or_default();
+		let (autostart, autostart_method) = set_autostart(ctx, &mut m, false, method);
+		m.options.autostart = autostart;
+		m.options.autostart_method = autostart_method;
 		save(ctx, &m);
 
 		ctx.begin("shortcuts");
