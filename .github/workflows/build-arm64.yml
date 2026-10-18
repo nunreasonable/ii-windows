@@ -1,0 +1,108 @@
+name: Build ARM64
+
+on:
+  push:
+    branches: [arm64]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quickshell:
+    runs-on: windows-11-arm
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      QT_VERSION: 6.11.2
+      AQTINSTALL_COMMIT: 076e1659807d0b362a3ed684d54c2e9c775eb9c7
+      CLI11_TAG: v2.5.0
+
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - name: Check out quickshell at the locked commit
+        run: |
+          read -r name url sha < <(grep '^quickshell ' sources.lock)
+          git init -q quickshell
+          git -C quickshell fetch -q --depth 1 "$url" "$sha"
+          git -C quickshell checkout -q FETCH_HEAD
+          echo "quickshell $(git -C quickshell rev-parse HEAD)"
+
+      - name: Paths
+        run: |
+          tmp="$(cygpath -m "$RUNNER_TEMP")"
+          {
+            echo "QT_ROOT=$tmp/qt"
+            echo "QT_WIN=$tmp/qt/$QT_VERSION/msvc2022_arm64"
+            echo "CLI11_DIR=$tmp/cli11"
+          } >> "$GITHUB_ENV"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Tools
+        run: |
+          python -m pip install --quiet "aqtinstall @ git+https://github.com/miurahr/aqtinstall@$AQTINSTALL_COMMIT"
+          clang-cl --version
+          cmake --version
+          ninja --version
+
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/qt
+          key: qt-${{ env.QT_VERSION }}-msvc2022_arm64-qt5compat-qtimageformats-qtpositioning-qtshadertools
+
+      - name: Install Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        run: aqt install-qt windows_arm64 desktop "$QT_VERSION" win64_msvc2022_arm64 -m qt5compat qtimageformats qtpositioning qtshadertools -O "$QT_ROOT"
+
+      - name: CLI11
+        run: git clone -q --depth 1 --branch "$CLI11_TAG" https://github.com/CLIUtils/CLI11.git "$CLI11_DIR"
+
+      - name: Build quickshell
+        run: |
+          cmake -S quickshell -B build/qs -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DCMAKE_PREFIX_PATH="$QT_WIN" -DCLI11_INCLUDE_DIR="$CLI11_DIR/include" \
+            -DQS_PRODUCT_NAME=ii-windows -DQS_COMPANY_NAME=nunreasonable -DQS_VERSION_FILE="$(cygpath -m "$PWD/VERSION")"
+          cmake --build build/qs 2>&1 | tee build/qs-build.log
+
+      - name: Check the architecture
+        run: |
+          python - build/qs/qsw.exe build/qs/qs.exe <<'PY'
+          import struct, sys
+          names = {0x8664: "x64", 0xAA64: "arm64"}
+          bad = False
+          for path in sys.argv[1:]:
+              data = open(path, "rb").read(4096)
+              machine = struct.unpack_from("<H", data, struct.unpack_from("<I", data, 0x3C)[0] + 4)[0]
+              print(path, names.get(machine, hex(machine)))
+              bad |= machine != 0xAA64
+          sys.exit(1 if bad else 0)
+          PY
+          grep -c 'warning:' build/qs-build.log || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quickshell-arm64-${{ github.run_number }}
+          path: |
+            build/qs/qsw.exe
+            build/qs/qs.exe
+            build/qs-build.log
+          if-no-files-found: error
