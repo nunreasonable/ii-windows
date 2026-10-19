@@ -19,6 +19,9 @@ jobs:
       QT_VERSION: 6.11.2
       AQTINSTALL_COMMIT: 076e1659807d0b362a3ed684d54c2e9c775eb9c7
       CLI11_TAG: v2.5.0
+      RUST_VERSION: 1.97.1
+      MATUGEN_VERSION: 4.1.0
+      CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER: lld-link
 
     steps:
       - name: Keep line endings as committed
@@ -57,9 +60,12 @@ jobs:
       - name: Tools
         run: |
           python -m pip install --quiet "aqtinstall @ git+https://github.com/miurahr/aqtinstall@$AQTINSTALL_COMMIT"
+          rustup toolchain install "$RUST_VERSION" --profile minimal --target aarch64-pc-windows-msvc
+          rustup default "$RUST_VERSION"
           clang-cl --version
           cmake --version
           ninja --version
+          cargo --version
 
       - name: Cache Qt
         id: qt-cache
@@ -105,4 +111,67 @@ jobs:
             build/qs/qsw.exe
             build/qs/qs.exe
             build/qs-build.log
+          if-no-files-found: error
+
+      - name: Build matugen
+        run: cargo install matugen --version "$MATUGEN_VERSION" --locked --root build/matugen
+
+      - name: Build SongRec
+        run: TARGET=aarch64-pc-windows-msvc NATIVE=1 tools/songrec/build.sh
+
+      - name: Build MicroTeX
+        run: NATIVE=1 tools/microtex/build.sh
+
+      - name: Build VirtualDesktopAccessor
+        run: TARGET=aarch64-pc-windows-msvc NATIVE=1 tools/vda/build.sh
+
+      - name: Visual C++ runtime
+        run: |
+          crt="$(ls -d "$(cygpath -u "$VCToolsRedistDir")"/arm64/Microsoft.VC14*.CRT | tail -n1)"
+          echo "runtime from $crt"
+          mkdir -p build/vcredist
+          for f in msvcp140.dll msvcp140_1.dll msvcp140_2.dll msvcp140_atomic_wait.dll vcruntime140.dll vcruntime140_1.dll; do
+            if [ -f "$crt/$f" ]; then
+              cp -f "$crt/$f" build/vcredist/
+            else
+              echo "note: $f is not in the arm64 CRT redist, skipping" >&2
+            fi
+          done
+          ls build/vcredist
+
+      - name: Collect helpers
+        run: |
+          mkdir -p build/helpers
+          cp -f build/matugen/bin/matugen.exe build/helpers/
+          cp -f tools/songrec/bin/songrec.exe build/helpers/
+          cp -f tools/songrec/bin/COPYING build/helpers/SongRec-COPYING.txt
+          cp -f tools/songrec/bin/SOURCE.txt build/helpers/SongRec-SOURCE.txt
+          cp -f toolchain/microtex/LaTeX.exe build/helpers/
+          cp -rf toolchain/microtex/res build/helpers/res
+          cp -rf toolchain/microtex/licenses build/helpers/microtex-licenses
+          cp -f tools/vda/bin/VirtualDesktopAccessor.dll build/helpers/
+          cp -f tools/vda/bin/LICENSE.txt build/helpers/VirtualDesktopAccessor-LICENSE.txt
+          cp -f tools/vda/bin/SOURCE.txt build/helpers/VirtualDesktopAccessor-SOURCE.txt
+          cp -f build/vcredist/*.dll build/helpers/
+          ls -la build/helpers
+
+      - name: Check the helpers are ARM64
+        run: |
+          shopt -s globstar nullglob
+          python - build/helpers/**/*.exe build/helpers/**/*.dll <<'PY'
+          import struct, sys
+          names = {0x8664: "x64", 0xAA64: "arm64"}
+          bad = False
+          for path in sys.argv[1:]:
+              data = open(path, "rb").read(4096)
+              machine = struct.unpack_from("<H", data, struct.unpack_from("<I", data, 0x3C)[0] + 4)[0]
+              print(path, names.get(machine, hex(machine)))
+              bad |= machine != 0xAA64
+          sys.exit(1 if bad else 0)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helpers-arm64-${{ github.run_number }}
+          path: build/helpers/
           if-no-files-found: error
