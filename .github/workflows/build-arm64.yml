@@ -132,12 +132,8 @@ jobs:
           crt="$(ls -d "$(cygpath -u "$VCToolsRedistDir")"/arm64/Microsoft.VC14*.CRT | tail -n1)"
           echo "runtime from $crt"
           mkdir -p build/vcredist
-          for f in msvcp140.dll msvcp140_1.dll msvcp140_2.dll msvcp140_atomic_wait.dll vcruntime140.dll vcruntime140_1.dll; do
-            if [ -f "$crt/$f" ]; then
-              cp -f "$crt/$f" build/vcredist/
-            else
-              echo "note: $f is not in the arm64 CRT redist, skipping" >&2
-            fi
+          for f in msvcp140.dll msvcp140_1.dll msvcp140_2.dll msvcp140_atomic_wait.dll vcruntime140.dll; do
+            cp -f "$crt/$f" build/vcredist/
           done
           ls build/vcredist
 
