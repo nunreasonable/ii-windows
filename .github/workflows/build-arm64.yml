@@ -117,6 +117,8 @@ jobs:
         run: cargo install matugen --version "$MATUGEN_VERSION" --locked --root build/matugen
 
       - name: Build SongRec
+        env:
+          CC_aarch64_pc_windows_msvc: clang-cl
         run: TARGET=aarch64-pc-windows-msvc NATIVE=1 tools/songrec/build.sh
 
       - name: Build MicroTeX
