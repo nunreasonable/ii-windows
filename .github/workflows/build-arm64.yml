@@ -173,3 +173,166 @@ jobs:
           name: helpers-arm64-${{ github.run_number }}
           path: build/helpers/
           if-no-files-found: error
+
+  package:
+    needs: quickshell
+    runs-on: windows-11-arm
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      QT_VERSION: 6.11.2
+      AQTINSTALL_COMMIT: 076e1659807d0b362a3ed684d54c2e9c775eb9c7
+      FONTTOOLS_VERSION: 4.67.0
+
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - name: Check out quickshell and ii at the locked commits
+        run: |
+          while read -r name url sha; do
+            [ -z "$name" ] && continue
+            git init -q "$name"
+            git -C "$name" fetch -q --depth 1 "$url" "$sha"
+            git -C "$name" checkout -q FETCH_HEAD
+            git -C "$name" submodule update -q --init --recursive
+            echo "$name $(git -C "$name" rev-parse HEAD)"
+          done < sources.lock
+
+      - name: Paths
+        run: |
+          tmp="$(cygpath -m "$RUNNER_TEMP")"
+          {
+            echo "QT_ROOT=$tmp/qt"
+            echo "QT_WIN=$tmp/qt/$QT_VERSION/msvc2022_arm64"
+            echo "PYTHON=python"
+          } >> "$GITHUB_ENV"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Tools
+        run: python -m pip install --quiet "aqtinstall @ git+https://github.com/miurahr/aqtinstall@$AQTINSTALL_COMMIT" "fonttools==$FONTTOOLS_VERSION"
+
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/qt
+          key: qt-${{ env.QT_VERSION }}-msvc2022_arm64-qt5compat-qtimageformats-qtpositioning-qtshadertools
+
+      - name: Install Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        run: aqt install-qt windows_arm64 desktop "$QT_VERSION" win64_msvc2022_arm64 -m qt5compat qtimageformats qtpositioning qtshadertools -O "$QT_ROOT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: quickshell-arm64-${{ github.run_number }}
+          path: build
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: helpers-arm64-${{ github.run_number }}
+          path: build/helpers
+
+      - name: Lay out helpers for packaging
+        run: |
+          mkdir -p build/songrec-bin build/microtex/licenses build/vda-bin build/vcredist
+          cp -f build/helpers/songrec.exe build/songrec-bin/
+          cp -f build/helpers/SongRec-COPYING.txt build/songrec-bin/COPYING
+          cp -f build/helpers/SongRec-SOURCE.txt build/songrec-bin/SOURCE.txt
+          cp -f build/helpers/LaTeX.exe build/microtex/
+          rm -rf build/microtex/res && cp -rf build/helpers/res build/microtex/res
+          cp -rf build/helpers/microtex-licenses/. build/microtex/licenses/
+          cp -f build/helpers/VirtualDesktopAccessor.dll build/vda-bin/
+          cp -f build/helpers/VirtualDesktopAccessor-LICENSE.txt build/vda-bin/LICENSE.txt
+          cp -f build/helpers/VirtualDesktopAccessor-SOURCE.txt build/vda-bin/SOURCE.txt
+          cp -f build/helpers/msvcp140.dll build/helpers/msvcp140_1.dll build/helpers/msvcp140_2.dll \
+            build/helpers/msvcp140_atomic_wait.dll build/helpers/vcruntime140.dll build/vcredist/
+
+      - name: Package (ARM64)
+        env:
+          ARCH: arm64
+          FONTTOOLS: python -m fontTools
+          MATUGEN_EXE: build/helpers/matugen.exe
+          SONGREC_DIR: build/songrec-bin
+          MICROTEX_DIR: build/microtex
+          VDA_DLL: build/vda-bin/VirtualDesktopAccessor.dll
+          VCREDIST_DIR: build/vcredist
+          SKIP_SETUP_BUILD: "1"
+        run: |
+          export QMLCACHEGEN="$QT_WIN/bin/qmlcachegen.exe"
+          tools/deploy-ii.sh
+          tools/release.sh
+          (cd dist/release && sha256sum ii-windows-*-arm64.zip)
+
+      - name: Check the staged package is all ARM64 and self-contained
+        shell: powershell
+        run: |
+          .\tools\check-package-arch.ps1 -PackageDir dist\ii-windows -Arch arm64
+          exit $LASTEXITCODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ii-windows-arm64-${{ github.run_number }}
+          path: dist/release/
+          if-no-files-found: error
+
+  smoke:
+    needs: package
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - name: Check out ii at the locked commit
+        run: |
+          read -r name url sha < <(grep '^ii ' sources.lock)
+          git init -q ii
+          git -C ii fetch -q --depth 1 "$url" "$sha"
+          git -C ii checkout -q FETCH_HEAD
+          git -C ii submodule update -q --init --recursive
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ii-windows-arm64-${{ github.run_number }}
+          path: pkg
+
+      - name: List every QML file for the compile check
+        run: python tools/qml-compile-check.py ii > pkg/compilecheck.qml
+
+      - name: Smoke test
+        shell: powershell
+        run: |
+          $zip = Get-ChildItem pkg -Filter 'ii-windows-*-arm64.zip' | Where-Object Name -notlike '*.sha256' | Select-Object -First 1
+          & tools\smoke\ci-smoke.ps1 -Package $zip.FullName -CompileCheck pkg\compilecheck.qml -Work "$env:RUNNER_TEMP\iiw" -Output "$env:RUNNER_TEMP\iiw\smoke.txt"
+          exit $LASTEXITCODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-arm64-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/iiw/smoke.txt
+            ${{ runner.temp }}/iiw/logs/
+          if-no-files-found: ignore
