@@ -10,6 +10,7 @@ pub mod progress;
 pub mod readme;
 pub mod release;
 pub mod restartmgr;
+pub mod startup;
 pub mod style;
 pub mod ttf;
 pub mod version;

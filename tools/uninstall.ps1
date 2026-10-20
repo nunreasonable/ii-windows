@@ -5,6 +5,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Remove-SelfTask {
+	$name = 'illogical-impulse-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+	if (Get-Command Unregister-ScheduledTask -ErrorAction SilentlyContinue) {
+		try { Unregister-ScheduledTask -TaskName $name -TaskPath '\' -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+	}
+}
+
 $InstallDir = Join-Path $env:LOCALAPPDATA 'ii-windows'
 $QuickshellIiDir = Join-Path $env:LOCALAPPDATA 'quickshell\ii'
 $IllogicalImpulseDir = Join-Path $env:LOCALAPPDATA 'illogical-impulse'
@@ -19,6 +26,7 @@ Get-Process -Name 'qsw', 'qs' -ErrorAction SilentlyContinue |
 Start-Sleep -Milliseconds 500
 
 Remove-ItemProperty -Path $RunKey -Name 'illogical-impulse' -ErrorAction SilentlyContinue
+Remove-SelfTask
 
 foreach ($name in 'illogical-impulse.lnk', 'ii Settings.lnk') {
 	$path = Join-Path $StartMenuDir $name

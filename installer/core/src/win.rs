@@ -45,6 +45,7 @@ const DETACHED_PROCESS: u32 = 0x0000_0008;
 const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
 
 pub const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+pub const APPROVED_RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
 pub const UNINSTALL_ROOT: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall";
 pub const FONTS_KEY: &str = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts";
 pub const PERSONALIZE_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -474,6 +475,143 @@ pub fn delete_generic_credential(target: &str) -> std::io::Result<bool> {
 		Ok(()) => Ok(true),
 		Err(e) if e.code() == ERROR_NOT_FOUND.to_hresult() => Ok(false),
 		Err(e) => Err(std::io::Error::other(e.message())),
+	}
+}
+
+pub fn startup_approved_disabled(name: &str) -> bool {
+	let data = hkcu().open_subkey_with_flags(APPROVED_RUN_KEY, KEY_READ).and_then(|k| k.get_raw_value(name));
+	data.ok().and_then(|v| v.bytes.first().copied()) == Some(0x03)
+}
+
+#[derive(Debug, Clone)]
+pub struct Account {
+	pub sid: String,
+	pub user_id: String,
+}
+
+pub fn current_account() -> Option<Account> {
+	use windows::Win32::Foundation::{LocalFree, HANDLE, HLOCAL};
+	use windows::Win32::Security::Authorization::ConvertSidToStringSidW;
+	use windows::Win32::Security::{
+		GetTokenInformation, LookupAccountSidW, TokenUser, SID_NAME_USE, TOKEN_QUERY, TOKEN_USER,
+	};
+	use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+
+	let mut token = HANDLE::default();
+	unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) }.ok()?;
+	let mut len = 0u32;
+	let _ = unsafe { GetTokenInformation(token, TokenUser, None, 0, &mut len) };
+	let mut buf = vec![0u64; (len as usize).div_ceil(8).max(1)];
+	let got = unsafe { GetTokenInformation(token, TokenUser, Some(buf.as_mut_ptr().cast()), len, &mut len) };
+	let _ = unsafe { CloseHandle(token) };
+	got.ok()?;
+	let sid = unsafe { (*(buf.as_ptr() as *const TOKEN_USER)).User.Sid };
+
+	let mut text = PWSTR::null();
+	unsafe { ConvertSidToStringSidW(sid, &mut text) }.ok()?;
+	let sid_text = unsafe { text.to_string() }.unwrap_or_default();
+	unsafe { LocalFree(Some(HLOCAL(text.0.cast()))) };
+	if sid_text.is_empty() {
+		return None;
+	}
+
+	let (mut name_len, mut domain_len) = (0u32, 0u32);
+	let mut kind = SID_NAME_USE::default();
+	let _ = unsafe { LookupAccountSidW(PCWSTR::null(), sid, None, &mut name_len, None, &mut domain_len, &mut kind) };
+	let mut name = vec![0u16; name_len.max(1) as usize];
+	let mut domain = vec![0u16; domain_len.max(1) as usize];
+	let looked = unsafe {
+		LookupAccountSidW(
+			PCWSTR::null(),
+			sid,
+			Some(PWSTR(name.as_mut_ptr())),
+			&mut name_len,
+			Some(PWSTR(domain.as_mut_ptr())),
+			&mut domain_len,
+			&mut kind,
+		)
+	};
+	let (name, domain) = match looked {
+		Ok(()) => (
+			String::from_utf16_lossy(&name[..name_len as usize]),
+			String::from_utf16_lossy(&domain[..domain_len as usize]),
+		),
+		Err(_) => (String::new(), String::new()),
+	};
+	let user_id = crate::startup::user_id(&domain, &name, &sid_text);
+	Some(Account { sid: sid_text, user_id })
+}
+
+fn task_root() -> windows::core::Result<windows::Win32::System::TaskScheduler::ITaskFolder> {
+	use windows::core::BSTR;
+	use windows::Win32::System::TaskScheduler::{ITaskService, TaskScheduler};
+	use windows::Win32::System::Variant::VARIANT;
+
+	let service: ITaskService = unsafe { CoCreateInstance(&TaskScheduler, None, CLSCTX_INPROC_SERVER)? };
+	let empty = VARIANT::default();
+	unsafe { service.Connect(&empty, &empty, &empty, &empty)? };
+	unsafe { service.GetFolder(&BSTR::from("\\")) }
+}
+
+fn task_missing(e: &windows::core::Error) -> bool {
+	use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND};
+	e.code() == ERROR_FILE_NOT_FOUND.to_hresult() || e.code() == ERROR_PATH_NOT_FOUND.to_hresult()
+}
+
+fn task_error(e: &windows::core::Error) -> String {
+	let text = e.message();
+	let text = text.trim();
+	if text.is_empty() {
+		format!("{:#010x}", e.code().0)
+	} else {
+		format!("{text} ({:#010x})", e.code().0)
+	}
+}
+
+pub fn register_task(name: &str, xml: &str) -> Result<(), String> {
+	use windows::core::BSTR;
+	use windows::Win32::System::TaskScheduler::{TASK_CREATE_OR_UPDATE, TASK_LOGON_INTERACTIVE_TOKEN};
+	use windows::Win32::System::Variant::VARIANT;
+
+	let _com = Com::init();
+	let root = task_root().map_err(|e| task_error(&e))?;
+	let empty = VARIANT::default();
+	unsafe {
+		root.RegisterTask(
+			&BSTR::from(name),
+			&BSTR::from(xml),
+			TASK_CREATE_OR_UPDATE.0,
+			&empty,
+			&empty,
+			TASK_LOGON_INTERACTIVE_TOKEN,
+			&empty,
+		)
+	}
+	.map(|_| ())
+	.map_err(|e| task_error(&e))
+}
+
+pub fn delete_task(name: &str) -> Result<bool, String> {
+	use windows::core::BSTR;
+
+	let _com = Com::init();
+	let root = task_root().map_err(|e| task_error(&e))?;
+	match unsafe { root.DeleteTask(&BSTR::from(name), 0) } {
+		Ok(()) => Ok(true),
+		Err(e) if task_missing(&e) => Ok(false),
+		Err(e) => Err(task_error(&e)),
+	}
+}
+
+pub fn task_enabled(name: &str) -> Result<Option<bool>, String> {
+	use windows::core::BSTR;
+
+	let _com = Com::init();
+	let root = task_root().map_err(|e| task_error(&e))?;
+	match unsafe { root.GetTask(&BSTR::from(name)) } {
+		Ok(task) => unsafe { task.Enabled() }.map(|v| Some(v.as_bool())).map_err(|e| task_error(&e)),
+		Err(e) if task_missing(&e) => Ok(None),
+		Err(e) => Err(task_error(&e)),
 	}
 }
 

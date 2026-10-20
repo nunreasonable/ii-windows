@@ -251,7 +251,7 @@ h2 { font-size: 22px; }
 .btn.filled.danger { background: var(--error); color: #690005; }
 .btn.tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
 .btn.text { background: transparent; color: var(--primary); padding: 0 14px; }
-.btn:focus-visible, .action:focus-visible, .switch-row:focus-within, .link:focus-visible, .lang-toggle button:focus-visible, .titlebar-btn:focus-visible {
+.btn:focus-visible, .action:focus-visible, .switch-row:focus-within, .method-opt:focus-visible, .link:focus-visible, .lang-toggle button:focus-visible, .titlebar-btn:focus-visible {
 	outline: 2px solid var(--primary);
 	outline-offset: 2px;
 }
@@ -507,6 +507,31 @@ h2 { font-size: 22px; }
 .switch-row.disabled { cursor: default; }
 .switch-row.disabled:hover { background: none; }
 .switch-row.caution .row-icon { background: var(--warn-container); color: var(--warn); }
+.method-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px 66px; }
+.method-group + .row { border-top: 1px solid rgba(70, 70, 79, 0.5); border-radius: 0; }
+.method-opt {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	text-align: left;
+	padding: 10px 12px;
+	border-radius: var(--r-m);
+	border: 2px solid transparent;
+	background: var(--surface-low);
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.method-opt:hover { background: var(--surface-high); }
+.method-opt.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--surface)); }
+.method-dot { width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--outline); flex: none; display: grid; place-items: center; transition: border-color 0.2s var(--ease); }
+.method-dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); transform: scale(0); transition: transform 0.25s var(--ease-emph); }
+.method-opt.selected .method-dot { border-color: var(--primary); }
+.method-opt.selected .method-dot::after { transform: scale(1); }
+.method-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.method-name { font-size: 13px; font-weight: 500; color: var(--on-surface); }
+.method-sub { font-size: 12px; line-height: 1.4; color: var(--on-surface-variant); }
 
 .switch { position: relative; width: 52px; height: 32px; flex: none; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }

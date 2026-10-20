@@ -22,6 +22,13 @@ function Invoke-Mirror {
 	}
 }
 
+function Remove-SelfTask {
+	$name = 'illogical-impulse-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+	if (Get-Command Unregister-ScheduledTask -ErrorAction SilentlyContinue) {
+		try { Unregister-ScheduledTask -TaskName $name -TaskPath '\' -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+	}
+}
+
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $InstallDir = Join-Path $env:LOCALAPPDATA 'ii-windows'
 $QuickshellIiDir = Join-Path $env:LOCALAPPDATA 'quickshell\ii'
@@ -81,6 +88,7 @@ $settingsShortcut.IconLocation = $qsw
 $settingsShortcut.Description = 'illogical-impulse settings'
 $settingsShortcut.Save()
 
+Remove-SelfTask
 if ($Autostart) {
 	$runCommand = '"' + $qsw + '" -n -c ii'
 	New-ItemProperty -Path $RunKey -Name 'illogical-impulse' -Value $runCommand -PropertyType String -Force | Out-Null

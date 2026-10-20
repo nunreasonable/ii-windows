@@ -152,7 +152,13 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		Ok(m) => (m, None),
 		Err(e) => (None, Some(e.to_string())),
 	};
-	let installed = manifest.map(|m| InstalledInfo {
+	let installed = manifest.map(|mut m| {
+		let (autostart, method) = ops::current_autostart(p, m.options.autostart_method);
+		m.options.autostart = autostart;
+		m.options.autostart_method = Some(method);
+		m
+	});
+	let installed = installed.map(|m| InstalledInfo {
 		tools: m
 			.items
 			.winget
