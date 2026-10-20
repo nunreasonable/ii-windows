@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Package,
-    [Parameter(Mandatory = $true)][string]$Setup,
+    [string]$Setup = '',
     [Parameter(Mandatory = $true)][string]$CompileCheck,
     [Parameter(Mandatory = $true)][string]$Work,
     [string]$Output = ''
@@ -19,7 +19,11 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path $Package).Path, $dev)
 foreach ($f in 'smoke.ps1', 'fonttest.qml', 'inherit.qml') { Copy-Item -Force (Join-Path $here $f) $stage }
 Copy-Item -Force $CompileCheck (Join-Path $stage 'compilecheck.qml')
-Copy-Item -Force $Setup (Join-Path $stage 'ii-windows-setup.exe')
+if ($Setup -and (Test-Path $Setup)) {
+    Copy-Item -Force $Setup (Join-Path $stage 'ii-windows-setup.exe')
+} else {
+    Write-Output "NOTE  no -Setup given - the setup/update check will be skipped"
+}
 
 $colors = Join-Path $env:LOCALAPPDATA 'quickshell\State\user\generated\colors.json'
 if (-not (Test-Path $colors)) {
