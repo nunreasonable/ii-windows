@@ -65,9 +65,15 @@ else
 	echo "warning: no shims found ($SHIMS)" >&2
 fi
 
-cp -f "$DEPS/vda/VirtualDesktopAccessor.dll" "$D/"
-mkdir -p "$D/win10"
-cp -f "$DEPS/vda/win10/VirtualDesktopAccessor.dll" "$D/win10/"
+VDA_DLL="${VDA_DLL:-$DEPS/vda/VirtualDesktopAccessor.dll}"
+cp -f "$VDA_DLL" "$D/VirtualDesktopAccessor.dll"
+rm -rf "$D/win10"
+if [ "$ARCH" = x64 ]; then
+	mkdir -p "$D/win10"
+	cp -f "$DEPS/vda/win10/VirtualDesktopAccessor.dll" "$D/win10/"
+else
+	echo "note: no win10/VirtualDesktopAccessor.dll for $ARCH - Windows 10 on ARM64 isn't a target" >&2
+fi
 
 rm -rf "$D/licenses"
 mkdir -p "$D/licenses/ii-windows" "$D/licenses/quickshell" "$D/licenses/Qt"

@@ -7,7 +7,11 @@ SRC="$IIW/dist/ii-windows"
 
 DATE="$(date +%Y%m%d)"
 STAGE="$IIW/build/package-stage"
-OUT="$IIW/dist/ii-windows-$DATE.zip"
+if [ "$ARCH" = x64 ]; then
+	OUT="$IIW/dist/ii-windows-$DATE.zip"
+else
+	OUT="$IIW/dist/ii-windows-$DATE-$ARCH.zip"
+fi
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
