@@ -19,15 +19,7 @@ fi
 if [ "${SKIP_SETUP_BUILD:-}" != 1 ]; then
 	(cd "$IIW/installer" && cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup)
 fi
-HAVE_SETUP=1
-if [ ! -f "$SETUP" ]; then
-	if [ "$ARCH" = x64 ]; then
-		echo "no $SETUP" >&2
-		exit 1
-	fi
-	HAVE_SETUP=0
-	echo "warning: no $SETUP - packaging $ARCH without an installer (see notes/arm64-plano.md Dia 5)" >&2
-fi
+[ -f "$SETUP" ] || { echo "no $SETUP" >&2; exit 1; }
 
 STAGE="$IIW/build/release-stage"
 rm -rf "$STAGE"
@@ -38,7 +30,7 @@ mkdir -p "$STAGE" "$OUT"
 		cp -a "$SRC/${entry#./}" "$STAGE/"
 	done
 printf '%s\n' "$VERSION" > "$STAGE/VERSION"
-[ "$HAVE_SETUP" = 1 ] && cp -f "$SETUP" "$STAGE/ii-windows-setup.exe"
+cp -f "$SETUP" "$STAGE/ii-windows-setup.exe"
 
 if [ "$ARCH" = x64 ]; then
 	ZIP="ii-windows-$VERSION.zip"
@@ -52,11 +44,7 @@ else
 	"${PYTHON:-python3}" "$IIW/tools/zipdir.py" "$STAGE" "$OUT/$ZIP"
 fi
 (cd "$OUT" && sha256sum "$ZIP" > "$ZIP.sha256")
-[ "$HAVE_SETUP" = 1 ] && cp -f "$SETUP" "$OUT/ii-windows-setup.exe"
+cp -f "$SETUP" "$OUT/ii-windows-setup.exe"
 
 echo "release $VERSION ($ARCH) in $OUT:"
-if [ "$HAVE_SETUP" = 1 ]; then
-	(cd "$OUT" && ls -l "$ZIP" "$ZIP.sha256" ii-windows-setup.exe)
-else
-	(cd "$OUT" && ls -l "$ZIP" "$ZIP.sha256")
-fi
+(cd "$OUT" && ls -l "$ZIP" "$ZIP.sha256" ii-windows-setup.exe)

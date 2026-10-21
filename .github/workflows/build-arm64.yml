@@ -9,6 +9,88 @@ permissions:
   contents: read
 
 jobs:
+  setup:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUST_VERSION: 1.97.1
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER: lld-link
+
+    steps:
+      - name: Keep line endings as committed
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tools
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal --target x86_64-pc-windows-msvc
+          rustup default "$RUST_VERSION"
+          cargo --version
+
+      - name: Build the setup
+        run: cd installer && cargo build --release --locked --target x86_64-pc-windows-msvc -p ii-windows-setup
+
+      - name: Build the setup's core tests
+        run: |
+          mkdir -p build/setup
+          cp -f installer/target/x86_64-pc-windows-msvc/release/ii-windows-setup.exe build/setup/
+          (cd installer && cargo test --locked --target x86_64-pc-windows-msvc -p iiw-setup-core --no-run --message-format=json) > build/setup-tests.json
+          python - build/setup-tests.json build/setup/iiw-setup-core-tests.exe <<'PY'
+          import json, shutil, sys
+          found = []
+          for line in open(sys.argv[1], encoding="utf-8"):
+              try:
+                  m = json.loads(line)
+              except ValueError:
+                  continue
+              if m.get("reason") == "compiler-artifact" and m.get("executable") and "lib" in m["target"]["kind"]:
+                  found.append(m["executable"])
+          print(found)
+          if len(found) != 1:
+              sys.exit(1)
+          shutil.copy(found[0], sys.argv[2])
+          PY
+
+      - name: Check the setup is x64
+        run: |
+          python - build/setup/ii-windows-setup.exe build/setup/iiw-setup-core-tests.exe <<'PY'
+          import struct, sys
+          names = {0x8664: "x64", 0xAA64: "arm64"}
+          bad = False
+          for path in sys.argv[1:]:
+              data = open(path, "rb").read(4096)
+              machine = struct.unpack_from("<H", data, struct.unpack_from("<I", data, 0x3C)[0] + 4)[0]
+              print(path, names.get(machine, hex(machine)))
+              bad |= machine != 0x8664
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Setup tests on x64
+        env:
+          IIW_EXPECT_NATIVE_ARCH: x64
+        run: |
+          build/setup/iiw-setup-core-tests.exe arch:: release:: package:: manifest:: version:: appinstaller::
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: setup-x64-${{ github.run_number }}
+          path: build/setup/
+          if-no-files-found: error
+
   quickshell:
     runs-on: windows-11-arm
     timeout-minutes: 150
@@ -175,7 +257,7 @@ jobs:
           if-no-files-found: error
 
   package:
-    needs: quickshell
+    needs: [quickshell, setup]
     runs-on: windows-11-arm
     timeout-minutes: 60
     defaults:
@@ -247,6 +329,11 @@ jobs:
           name: helpers-arm64-${{ github.run_number }}
           path: build/helpers
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: setup-x64-${{ github.run_number }}
+          path: build/setup
+
       - name: Lay out helpers for packaging
         run: |
           mkdir -p build/songrec-bin build/microtex/licenses build/vda-bin build/vcredist
@@ -271,12 +358,13 @@ jobs:
           MICROTEX_DIR: build/microtex
           VDA_DLL: build/vda-bin/VirtualDesktopAccessor.dll
           VCREDIST_DIR: build/vcredist
+          SETUP_EXE: build/setup/ii-windows-setup.exe
           SKIP_SETUP_BUILD: "1"
         run: |
           export QMLCACHEGEN="$QT_WIN/bin/qmlcachegen.exe"
           tools/deploy-ii.sh
           tools/release.sh
-          (cd dist/release && sha256sum ii-windows-*-arm64.zip)
+          (cd dist/release && sha256sum ii-windows-setup.exe ii-windows-*-arm64.zip)
 
       - name: Check the staged package is all ARM64 and self-contained
         shell: powershell
@@ -318,6 +406,18 @@ jobs:
           name: ii-windows-arm64-${{ github.run_number }}
           path: pkg
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: setup-x64-${{ github.run_number }}
+          path: setup
+
+      - name: Setup picks ARM64 when it runs emulated
+        run: |
+          zip="$(ls pkg/ii-windows-*-arm64.zip)"
+          echo "package $zip"
+          IIW_EXPECT_NATIVE_ARCH=arm64 IIW_EXPECT_PACKAGE_ARCH=arm64 IIW_TEST_PACKAGE="$(cygpath -w "$PWD/$zip")" \
+            setup/iiw-setup-core-tests.exe arch:: package::tests::release_package_on_this_runner
+
       - name: List every QML file for the compile check
         run: python tools/qml-compile-check.py ii > pkg/compilecheck.qml
 
@@ -325,7 +425,7 @@ jobs:
         shell: powershell
         run: |
           $zip = Get-ChildItem pkg -Filter 'ii-windows-*-arm64.zip' | Where-Object Name -notlike '*.sha256' | Select-Object -First 1
-          & tools\smoke\ci-smoke.ps1 -Package $zip.FullName -CompileCheck pkg\compilecheck.qml -Work "$env:RUNNER_TEMP\iiw" -Output "$env:RUNNER_TEMP\iiw\smoke.txt"
+          & tools\smoke\ci-smoke.ps1 -Package $zip.FullName -Setup pkg\ii-windows-setup.exe -CompileCheck pkg\compilecheck.qml -Work "$env:RUNNER_TEMP\iiw" -Output "$env:RUNNER_TEMP\iiw\smoke.txt"
           exit $LASTEXITCODE
 
       - uses: actions/upload-artifact@v4
