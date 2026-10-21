@@ -25,7 +25,8 @@
 > It's tested on Windows 10 and 11, on virtual machines and on real hardware.
 >
 > For questions and help, there's an [ii-windows thread](https://discord.com/channels/1393080422245863506/1560371137123188738)
-> on the illogical-impulse Discord server. Bugs and feature requests go in an issue here.
+> on the illogical-impulse Discord server. Bugs go in the [bug report form](https://github.com/nunreasonable/ii-windows/issues/new?template=bug_report.yml):
+> **Settings → About → Report a problem** collects the logs and opens it for you. Feature requests go in a regular issue.
 
 <details>
   <summary>What this is/isn't</summary>
