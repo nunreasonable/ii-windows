@@ -26,3 +26,5 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 | Microsoft Visual C++ runtime | 14.x | Microsoft Visual C++ Redistributable (system library) | Visual Studio | `msvcp140*.dll`, `vcruntime140*.dll` |
 
 The setup (`ii-windows-setup.exe`) is built with Tauri 2 and Rust crates under permissive licenses (MIT, Apache-2.0 and similar); `installer/Cargo.lock` lists them. It uses the Microsoft Edge WebView2 Runtime that comes with Windows. `songrec.exe` and `matugen.exe` are also Rust programs, and their crates are listed in their own `Cargo.lock`.
+
+The NabyScape visual style recreates the look and behavior of [NabyScape](https://github.com/BillyNabil/nabyscape) by BillyNabil (MIT) with ii's own QML and Material Symbols icons. No code or images from NabyScape are in the package.

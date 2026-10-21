@@ -220,6 +220,7 @@
 	const STYLES = [
 		{ id: "ii", img: "img/style-ii.webp" },
 		{ id: "end4pc", img: "img/style-end4pc.webp" },
+		{ id: "nabyscape", img: "img/style-nabyscape.webp" },
 	];
 
 	function defaultOpts() {
