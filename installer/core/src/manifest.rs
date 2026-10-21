@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+use crate::arch::{self, Arch};
 use crate::startup::{self, StartupMethod};
 
 pub const SCHEMA: u32 = 1;
@@ -133,6 +134,10 @@ pub struct Manifest {
 	pub updated_at: Option<String>,
 	pub repaired_at: Option<String>,
 	pub install_dir: PathBuf,
+	#[serde(deserialize_with = "arch::lenient", skip_serializing_if = "Option::is_none")]
+	pub arch: Option<Arch>,
+	#[serde(deserialize_with = "arch::lenient", skip_serializing_if = "Option::is_none")]
+	pub wanted_arch: Option<Arch>,
 	pub options: Options,
 	pub items: Items,
 	pub pre_install: Option<PreInstall>,
@@ -172,6 +177,10 @@ impl Manifest {
 	pub fn has_winget(&self, id: &str) -> bool {
 		self.items.winget.iter().any(|p| p.id.eq_ignore_ascii_case(id))
 	}
+
+	pub fn update_arch(&self, native: Arch) -> Arch {
+		arch::follow(native, self.wanted_arch.or(self.arch))
+	}
 }
 
 #[cfg(test)]
@@ -204,6 +213,37 @@ mod tests {
 		std::fs::write(&path, br#"{"options":{"autostart_method":"task"}}"#).unwrap();
 		assert_eq!(Manifest::load(&path).unwrap().unwrap().options.autostart_method, Some(StartupMethod::Task));
 		assert!(Manifest::load(&dir.join("missing.json")).unwrap().is_none());
+		std::fs::remove_dir_all(&dir).unwrap();
+	}
+
+	#[test]
+	fn old_manifest_means_x64() {
+		let dir = std::env::temp_dir().join(format!("iiw-manifest-arch-{}", std::process::id()));
+		let path = dir.join("install-manifest.json");
+		std::fs::create_dir_all(&dir).unwrap();
+		std::fs::write(&path, br#"{"schema":1,"version":"26.1.1.0","state":"installed"}"#).unwrap();
+		let old = Manifest::load(&path).unwrap().unwrap();
+		assert_eq!(old.arch, None);
+		assert_eq!(old.arch.unwrap_or_default(), Arch::X64);
+		assert_eq!(old.update_arch(Arch::Arm64), Arch::X64);
+		assert_eq!(old.update_arch(Arch::X64), Arch::X64);
+		old.save(&path).unwrap();
+		let text = std::fs::read_to_string(&path).unwrap();
+		assert!(!text.contains("arch"), "an untouched old manifest is written back without the new fields");
+
+		let mut m = Manifest::new(&dir);
+		m.arch = Some(Arch::Arm64);
+		m.wanted_arch = Some(Arch::Arm64);
+		m.save(&path).unwrap();
+		let back = Manifest::load(&path).unwrap().unwrap();
+		assert_eq!(back, m);
+		assert!(std::fs::read_to_string(&path).unwrap().contains(r#""arch": "arm64""#));
+		assert_eq!(back.update_arch(Arch::Arm64), Arch::Arm64);
+
+		std::fs::write(&path, br#"{"version":"27.1.0.0","arch":"riscv64","wanted_arch":null}"#).unwrap();
+		let future = Manifest::load(&path).unwrap().unwrap();
+		assert_eq!(future.arch, None);
+		assert_eq!(future.update_arch(Arch::Arm64), Arch::X64);
 		std::fs::remove_dir_all(&dir).unwrap();
 	}
 }

@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
 
+use crate::arch::Arch;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Version {
 	pub parts: Vec<u64>,
@@ -97,12 +99,17 @@ pub fn same(a: &str, b: &str) -> bool {
 	}
 }
 
-pub fn from_package_name(name: &str) -> Option<String> {
+pub fn package_name_parts(name: &str) -> Option<(String, Arch)> {
 	let lower = name.to_ascii_lowercase();
 	let stem = lower.strip_suffix(".zip")?;
 	let rest = stem.strip_prefix("ii-windows-")?;
 	let original = &name[name.len() - 4 - rest.len()..name.len() - 4];
-	Version::parse(original).map(|_| normalize(original))
+	let (ver, arch) = crate::arch::split_package_stem(original);
+	Version::parse(ver).map(|_| (normalize(ver), arch))
+}
+
+pub fn from_package_name(name: &str) -> Option<String> {
+	package_name_parts(name).map(|(v, _)| v)
 }
 
 #[cfg(test)]
@@ -164,5 +171,22 @@ mod tests {
 		assert_eq!(from_package_name("ii-windows-20261002.zip").as_deref(), Some("20261002"));
 		assert_eq!(from_package_name("ii-windows-latest.zip"), None);
 		assert_eq!(from_package_name("other-0.1.0.zip"), None);
+	}
+
+	#[test]
+	fn arm64_package_names() {
+		assert_eq!(
+			package_name_parts("ii-windows-26.1.1.0-unstable-arm64.zip"),
+			Some(("26.1.1.0-unstable".to_string(), Arch::Arm64))
+		);
+		assert_eq!(
+			package_name_parts("ii-windows-26.1.2.0-fix1-arm64.zip"),
+			Some(("26.1.2.0-fix1".to_string(), Arch::Arm64))
+		);
+		assert_eq!(package_name_parts("ii-windows-26.1.2.0.zip"), Some(("26.1.2.0".to_string(), Arch::X64)));
+		assert_eq!(from_package_name("ii-windows-26.1.2.0-arm64.zip").as_deref(), Some("26.1.2.0"));
+		assert!(!is_prerelease(&from_package_name("ii-windows-26.1.2.0-arm64.zip").unwrap()));
+		assert_eq!(package_name_parts("ii-windows-arm64.zip"), None);
+		assert_eq!(package_name_parts("ii-windows-26.1.2.0-arm64.zip.sha256"), None);
 	}
 }

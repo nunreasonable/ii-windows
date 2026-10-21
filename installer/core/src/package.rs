@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use crate::arch::{self, Arch};
 use crate::version;
 
 pub const REQUIRED: [&str; 3] = ["qsw.exe", "qs.exe", "config/ii/shell.qml"];
@@ -16,6 +17,7 @@ pub struct PackageInfo {
 	#[serde(skip)]
 	pub prefix: String,
 	pub has_setup_exe: bool,
+	pub arch: Arch,
 }
 
 #[derive(Debug)]
@@ -99,6 +101,15 @@ pub fn inspect(path: &Path) -> Result<PackageInfo, Error> {
 		));
 	}
 	let has_setup_exe = names.iter().any(|n| n.eq_ignore_ascii_case(&format!("{prefix}{}", crate::SETUP_EXE)));
+	let qsw = names.iter().find(|n| n.eq_ignore_ascii_case(&format!("{prefix}qsw.exe"))).cloned().unwrap_or_default();
+	let mut head = Vec::new();
+	if let Ok(f) = zip.by_name(&qsw) {
+		f.take(4096).read_to_end(&mut head).ok();
+	}
+	let arch = arch::pe_machine(&head).and_then(Arch::from_machine).unwrap_or_else(|| {
+		let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+		version::package_name_parts(name).map(|(_, a)| a).unwrap_or_default()
+	});
 	Ok(PackageInfo {
 		path: path.to_path_buf(),
 		version: ver,
@@ -107,6 +118,7 @@ pub fn inspect(path: &Path) -> Result<PackageInfo, Error> {
 		files,
 		prefix,
 		has_setup_exe,
+		arch,
 	})
 }
 
@@ -179,16 +191,18 @@ fn zip_time(t: zip::DateTime) -> Option<std::time::SystemTime> {
 	std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(secs))
 }
 
-pub fn find_offline(dir: &Path) -> Option<PathBuf> {
-	let mut best: Option<(version::Version, PathBuf)> = None;
+pub fn find_offline(dir: &Path, native: Arch) -> Option<PathBuf> {
+	let mut best: Option<((version::Version, bool), PathBuf)> = None;
 	for entry in std::fs::read_dir(dir).ok()?.flatten() {
 		let name = entry.file_name().to_string_lossy().to_string();
-		let Some(v) = version::from_package_name(&name).and_then(|v| version::Version::parse(&v)) else { continue };
-		if !entry.path().is_file() {
+		let Some((v, a)) = version::package_name_parts(&name) else { continue };
+		let Some(v) = version::Version::parse(&v) else { continue };
+		if !a.runs_on(native) || !entry.path().is_file() {
 			continue;
 		}
-		if best.as_ref().is_none_or(|(b, _)| v > *b) {
-			best = Some((v, entry.path()));
+		let key = (v, a == native);
+		if best.as_ref().is_none_or(|(b, _)| key > *b) {
+			best = Some((key, entry.path()));
 		}
 	}
 	best.map(|(_, p)| p)
@@ -247,7 +261,8 @@ mod tests {
 		extract(&info, &out, &mut |done, _| last = done, &|| false).unwrap();
 		assert_eq!(last, info.unpacked_size);
 		assert_eq!(std::fs::read(out.join("config").join("ii").join("shell.qml")).unwrap(), b"import QtQuick");
-		assert_eq!(find_offline(&d).unwrap(), zip_path);
+		assert_eq!(info.arch, Arch::X64);
+		assert_eq!(find_offline(&d, Arch::X64).unwrap(), zip_path);
 		std::fs::remove_dir_all(&d).unwrap();
 	}
 
@@ -288,6 +303,77 @@ mod tests {
 		assert!(matches!(inspect(&bad), Err(Error::Invalid(_))));
 		std::fs::write(d.join("ii-windows-9.9.9.zip"), b"not a zip").unwrap();
 		assert!(matches!(inspect(&d.join("ii-windows-9.9.9.zip")), Err(Error::Zip(_))));
+		std::fs::remove_dir_all(&d).unwrap();
+	}
+
+	fn pe(machine: u16) -> Vec<u8> {
+		let mut b = vec![0u8; 0x200];
+		b[..2].copy_from_slice(b"MZ");
+		b[0x3C..0x40].copy_from_slice(&0x80u32.to_le_bytes());
+		b[0x80..0x84].copy_from_slice(b"PE\0\0");
+		b[0x84..0x86].copy_from_slice(&machine.to_le_bytes());
+		b
+	}
+
+	#[test]
+	fn package_arch_comes_from_qsw() {
+		let d = tmp("arch");
+		let arm = pe(arch::MACHINE_ARM64);
+		let x64 = pe(arch::MACHINE_X64);
+
+		let named_plain = d.join("ii-windows-26.1.2.0.zip");
+		make_zip(&named_plain, "", &[("qsw.exe", &arm), ("qs.exe", &arm), ("config/ii/shell.qml", b"x")]);
+		let info = inspect(&named_plain).unwrap();
+		assert_eq!(info.arch, Arch::Arm64, "the binary wins over the name");
+		assert_eq!(info.version, "26.1.2.0");
+
+		let named_arm = d.join("ii-windows-26.1.2.0-arm64.zip");
+		make_zip(&named_arm, "ii-windows/", &[("qsw.exe", &x64), ("qs.exe", &x64), ("config/ii/shell.qml", b"x")]);
+		assert_eq!(inspect(&named_arm).unwrap().arch, Arch::X64);
+
+		let stub = d.join("ii-windows-26.1.3.0-arm64.zip");
+		make_zip(&stub, "", &[("qsw.exe", b"MZ"), ("qs.exe", b"MZ"), ("config/ii/shell.qml", b"x")]);
+		let info = inspect(&stub).unwrap();
+		assert_eq!(
+			(info.arch, info.version.as_str()),
+			(Arch::Arm64, "26.1.3.0"),
+			"no readable header: the name decides"
+		);
+		std::fs::remove_dir_all(&d).unwrap();
+	}
+
+	#[test]
+	fn release_package_on_this_runner() {
+		let Ok(path) = std::env::var("IIW_TEST_PACKAGE") else { return };
+		let info = inspect(Path::new(&path)).unwrap();
+		if let Some(want) = std::env::var("IIW_EXPECT_PACKAGE_ARCH").ok().and_then(|v| Arch::parse(&v)) {
+			assert_eq!(info.arch, want);
+		}
+		assert!(info.has_setup_exe, "{path} has no {}", crate::SETUP_EXE);
+		assert!(info.arch.runs_on(arch::native()));
+		let dir = Path::new(&path).parent().unwrap();
+		assert_eq!(find_offline(dir, arch::native()).as_deref(), Some(Path::new(&path)));
+	}
+
+	#[test]
+	fn offline_package_for_this_pc() {
+		let d = tmp("offline");
+		let touch = |n: &str| std::fs::write(d.join(n), b"zip").unwrap();
+		touch("ii-windows-26.1.2.0.zip");
+		touch("ii-windows-26.1.2.0-arm64.zip");
+		touch("ii-windows-26.1.1.0-arm64.zip");
+		touch("ii-windows-setup.exe");
+		assert_eq!(find_offline(&d, Arch::X64).unwrap(), d.join("ii-windows-26.1.2.0.zip"));
+		assert_eq!(find_offline(&d, Arch::Arm64).unwrap(), d.join("ii-windows-26.1.2.0-arm64.zip"));
+		touch("ii-windows-26.1.3.0.zip");
+		assert_eq!(
+			find_offline(&d, Arch::Arm64).unwrap(),
+			d.join("ii-windows-26.1.3.0.zip"),
+			"a newer x64 beats an older arm64"
+		);
+		std::fs::remove_file(d.join("ii-windows-26.1.2.0.zip")).unwrap();
+		std::fs::remove_file(d.join("ii-windows-26.1.3.0.zip")).unwrap();
+		assert_eq!(find_offline(&d, Arch::X64), None, "an x64 PC never picks an arm64 package");
 		std::fs::remove_dir_all(&d).unwrap();
 	}
 }

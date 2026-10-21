@@ -117,6 +117,20 @@ pub fn detect_paths() -> Paths {
 	Paths::from_roots(&local, &roaming, &std::env::temp_dir(), &start_menu)
 }
 
+pub fn native_machine() -> Option<u16> {
+	use windows::Win32::Foundation::HANDLE;
+	use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+	use windows::Win32::System::Threading::GetCurrentProcess;
+
+	type IsWow64Process2 = unsafe extern "system" fn(HANDLE, *mut u16, *mut u16) -> windows::core::BOOL;
+	let kernel32 = unsafe { GetModuleHandleW(windows::core::w!("kernel32.dll")) }.ok()?;
+	let proc_addr = unsafe { GetProcAddress(kernel32, windows::core::s!("IsWow64Process2")) }?;
+	let is_wow64_process2: IsWow64Process2 = unsafe { std::mem::transmute(proc_addr) };
+	let (mut process, mut native) = (0u16, 0u16);
+	let ok = unsafe { is_wow64_process2(GetCurrentProcess(), &mut process, &mut native) }.as_bool();
+	(ok && native != 0).then_some(native)
+}
+
 pub fn windows_build() -> (u32, String) {
 	let key = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
 	let Ok(key) = key else { return (0, String::new()) };

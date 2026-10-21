@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+use iiw_setup_core::arch::{self, Arch};
 use iiw_setup_core::log::Log;
 use iiw_setup_core::manifest::{Manifest, Options};
 use iiw_setup_core::ops::{self, Action, Ctx, Preflight, RunOptions, Source};
@@ -123,6 +124,7 @@ struct OfflineInfo {
 	path: String,
 	version: String,
 	size: u64,
+	arch: Arch,
 }
 
 #[derive(Serialize)]
@@ -185,6 +187,7 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 			path: path.display().to_string(),
 			version: i.version,
 			size: i.file_size,
+			arch: i.arch,
 		})
 	});
 	Info {
@@ -233,7 +236,8 @@ struct LatestInfo {
 
 #[tauri::command]
 async fn check_latest(state: tauri::State<'_, AppState>) -> Result<LatestInfo, String> {
-	let found = tauri::async_runtime::spawn_blocking(release::latest).await.map_err(|e| e.to_string())?;
+	let found =
+		tauri::async_runtime::spawn_blocking(|| release::latest(arch::native())).await.map_err(|e| e.to_string())?;
 	let release = match found {
 		Ok(r) => r,
 		Err(e) => return Ok(LatestInfo { version: None, setup_newer: false, error: Some(e.to_string()) }),
@@ -297,14 +301,22 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Source, Msg> {
 	let offline = state.offline.clone();
 	let explicit = state.args.package.is_some();
+	let manifest = Manifest::load(&state.paths.manifest()).ok().flatten();
 	let want = match action {
-		Action::Repair => Manifest::load(&state.paths.manifest()).ok().flatten().map(|m| m.version),
+		Action::Repair => manifest.as_ref().map(|m| m.version.clone()),
 		_ if version::is_prerelease(SETUP_VERSION) => Some(SETUP_VERSION.to_string()),
 		_ => None,
 	};
-	let src = tauri::async_runtime::spawn_blocking(move || ops::resolve_source(offline.as_deref(), explicit, want.as_deref()))
-		.await
-		.map_err(|e| Msg::new("internal", e.to_string()))??;
+	let native = arch::native();
+	let wanted_arch = match action {
+		Action::Update | Action::Repair => manifest.as_ref().map_or(native, |m| m.update_arch(native)),
+		_ => native,
+	};
+	let src = tauri::async_runtime::spawn_blocking(move || {
+		ops::resolve_source(offline.as_deref(), explicit, want.as_deref(), wanted_arch)
+	})
+	.await
+	.map_err(|e| Msg::new("internal", e.to_string()))??;
 	let mut cache = state.sources.lock().unwrap();
 	cache.retain(|(a, _)| *a != action);
 	cache.push((action, src.clone()));
@@ -494,10 +506,16 @@ fn main() {
 			args.package = None;
 		}
 	}
-	let offline = args.package.clone().or_else(|| origin.as_deref().and_then(package::find_offline));
+	let native = arch::native();
+	let offline = args.package.clone().or_else(|| origin.as_deref().and_then(|d| package::find_offline(d, native)));
 	if let Some(p) = &offline {
-		if let Err(e) = package::inspect(p) {
-			offline_error = Some(format!("{}: {e}", p.display()));
+		match package::inspect(p) {
+			Err(e) => offline_error = Some(format!("{}: {e}", p.display())),
+			Ok(i) if !i.arch.runs_on(native) => {
+				let name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+				offline_error = Some(ops::wrong_arch_msg(&name, i.arch, native).text);
+			}
+			Ok(_) => {}
 		}
 	}
 	let offline = if offline_error.is_some() { None } else { offline };

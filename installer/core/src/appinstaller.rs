@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::arch::Arch;
 use crate::release::{self, Error};
 
 pub const REPO: &str = "microsoft/winget-cli";
@@ -52,7 +53,9 @@ pub fn latest() -> Result<WingetCliRelease, Error> {
 	parse_release(&release::latest_release_json(REPO)?)
 }
 
-pub fn extract_x64_dependencies(zip_path: &Path, dest: &Path) -> Result<Vec<PathBuf>, Error> {
+pub fn extract_dependencies(zip_path: &Path, dest: &Path, arch: Arch) -> Result<Vec<PathBuf>, Error> {
+	let folder = format!("{}/", arch.as_str());
+	let folder = folder.as_bytes();
 	let file = std::fs::File::open(zip_path)?;
 	let mut zip = zip::ZipArchive::new(file).map_err(|e| Error::Integrity(format!("dependencies zip: {e}")))?;
 	std::fs::create_dir_all(dest)?;
@@ -64,10 +67,10 @@ pub fn extract_x64_dependencies(zip_path: &Path, dest: &Path) -> Result<Vec<Path
 		}
 		let name = entry.name().replace('\\', "/");
 		let bytes = name.as_bytes();
-		if bytes.len() < 4 || !bytes[..4].eq_ignore_ascii_case(b"x64/") {
+		if bytes.len() < folder.len() || !bytes[..folder.len()].eq_ignore_ascii_case(folder) {
 			continue;
 		}
-		let base = &name[4..];
+		let base = &name[folder.len()..];
 		if base.is_empty() || base.contains('/') {
 			continue;
 		}
@@ -77,7 +80,7 @@ pub fn extract_x64_dependencies(zip_path: &Path, dest: &Path) -> Result<Vec<Path
 		out.push(out_path);
 	}
 	if out.is_empty() {
-		return Err(Error::Integrity("the dependencies zip has no x64 packages".into()));
+		return Err(Error::Integrity(format!("the dependencies zip has no {arch} packages")));
 	}
 	Ok(out)
 }
@@ -138,7 +141,7 @@ mod tests {
 	}
 
 	#[test]
-	fn only_x64_is_extracted() {
+	fn only_the_machine_arch_is_extracted() {
 		let d = tmp("x64");
 		let zip_path = d.join("deps.zip");
 		make_zip(
@@ -150,13 +153,16 @@ mod tests {
 				("x86/vclibs_x86.appx", b"x86"),
 			],
 		);
-		let out = extract_x64_dependencies(&zip_path, &d.join("out")).unwrap();
+		let out = extract_dependencies(&zip_path, &d.join("out"), Arch::X64).unwrap();
 		assert_eq!(out.len(), 2);
 		for p in &out {
 			assert!(p.is_file());
 			assert!(!p.display().to_string().contains("x86"));
 			assert!(!p.display().to_string().contains("arm64"));
 		}
+		let arm = extract_dependencies(&zip_path, &d.join("arm"), Arch::Arm64).unwrap();
+		assert_eq!(arm.len(), 1);
+		assert_eq!(std::fs::read(&arm[0]).unwrap(), b"arm64");
 		std::fs::remove_dir_all(&d).unwrap();
 	}
 
@@ -165,7 +171,8 @@ mod tests {
 		let d = tmp("none");
 		let zip_path = d.join("deps.zip");
 		make_zip(&zip_path, &[("x86/vclibs_x86.appx", b"x86")]);
-		assert!(matches!(extract_x64_dependencies(&zip_path, &d.join("out")), Err(Error::Integrity(_))));
+		assert!(matches!(extract_dependencies(&zip_path, &d.join("out"), Arch::X64), Err(Error::Integrity(_))));
+		assert!(matches!(extract_dependencies(&zip_path, &d.join("out"), Arch::Arm64), Err(Error::Integrity(_))));
 		std::fs::remove_dir_all(&d).unwrap();
 	}
 }

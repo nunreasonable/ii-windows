@@ -158,7 +158,7 @@
 		const chips = [];
 		if (info.installed) chips.push(`<span class="chip ok">${icon("ok")}${esc(t("chip_installed", { v: info.installed.version }))}</span>`);
 		else chips.push(`<span class="chip">${esc(t("chip_not_installed"))}</span>`);
-		if (info.offline) chips.push(`<span class="chip primary">${icon("box")}${esc(t("chip_offline", { v: info.offline.version }))}</span>`);
+		if (info.offline) chips.push(`<span class="chip primary">${icon("box")}${esc(t("chip_offline", { v: info.offline.arch === "arm64" ? `${info.offline.version} · ARM64` : info.offline.version }))}</span>`);
 		if (info.offline_error) chips.push(`<span class="chip error" title="${esc(info.offline_error)}">${icon("error")}${esc(t("chip_offline_error"))}</span>`);
 		if (info.unmanaged_files) chips.push(`<span class="chip warn">${icon("warn")}${esc(t("chip_unmanaged"))}</span>`);
 		if (info.manifest_error) chips.push(`<span class="chip error" title="${esc(info.manifest_error)}">${icon("error")}${esc(t("chip_manifest_error"))}</span>`);
@@ -282,7 +282,13 @@
 			if (action === "update" && info.installed) {
 				title = `<span class="version-flow"><span class="from">${esc(info.installed.version)}</span>${icon("arrow")}<span>${esc(ver)}</span></span>`;
 			}
-			body = `<div class="source"><span class="row-icon">${icon("box")}</span><span class="row-text"><span class="row-title">${title}</span><span class="row-desc">${esc(line)}</span></span></div>`;
+			const arch = s.kind === "offline" ? s.arch : s.release.arch;
+			const wantedArch = s.kind === "offline" ? s.wanted_arch : s.release.wanted_arch;
+			let archNote = "";
+			if (arch === "arm64") archNote = t("pkg_arch_arm64");
+			else if (wantedArch === "arm64") archNote = t(s.kind === "offline" ? "pkg_arch_emulated" : "pkg_arch_fallback");
+			const extra = archNote ? `<span class="row-extra info">${esc(archNote)}</span>` : "";
+			body = `<div class="source"><span class="row-icon">${icon("box")}</span><span class="row-text"><span class="row-title">${title}</span><span class="row-desc">${esc(line)}</span>${extra}</span></div>`;
 		}
 		return `<div class="card"><div class="card-title">${esc(t("card_package"))}</div>${body}</div>`;
 	}

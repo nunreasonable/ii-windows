@@ -1,4 +1,5 @@
 pub mod appinstaller;
+pub mod arch;
 pub mod fsops;
 pub mod knownfolders;
 pub mod log;

@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::arch::{self, Arch};
 use crate::fsops::{self, Swap};
 use crate::knownfolders::{self, KnownFolder};
 use crate::log::{self, Log};
@@ -48,7 +49,7 @@ pub struct RunOptions {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Source {
-	Offline { path: PathBuf, version: String, size: u64 },
+	Offline { path: PathBuf, version: String, size: u64, arch: Arch, wanted_arch: Arch, explicit: bool },
 	Github { release: ReleaseInfo },
 }
 
@@ -58,6 +59,16 @@ impl Source {
 			Source::Offline { version, .. } => version,
 			Source::Github { release } => &release.version,
 		}
+	}
+	pub fn wanted_arch(&self) -> Arch {
+		match self {
+			Source::Offline { wanted_arch, .. } => *wanted_arch,
+			Source::Github { release } => release.wanted_arch,
+		}
+	}
+	fn line(&self, installed: Arch) -> Arch {
+		let explicit = matches!(self, Source::Offline { explicit: true, .. });
+		arch::line_after(self.wanted_arch(), installed, explicit)
 	}
 	pub fn download_size(&self) -> u64 {
 		match self {
@@ -100,25 +111,56 @@ fn msg_from_winget_release_error(e: &release::Error) -> Msg {
 	}
 }
 
-pub fn resolve_source(offline: Option<&Path>, explicit: bool, want_version: Option<&str>) -> R<Source> {
+pub fn wrong_arch_msg(name: &str, package: Arch, native: Arch) -> Msg {
+	Msg::new(
+		"package_wrong_arch",
+		format!("{name} is an {} package and this PC is {}: it can't run here", package.label(), native.label()),
+	)
+	.with("name", name.to_string())
+	.with("arch", package.label().to_string())
+	.with("native", native.label().to_string())
+}
+
+pub fn resolve_source(
+	offline: Option<&Path>,
+	explicit: bool,
+	want_version: Option<&str>,
+	wanted_arch: Arch,
+) -> R<Source> {
 	if let Some(p) = offline {
 		let info =
 			package::inspect(p).map_err(|e| Msg::new("package_invalid", e.to_string()).with("error", e.to_string()))?;
+		let native = arch::native();
+		if !info.arch.runs_on(native) {
+			let name = p.file_name().unwrap_or_default().to_string_lossy();
+			return Err(wrong_arch_msg(&name, info.arch, native));
+		}
 		let use_it = want_version.is_none_or(|v| version::same(v, &info.version));
 		if use_it {
 			if !explicit && want_version.is_none() {
-				if let Ok(release) = release::latest() {
-					if version::is_newer(&release.version, &info.version) {
+				if let Ok(release) = release::latest(wanted_arch) {
+					let newer = version::is_newer(&release.version, &info.version);
+					let native_build = info.arch != wanted_arch
+						&& release.arch == wanted_arch
+						&& !version::is_newer(&info.version, &release.version);
+					if newer || native_build {
 						return Ok(Source::Github { release });
 					}
 				}
 			}
-			return Ok(Source::Offline { path: p.to_path_buf(), version: info.version, size: info.file_size });
+			return Ok(Source::Offline {
+				path: p.to_path_buf(),
+				version: info.version,
+				size: info.file_size,
+				arch: info.arch,
+				wanted_arch,
+				explicit,
+			});
 		}
 	}
 	let rel = match want_version {
-		Some(v) => release::for_version(v),
-		None => release::latest(),
+		Some(v) => release::for_version(v, wanted_arch),
+		None => release::latest(wanted_arch),
 	};
 	rel.map(|release| Source::Github { release }).map_err(|e| msg_from_release_error(&e))
 }
@@ -445,6 +487,42 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffm
 }
 
 fn obtain_package(ctx: &mut Ctx, source: &Source) -> R<PackageInfo> {
+	let pkg = fetch_package(ctx, source)?;
+	let native = arch::native();
+	ctx.info(format!("   {} package on an {} PC", pkg.arch.label(), native.label()));
+	if !pkg.arch.runs_on(native) {
+		let name = pkg.path.file_name().unwrap_or_default().to_string_lossy().to_string();
+		let m = wrong_arch_msg(&name, pkg.arch, native);
+		ctx.fail("verify", &m);
+		return Err(m);
+	}
+	if pkg.arch != native && pkg.arch != source.wanted_arch() {
+		ctx.note(match source {
+			Source::Github { release } => Msg::new(
+				"arch_fallback",
+				format!(
+					"Release {} has no {} package yet, so the {} one was installed and Windows runs it through emulation. Updates move to {} once a release has it.",
+					release.tag,
+					native.label(),
+					pkg.arch.label(),
+					native.label()
+				),
+			)
+			.with("tag", release.tag.clone()),
+			Source::Offline { .. } => Msg::new(
+				"arch_emulated",
+				format!(
+					"The package is {}, so Windows runs ii through emulation on this {} PC.",
+					pkg.arch.label(),
+					native.label()
+				),
+			),
+		});
+	}
+	Ok(pkg)
+}
+
+fn fetch_package(ctx: &mut Ctx, source: &Source) -> R<PackageInfo> {
 	match source {
 		Source::Offline { path, .. } => {
 			ctx.begin("verify");
@@ -1300,9 +1378,10 @@ fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
 			ctx.info("   no checksum file on this release; Windows verifies the package's signature on install");
 		}
 
-		let dep_paths = appinstaller::extract_x64_dependencies(&deps_zip_path, &dir.join("x64"))
+		let native = arch::native();
+		let dep_paths = appinstaller::extract_dependencies(&deps_zip_path, &dir.join(native.as_str()), native)
 			.map_err(|e| msg_from_winget_release_error(&e))?;
-		ctx.info(format!("   {} dependency package(s) (x64)", dep_paths.len()));
+		ctx.info(format!("   {} dependency package(s) ({native})", dep_paths.len()));
 
 		if reporter.cancelled() {
 			return Err(Msg::new("cancelled", "cancelled"));
@@ -1926,6 +2005,8 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		m.version = pkg.version.clone();
 		m.setup_version = ctx.setup_version.clone();
 		m.source = source.describe();
+		m.arch = Some(pkg.arch);
+		m.wanted_arch = Some(source.line(pkg.arch));
 		m.install_dir = ctx.paths.install_dir.clone();
 		if fresh {
 			m.installed_at = log::timestamp();
@@ -1984,6 +2065,8 @@ pub fn update(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		m.version = pkg.version.clone();
 		m.setup_version = ctx.setup_version.clone();
 		m.source = source.describe();
+		m.arch = Some(pkg.arch);
+		m.wanted_arch = Some(source.line(pkg.arch));
 		m.updated_at = Some(log::timestamp());
 		seed_colors(ctx, &mut m, false);
 		if apply_style(ctx, &run.options.visual_style) {
@@ -2075,6 +2158,8 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		r?;
 		m.version = pkg.version.clone();
 		m.setup_version = ctx.setup_version.clone();
+		m.arch = Some(pkg.arch);
+		m.wanted_arch = Some(source.line(pkg.arch));
 		m.repaired_at = Some(log::timestamp());
 		seed_colors(ctx, &mut m, true);
 		apply_style(ctx, &opts.visual_style);
