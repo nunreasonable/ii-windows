@@ -457,7 +457,7 @@ h2 { font-size: 22px; }
 .row-extra.ok { color: var(--success); }
 .row-extra.info { color: var(--outline); }
 .row.disabled .row-title, .row.disabled .row-desc { opacity: 0.55; }
-.style-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 12px 4px; }
+.style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 8px 12px 4px; }
 .style-opt {
 	display: flex;
 	flex-direction: column;

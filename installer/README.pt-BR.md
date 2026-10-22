@@ -47,8 +47,10 @@ tarefas se oculta automaticamente.
 
 ## As opções
 
-- **Estilo visual**: *illogical-impulse* (o visual original do ii) ou *end4-pC* (o visual do fork
-  do pctrade). Os dois têm as mesmas funções e opções; a escolha define alguns padrões da barra e
+- **Estilo visual**: *illogical-impulse* (o visual original do ii), *end4-pC* (o visual do fork
+  do pctrade) ou *NabyScape* (uma ilha preta no topo com a hora e o que está tocando, com a barra
+  de tarefas do Windows no lugar da barra do ii; trocar para outro estilo traz de volta a barra que
+  você tinha). Todos têm as mesmas funções e opções; a escolha define alguns padrões da barra e
   da barra lateral (números ou ícones dos apps nas áreas de trabalho, quais botões a barra mostra,
   os controles rápidos) e qual layout da janela de configurações abre. Cada cartão tem uma imagem
   de como fica. O instalador só grava `appearance.visualStyle` em
@@ -348,7 +350,10 @@ O próprio ii também muda um pouco no Windows 10:
   [github.com/nunreasonable/dots-hyprland](https://github.com/nunreasonable/dots-hyprland). O
   dots-hyprland do end-4 é licenciado sob a GPL-3.0. O estilo end4-pC (a janela de configurações e
   os padrões dele) é portado do fork end4-pC do ii, do pctrade
-  ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), também GPL-3.0.
+  ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), também GPL-3.0. O estilo
+  NabyScape recria o visual do NabyScape do BillyNabil
+  ([github.com/BillyNabil/nabyscape](https://github.com/BillyNabil/nabyscape), MIT) com o código do
+  próprio ii; nenhum código ou imagem dele vem junto.
 - Também incluídos, entre outros: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor
   (MIT), o runtime do Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da
   Microsoft), as fontes JetBrainsMono Nerd Font, Readex Pro, Space Grotesk e Google Sans Flex

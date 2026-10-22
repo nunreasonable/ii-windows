@@ -28,3 +28,5 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 The setup (`ii-windows-setup.exe`) is built with Tauri 2 and Rust crates under permissive licenses (MIT, Apache-2.0 and similar); `installer/Cargo.lock` lists them. It uses the Microsoft Edge WebView2 Runtime that comes with Windows. `songrec.exe` and `matugen.exe` are also Rust programs, and their crates are listed in their own `Cargo.lock`.
 
 On Windows ARM64, where the project's GitHub release only ships an x64 build, `VirtualDesktopAccessor.dll` is instead built from the `dll` crate in VirtualDesktopAccessor's own source tree at commit `ceb648849dcc5760a7f4ed223308ffe3de0b51c6` (`tools/vda/build.sh`; the same commit already used for `licenses/VirtualDesktopAccessor/LICENSE.txt` in `tools/deps.lock`). matugen, SongRec and MicroTeX are built natively for ARM64 the same way as x64, at the same pinned versions above.
+
+The NabyScape visual style recreates the look and behavior of [NabyScape](https://github.com/BillyNabil/nabyscape) by BillyNabil (MIT) with ii's own QML and Material Symbols icons. No code or images from NabyScape are in the package.

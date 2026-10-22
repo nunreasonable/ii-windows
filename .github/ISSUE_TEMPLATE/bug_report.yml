@@ -1,0 +1,112 @@
+name: Bug report
+description: Something in ii-windows or its setup is broken or crashes.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. A few things make it much faster to fix:
+
+        - **Attach the problem report.** In ii, open **Settings → About → Report a problem**. It saves a zip with ii's logs and some system info (Windows build, GPU, screens, fonts) on your Desktop and opens this page. Drag the zip into the **Logs** box below.
+        - **Crashes:** turn on **Include the latest crash dump** before clicking Report a problem. A dump shows exactly where it crashed, but it can hold bits of what ii had in memory (clipboard text, chats), so look at it before sending if that matters to you.
+        - **One bug per issue**, and search the [existing issues](https://github.com/nunreasonable/ii-windows/issues?q=is%3Aissue) first.
+        - Questions and help go to the [ii-windows thread](https://discord.com/channels/1393080422245863506/1560371137123188738) on Discord.
+
+  - type: input
+    id: version
+    attributes:
+      label: ii-windows version
+      description: Shown in Settings → About and in the setup's title bar.
+      placeholder: "26.1.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      description: "Settings → System → About → System type in Windows. x86_64 = Intel or AMD (x64); ARM64 = Snapdragon or other Windows on ARM."
+      options:
+        - x86_64
+        - ARM64
+    validations:
+      required: true
+
+  - type: dropdown
+    id: style
+    attributes:
+      label: Visual style
+      description: Chosen in the setup or in Settings → Quick config.
+      options:
+        - illogical-impulse (ii)
+        - end4-pC
+        - NabyScape
+    validations:
+      required: true
+
+  - type: dropdown
+    id: family
+    attributes:
+      label: Panel family
+      description: "ii = bar and sidebars; waffle = the Windows 11-style taskbar and Start menu."
+      options:
+        - ii
+        - waffle
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Run `winver` and copy the version and build.
+      placeholder: "Windows 11 24H2, build 26100.4652"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to make it happen again. Say if it happens every time or only sometimes.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Drag the zip from **Settings → About → Report a problem** here.
+        If ii doesn't start at all, attach `%LOCALAPPDATA%\quickshell\run\by-id\<newest folder>\log.log` and, for setup problems, `%LOCALAPPDATA%\ii-windows\setup.log` (or the setup's **Log** button).
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or video
+      description: Optional, but very helpful for anything visual. Crop out anything private.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this isn't one of them.
+          required: true
+        - label: I attached the problem report zip (or the log files above).
+          required: true

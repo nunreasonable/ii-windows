@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 use std::io;
 use std::path::Path;
 
-pub const STYLES: [&str; 2] = ["ii", "end4pc"];
+pub const STYLES: [&str; 3] = ["ii", "end4pc", "nabyscape"];
 pub const DEFAULT: &str = "ii";
 pub const CONFIG_FILE: &str = "config.json";
 
@@ -157,6 +157,19 @@ mod tests {
 	fn switching_back_to_default_is_written() {
 		let p = tmp("back");
 		std::fs::write(&p, "{\"appearance\": {\"visualStyle\": \"end4pc\"}}").unwrap();
+		assert_eq!(write(&p, "ii").unwrap(), Outcome::Updated);
+		assert_eq!(read(&p).as_deref(), Some("ii"));
+	}
+
+	#[test]
+	fn nabyscape_is_a_known_style() {
+		let p = tmp("naby");
+		std::fs::write(&p, "{\"appearance\": {\"visualStyle\": \"end4pc\", \"x\": 1}}").unwrap();
+		assert_eq!(write(&p, "nabyscape").unwrap(), Outcome::Updated);
+		assert_eq!(read(&p).as_deref(), Some("nabyscape"));
+		let v: Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+		assert_eq!(v, serde_json::json!({"appearance": {"visualStyle": "nabyscape", "x": 1}}));
+		assert_eq!(write(&p, "nabyscape").unwrap(), Outcome::Unchanged);
 		assert_eq!(write(&p, "ii").unwrap(), Outcome::Updated);
 		assert_eq!(read(&p).as_deref(), Some("ii"));
 	}
