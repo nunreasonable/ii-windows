@@ -54,7 +54,7 @@
   - **Equalizer**: the curve goes to [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) (free, installed separately) through a file it includes; Realtek Audio Console, MaxxAudio, Dolby, DTS, Nahimic and other sound apps have no public API, so ii only opens them
   - **Live wallpapers**: Media Foundation decodes the video on the GPU in its own thread and hands frames to Qt through a shared D3D11 texture; one decoder per file for all monitors. Without a GPU it plays at up to 720p and 15 fps
   - **Colors**: `matugen.exe` with ii's own template, so the palette from a wallpaper is the same as on Linux. Windows' wallpaper and light/dark mode follow what you pick in ii, and its accent color follows the palette
-  - Quickshell (based on upstream 0.3.1), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM
+  - Quickshell (based on upstream 0.3.1), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM. The ARM64 build is compiled natively on GitHub's Windows 11 ARM64 runner and tested there
 
 </details>
 
@@ -79,6 +79,7 @@
     - `Win`+drag = move a window, `Win`+right drag = resize it (like `bindm` on Hyprland)
   - Needs Windows 10 version 2004 or newer (22H2 recommended) or Windows 11 (build 22000 or
     newer). winget is needed for the optional terminal tools and FFmpeg; on Windows 10 without it, the setup can install it
+  - **Windows on ARM (experimental)**: on a Windows 11 ARM64 PC (Snapdragon and others) the setup picks the native ARM64 package by itself, and if a release doesn't have one it installs the x64 package, which Windows runs through emulation. The ARM64 build needs Windows 11 24H2 (build 26100.2605) or newer, because that's what the ARM64 build of VirtualDesktopAccessor supports; on older builds ii runs but can't switch virtual desktops. Windows 10 on ARM isn't supported. So far it has only run on GitHub's ARM64 runners, not on a real laptop: if you have one, a [bug report](https://github.com/nunreasonable/ii-windows/issues/new?template=bug_report.yml) with *Architecture: ARM64* helps a lot, even just to say it works
   - Every time it opens, the setup checks GitHub for a newer release and updates itself first
 
 </details>
