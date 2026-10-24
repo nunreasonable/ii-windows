@@ -172,6 +172,35 @@ pub fn for_version(ver: &str, arch: Arch) -> Result<ReleaseInfo, Error> {
 	Err(last)
 }
 
+pub const STABLE_RELEASE_JSON_ENV: &str = "IIW_SETUP_STABLE_RELEASE_JSON";
+
+pub fn latest_stable(arch: Arch) -> Result<ReleaseInfo, Error> {
+	if let Some(url) = std::env::var(STABLE_RELEASE_JSON_ENV).ok().filter(|u| !u.trim().is_empty()) {
+		return get_json(url.trim()).and_then(|j| parse_release(&j, arch));
+	}
+	let list = get_json(&format!("https://api.github.com/repos/{REPO}/releases?per_page=30"))?;
+	pick_stable(&list).map_or(Err(Error::NotFound), |json| parse_release(json, arch))
+}
+
+fn pick_stable(list: &serde_json::Value) -> Option<&serde_json::Value> {
+	let mut best: Option<(version::Version, &serde_json::Value)> = None;
+	for json in list.as_array().into_iter().flatten() {
+		let flag = |key: &str| json.get(key).and_then(|v| v.as_bool()).unwrap_or(false);
+		if flag("draft") || flag("prerelease") {
+			continue;
+		}
+		let tag = json.get("tag_name").and_then(|v| v.as_str()).unwrap_or_default();
+		if version::is_prerelease(tag) {
+			continue;
+		}
+		let Some(ver) = version::Version::parse(tag) else { continue };
+		if best.as_ref().is_none_or(|(b, _)| ver > *b) {
+			best = Some((ver, json));
+		}
+	}
+	best.map(|(_, json)| json)
+}
+
 pub fn parse_sha256_file(text: &str, file_name: &str) -> Result<String, Error> {
 	let mut lone = None;
 	for line in text.lines() {
@@ -274,6 +303,21 @@ pub fn download(
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn stable_skips_previews_even_when_github_calls_them_latest() {
+		let list = serde_json::json!([
+			{"tag_name": "v26.1.1.0-unstable", "draft": false, "prerelease": false},
+			{"tag_name": "v1.1.0-unstable", "draft": false, "prerelease": true},
+			{"tag_name": "v1.0.8", "draft": false, "prerelease": false},
+			{"tag_name": "v1.0.9", "draft": true, "prerelease": false},
+			{"tag_name": "v1.0.7", "draft": false, "prerelease": false},
+			{"tag_name": "v0.10.1-fix2", "draft": false, "prerelease": false}
+		]);
+		let picked = pick_stable(&list).and_then(|j| j.get("tag_name")).and_then(|v| v.as_str());
+		assert_eq!(picked, Some("v1.0.8"));
+		assert!(pick_stable(&serde_json::json!([])).is_none());
+	}
 
 	#[test]
 	fn release_json() {

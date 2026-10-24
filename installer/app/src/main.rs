@@ -30,6 +30,7 @@ struct Args {
 	origin: Option<PathBuf>,
 	after: Option<u32>,
 	no_self_update: bool,
+	stable: bool,
 }
 
 fn parse_args() -> Args {
@@ -57,6 +58,7 @@ fn parse_args() -> Args {
 			"--origin" => a.origin = it.next().map(PathBuf::from),
 			"--after" => a.after = it.next().and_then(|p| p.to_string_lossy().parse().ok()),
 			"--no-self-update" => a.no_self_update = true,
+			"--stable" => a.stable = true,
 			_ => {}
 		}
 	}
@@ -135,6 +137,8 @@ struct Info {
 	readme_en: String,
 	readme_pt: String,
 	page: Option<String>,
+	stable: bool,
+	setup_prerelease: bool,
 	installed: Option<InstalledInfo>,
 	manifest_error: Option<String>,
 	offline: Option<OfflineInfo>,
@@ -197,6 +201,8 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		readme_en: readme::to_html(README_EN),
 		readme_pt: readme::to_html(README_PT),
 		page: state.args.page.clone(),
+		stable: state.args.stable,
+		setup_prerelease: version::is_prerelease(SETUP_VERSION),
 		unmanaged_files: installed.is_none() && p.qsw_exe().exists(),
 		installed,
 		manifest_error,
@@ -265,6 +271,7 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 	}
 	let paths = state.paths.clone();
 	let page = state.args.page.clone();
+	let stable = state.args.stable;
 	let origin = state.args.origin.clone().or_else(|| state.self_exe.parent().map(Path::to_path_buf));
 	let spawned = tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
 		let session = new_session_dir(&paths);
@@ -280,6 +287,9 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 			cmd.arg(format!("--{p}"));
 		}
 		cmd.arg("--relaunched").arg("--session").arg(&session).arg("--no-self-update");
+		if stable {
+			cmd.arg("--stable");
+		}
 		cmd.arg("--after").arg(std::process::id().to_string());
 		if let Some(dir) = origin {
 			cmd.arg("--origin").arg(dir);
@@ -298,7 +308,7 @@ async fn self_update(app: AppHandle, state: tauri::State<'_, AppState>) -> Resul
 }
 
 #[tauri::command]
-async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Source, Msg> {
+async fn source(state: tauri::State<'_, AppState>, action: Action, stable: bool) -> Result<Source, Msg> {
 	let offline = state.offline.clone();
 	let explicit = state.args.package.is_some();
 	let manifest = Manifest::load(&state.paths.manifest()).ok().flatten();
@@ -312,8 +322,13 @@ async fn source(state: tauri::State<'_, AppState>, action: Action) -> Result<Sou
 		Action::Update | Action::Repair => manifest.as_ref().map_or(native, |m| m.update_arch(native)),
 		_ => native,
 	};
+	let stable = stable && matches!(action, Action::Install | Action::Update);
 	let src = tauri::async_runtime::spawn_blocking(move || {
-		ops::resolve_source(offline.as_deref(), explicit, want.as_deref(), wanted_arch)
+		if stable {
+			ops::resolve_stable(wanted_arch)
+		} else {
+			ops::resolve_source(offline.as_deref(), explicit, want.as_deref(), wanted_arch)
+		}
 	})
 	.await
 	.map_err(|e| Msg::new("internal", e.to_string()))??;

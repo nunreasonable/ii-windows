@@ -452,6 +452,12 @@ h2 { font-size: 22px; }
 .update-status svg { width: 18px; height: 18px; flex: none; }
 .update-status.newer { background: var(--primary-container); color: var(--on-primary-container); }
 .update-status.same { background: var(--success-container); color: var(--success); }
+.update-status.older { background: var(--warn-container); color: var(--warn); }
+.card.preview-warn { background: color-mix(in srgb, var(--warn-container) 45%, var(--surface)); box-shadow: inset 0 0 0 1px var(--warn); }
+.preview-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 4px; color: var(--warn); font-size: 17px; font-weight: 600; }
+.preview-head svg { width: 28px; height: 28px; flex: none; }
+.card.preview-warn .bullets { color: var(--on-surface); }
+.channel-group { padding: 4px 12px 12px; }
 .row-extra { font-size: 12px; margin-top: 3px; }
 .row-extra.warn { color: var(--warn); }
 .row-extra.ok { color: var(--success); }

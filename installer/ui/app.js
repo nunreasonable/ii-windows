@@ -49,6 +49,8 @@
 		opts: null,
 		uopts: null,
 		force: false,
+		stable: false,
+		previewAccepted: false,
 		launch: true,
 		installWinget: true,
 		plan: [],
@@ -92,6 +94,10 @@
 	}
 
 	let toastTimer = 0;
+	function isPreview(v) {
+		return /-(?!fix\d+$)/i.test(String(v || "").replace(/^v/i, ""));
+	}
+
 	function toast(text) {
 		const el = $("#toast");
 		el.textContent = text;
@@ -184,6 +190,7 @@
 			S.opts = null;
 			S.uopts = null;
 			S.force = false;
+			S.previewAccepted = false;
 			S.launch = true;
 			S.installWinget = a === "install";
 		}
@@ -267,6 +274,32 @@
 		return `<div class="method-group" role="radiogroup" aria-label="${esc(t("o_method"))}">${items}</div>`;
 	}
 
+	function channelCard(action) {
+		if (!(info.setup_prerelease || info.stable) || (action !== "install" && action !== "update")) return "";
+		const items = ["preview", "stable"].map((c) => {
+			const on = (c === "stable") === S.stable;
+			return `<button type="button" class="method-opt${on ? " selected" : ""}" data-channel="${c}" role="radio" aria-checked="${on}">
+				<span class="method-dot"></span>
+				<span class="method-text"><span class="method-name">${esc(t(`ch_${c}`, { v: info.setup_version }))}</span><span class="method-sub">${esc(t(`ch_${c}_desc`))}</span></span>
+			</button>`;
+		}).join("");
+		return `<div class="card"><div class="card-title">${esc(t("card_channel"))}</div><div class="method-group channel-group" role="radiogroup">${items}</div></div>`;
+	}
+
+	function previewCard(action) {
+		const v = sourceVersion(action);
+		if (!v || !isPreview(v)) return "";
+		return `<div class="card preview-warn">
+			<div class="preview-head">${icon("warn")}<span>${esc(t("pv_title", { v }))}</span></div>
+			<ul class="bullets">
+				<li>${esc(t("pv_b1"))}</li>
+				<li>${esc(t("pv_b2"))}</li>
+				<li>${esc(t("pv_b3"))}</li>
+			</ul>
+			${switchRow("accept_preview", "warn", t("pv_accept"), esc(t("pv_accept_desc")), S.previewAccepted, { caution: true })}
+		</div>`;
+	}
+
 	function sourceCard(action) {
 		const src = S.sources[action];
 		let body;
@@ -334,6 +367,8 @@
 		if (a === "install") {
 			if (!S.opts) S.opts = defaultOpts();
 			const o = S.opts;
+			html += previewCard(a);
+			html += channelCard(a);
 			html += sourceCard(a);
 			html += styleCard(o);
 			const pwshPresent = pf && pf.pwsh;
@@ -371,13 +406,21 @@
 			html += checksCard(a);
 		} else if (a === "update") {
 			if (!S.opts) S.opts = defaultOpts();
+			html += previewCard(a);
+			html += channelCard(a);
 			html += sourceCard(a);
 			const v = sourceVersion(a);
 			if (v) {
-				const newer = versionCmp(v, info.installed.version) > 0;
+				const cmp = versionCmp(v, info.installed.version);
+				const newer = cmp > 0;
+				const older = cmp < 0;
+				if (older) S.force = true;
+				const status = older
+					? `<div class="update-status older">${icon("warn")}<span>${esc(t("rollback_to", { v, from: info.installed.version }))}</span></div>`
+					: `<div class="update-status ${newer ? "newer" : "same"}">${icon(newer ? "update" : "check")}<span>${esc(newer ? t("update_available") : t("update_none"))}</span></div>`;
 				html += `<div class="card"><div class="card-title">${esc(t("card_after_update"))}</div>
-					<div class="update-status ${newer ? "newer" : "same"}">${icon(newer ? "update" : "check")}<span>${esc(newer ? t("update_available") : t("update_none"))}</span></div>
-					${newer ? "" : switchRow("force", "update", t("force_title"), esc(t("force_desc", { v })), S.force)}
+					${status}
+					${newer || older ? "" : switchRow("force", "update", t("force_title"), esc(t("force_desc", { v })), S.force)}
 					${switchRow("launch", "rocket", t("o_restart"), esc(t("o_launch_desc")), S.launch)}
 					${wingetRow(pf, info.installed.options.terminal, info.installed.options.ffmpeg)}
 				</div>`;
@@ -425,6 +468,7 @@
 		let ok = pf && pf.value && !pf.value.blocked;
 		if (a !== "uninstall") ok = ok && src && src.value;
 		if (a === "update" && ok) ok = versionCmp(sourceVersion(a), info.installed.version) > 0 || S.force;
+		if (ok && a !== "uninstall" && a !== "repair" && isPreview(sourceVersion(a))) ok = S.previewAccepted;
 		go.disabled = !ok;
 		$("#options-note").textContent = pf && pf.value && pf.value.blocked ? t("blocked") : "";
 	}
@@ -432,6 +476,7 @@
 	function onSwitch(id, checked) {
 		if (id === "launch") S.launch = checked;
 		else if (id === "force") S.force = checked;
+		else if (id === "accept_preview") S.previewAccepted = checked;
 		else if (id === "install_winget") S.installWinget = checked;
 		else if (S.action === "uninstall") S.uopts[id] = checked;
 		else S.opts[id] = checked;
@@ -443,7 +488,7 @@
 		S.sources[action] = { loading: true };
 		if (S.page === "options") renderOptions();
 		try {
-			const value = await invoke("source", { action });
+			const value = await invoke("source", { action, stable: S.stable });
 			S.sources[action] = { value };
 		} catch (error) {
 			S.sources[action] = { error: typeof error === "object" ? error : { key: "internal", text: String(error), params: { error: String(error) } } };
@@ -727,6 +772,14 @@
 				openZoom(zoom.dataset.zoom);
 				return;
 			}
+			const channel = e.target.closest("[data-channel]");
+			if (channel && (channel.dataset.channel === "stable") !== S.stable) {
+				S.stable = channel.dataset.channel === "stable";
+				S.previewAccepted = false;
+				S.force = false;
+				loadSource(S.action).then(() => loadPreflight(S.action));
+				return;
+			}
 			const method = e.target.closest("[data-method]");
 			if (method && S.opts && S.opts.autostart_method !== method.dataset.method) {
 				S.opts.autostart_method = method.dataset.method;
@@ -794,6 +847,7 @@
 
 	async function init() {
 		info = await invoke("info");
+		S.stable = !!info.stable;
 		lang = info.lang === "pt" ? "pt" : "en";
 		applyStatic();
 		wire();

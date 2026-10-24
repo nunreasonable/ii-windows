@@ -121,6 +121,10 @@ pub fn wrong_arch_msg(name: &str, package: Arch, native: Arch) -> Msg {
 	.with("native", native.label().to_string())
 }
 
+pub fn resolve_stable(wanted_arch: Arch) -> R<Source> {
+	release::latest_stable(wanted_arch).map(|release| Source::Github { release }).map_err(|e| msg_from_release_error(&e))
+}
+
 pub fn resolve_source(
 	offline: Option<&Path>,
 	explicit: bool,
