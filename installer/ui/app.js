@@ -286,6 +286,48 @@
 		return `<div class="card"><div class="card-title">${esc(t("card_channel"))}</div><div class="method-group channel-group" role="radiogroup">${items}</div></div>`;
 	}
 
+	function defenderCommand() {
+		return `Add-MpPreference -ExclusionPath ${(info.defender_folders || []).map((d) => `"${d}"`).join(", ")}`;
+	}
+
+	function defenderCard(blocked) {
+		const folders = (info.defender_folders || []).map((d) => `<div class="df-folder"><code>${esc(d)}</code><button type="button" class="mini-btn" data-copy="${esc(d)}">${esc(t("copy"))}</button></div>`).join("");
+		const cmd = defenderCommand();
+		return `<div class="card defender${blocked ? " blocked" : ""}">
+			<div class="preview-head">${icon("shield")}<span>${esc(t("df_title"))}</span></div>
+			<div class="df-text">${esc(t(blocked ? "df_blocked" : "df_text"))}</div>
+			<details class="df-steps"${blocked ? " open" : ""}>
+				<summary>${esc(t("df_show"))}</summary>
+				<ol class="bullets">
+					<li>${esc(t("df_s1"))}</li>
+					<li>${esc(t("df_s2"))}</li>
+					<li>${esc(t("df_s3"))}</li>
+					<li>${esc(t("df_s4"))}</li>
+				</ol>
+				<div class="df-folders">${folders}</div>
+				<div class="df-ps"><span>${esc(t("df_ps"))}</span><div class="df-folder"><code>${esc(cmd)}</code><button type="button" class="mini-btn" data-copy="${esc(cmd)}">${esc(t("copy"))}</button></div></div>
+			</details>
+			<div class="df-actions">
+				<button type="button" class="mini-btn" data-defender="threat">${icon("shield")}${esc(t("df_open"))}</button>
+				${blocked ? `<button type="button" class="mini-btn" data-defender="history">${icon("info")}${esc(t("df_history"))}</button>` : ""}
+			</div>
+		</div>`;
+	}
+
+	function onDefenderClick(e) {
+		const copy = e.target.closest("[data-copy]");
+		if (copy) {
+			navigator.clipboard.writeText(copy.dataset.copy).then(() => toast(t("copied")), () => {});
+			return true;
+		}
+		const open = e.target.closest("[data-defender]");
+		if (open) {
+			invoke("open_defender", { page: open.dataset.defender });
+			return true;
+		}
+		return false;
+	}
+
 	function previewCard(action) {
 		const v = sourceVersion(action);
 		if (!v || !isPreview(v)) return "";
@@ -368,6 +410,7 @@
 			if (!S.opts) S.opts = defaultOpts();
 			const o = S.opts;
 			html += previewCard(a);
+			html += defenderCard(false);
 			html += channelCard(a);
 			html += sourceCard(a);
 			html += styleCard(o);
@@ -407,6 +450,7 @@
 		} else if (a === "update") {
 			if (!S.opts) S.opts = defaultOpts();
 			html += previewCard(a);
+			html += defenderCard(false);
 			html += channelCard(a);
 			html += sourceCard(a);
 			const v = sourceVersion(a);
@@ -714,6 +758,7 @@
 		$("#done-sub").textContent = sub;
 		let html = "";
 		if (!r.ok && r.error && !cancelled) html += `<div class="card"><div class="card-title">${esc(t("done_error"))}</div>${noteHtml(r.error, "error")}</div>`;
+		if (!r.ok && !cancelled && /os error 225\b/.test(JSON.stringify([r.error, r.warnings]))) html += defenderCard(true);
 		if (nWarn) html += `<div class="card"><div class="card-title">${esc(t("done_warnings"))}</div>${r.warnings.map((w) => noteHtml(w, "warn")).join("")}</div>`;
 		if (r.notes.length) html += `<div class="card"><div class="card-title">${esc(t("done_notes"))}</div>${r.notes.map((n) => noteHtml(n, "note")).join("")}</div>`;
 		$("#done-body").innerHTML = html;
@@ -766,6 +811,7 @@
 			if (row) onSwitch(row.dataset.switch, e.target.checked);
 		});
 		$("#options-body").addEventListener("click", (e) => {
+			if (onDefenderClick(e)) return;
 			if (e.target.closest("[data-retry]")) loadSource(S.action).then(() => loadPreflight(S.action));
 			const zoom = e.target.closest("[data-zoom]");
 			if (zoom) {
@@ -812,6 +858,7 @@
 		});
 
 		$("#done-body").addEventListener("click", (e) => {
+			if (onDefenderClick(e)) return;
 			const b = e.target.closest("[data-open]");
 			if (b) invoke("open_path", { path: b.dataset.open });
 			const u = e.target.closest("[data-url]");

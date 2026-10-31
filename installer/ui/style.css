@@ -457,6 +457,19 @@ h2 { font-size: 22px; }
 .preview-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 4px; color: var(--warn); font-size: 17px; font-weight: 600; }
 .preview-head svg { width: 28px; height: 28px; flex: none; }
 .card.preview-warn .bullets { color: var(--on-surface); }
+.card.defender .preview-head { color: var(--primary); font-size: 15px; }
+.card.defender .preview-head svg { width: 24px; height: 24px; }
+.card.defender.blocked { box-shadow: inset 0 0 0 1px var(--warn); }
+.card.defender.blocked .preview-head { color: var(--warn); }
+.df-text { padding: 2px 16px 8px; font-size: 13px; color: var(--on-surface-variant); }
+.df-steps summary { padding: 4px 16px 8px; font-size: 13px; color: var(--primary); cursor: pointer; }
+.df-steps .bullets { color: var(--on-surface); }
+.df-folders, .df-ps { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 6px; }
+.df-ps > span { font-size: 12px; color: var(--outline); }
+.df-folder { display: flex; align-items: center; gap: 8px; }
+.df-folder code { font-family: "Cascadia Mono", Consolas, monospace; flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: var(--surface-high); font-size: 12px; color: var(--on-surface); word-break: break-all; user-select: text; }
+.df-actions { display: flex; gap: 8px; padding: 0 16px 14px; }
+.df-actions .mini-btn { display: inline-flex; align-items: center; gap: 6px; }
 .channel-group { padding: 4px 12px 12px; }
 .row-extra { font-size: 12px; margin-top: 3px; }
 .row-extra.warn { color: var(--warn); }

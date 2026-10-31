@@ -147,6 +147,7 @@ struct Info {
 	settings_dir: String,
 	user_data_dir: String,
 	settings_exist: bool,
+	defender_folders: Vec<String>,
 	current_style: Option<String>,
 	unmanaged_files: bool,
 }
@@ -212,6 +213,7 @@ fn info(state: tauri::State<'_, AppState>) -> Info {
 		settings_dir: p.settings.display().to_string(),
 		user_data_dir: p.user_state().display().to_string(),
 		settings_exist: p.settings.exists(),
+		defender_folders: p.defender_folders().iter().map(|d| d.display().to_string()).collect(),
 		current_style: iiw_setup_core::style::read(&p.settings.join(iiw_setup_core::style::CONFIG_FILE)),
 	}
 }
@@ -428,6 +430,15 @@ fn open_url(url: String) -> bool {
 }
 
 #[tauri::command]
+fn open_defender(state: tauri::State<'_, AppState>, page: String) -> bool {
+	let page = if page == "history" { "history" } else { "threat" };
+	for dir in state.paths.defender_folders() {
+		let _ = std::fs::create_dir_all(dir);
+	}
+	win::shell_open(&format!("windowsdefender://{page}"))
+}
+
+#[tauri::command]
 fn open_path(state: tauri::State<'_, AppState>, path: String) -> bool {
 	let p = PathBuf::from(&path);
 	let allowed = win::path_in(&p, &state.paths.local) || win::path_in(&p, &state.paths.temp);
@@ -564,6 +575,7 @@ fn main() {
 			launch,
 			open_url,
 			open_path,
+			open_defender,
 			win_minimize,
 			win_close,
 			ready

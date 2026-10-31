@@ -69,6 +69,9 @@ impl Paths {
 	pub fn quickshell_dirs(&self) -> Vec<PathBuf> {
 		["ii", "State", "cache", "run"].iter().map(|d| self.quickshell.join(d)).collect()
 	}
+	pub fn defender_folders(&self) -> Vec<PathBuf> {
+		vec![self.install_dir.clone(), self.quickshell.clone(), self.settings.clone(), self.temp.join("quickshell")]
+	}
 	pub fn user_state(&self) -> PathBuf {
 		self.quickshell.join("State").join("user")
 	}
