@@ -3,7 +3,7 @@ resolver = "2"
 members = ["core", "app"]
 
 [workspace.package]
-version = "26.1.1-unstable"
+version = "26.1.1"
 edition = "2021"
 publish = false
 
