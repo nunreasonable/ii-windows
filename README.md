@@ -19,7 +19,7 @@
     <h3></h3>
 </div>
 
-**Illogical Windows** (formerly ii-windows): **26.1.1.0 unstable “Bureaucratic Hamster”** is available as an unsigned, less-tested preview. **1.0.8 “Jazz-Handed Octopus” remains stable**. The preview adds Scrolling tiling, NabyScape style, automatic light/dark mode, calendar events and experimental native ARM64 support (Windows 11 24H2 build 26100.2605+). Defender may flag or remove the preview; signed builds start with the final 26.1.1.0. Return through Settings → About → Go back to 1.0.8 (stable), or choose Stable in the setup.
+**Illogical Windows** (formerly ii-windows): **26.1.1.0 unstable “Bureaucratic Hamster”** is available as an unsigned, less-tested preview. **1.0.8 “Jazz-Handed Octopus” remains stable**. The preview adds Scrolling tiling, NabyScape style, automatic light/dark mode, calendar events and experimental native ARM64 support (Windows 11 24H2 build 26100.2605+). Defender may flag or remove it because ii isn't signed yet: see the Microsoft Defender steps under Installation. Return through Settings → About → Go back to 1.0.8 (stable), or choose Stable in the setup.
 
 [Preview notes and downloads](https://github.com/nunreasonable/ii-windows/releases/tag/v26.1.1.0-unstable) · [Stable 1.0.8](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.8)
 
@@ -75,6 +75,21 @@
   - Every time ii starts, it checks GitHub for a new version and, if there is one, shows a notification with an *Update* button that opens the setup. It never updates by itself: nothing changes until you confirm in the setup. Beta installs are told about newer betas too. You can turn the notification off in *Settings → About*
   - Versions read **year.major.feature.fix** since 26.1.1.0, the release after 1.0.8: the year it came out, then the usual major, feature and fix numbers. A `-fixN` at the end is a hotfix of that release
   - The setup isn't signed yet, so SmartScreen may complain: *More info → Run anyway*
+  - **Microsoft Defender**: ii isn't signed yet, and Defender sometimes takes a new unsigned build for a threat and removes `qsw.exe`, so ii won't start. I'm trying to get ii signed; until then, add ii's folders as exclusions. The setup shows the same steps, with a button that creates the folders and opens Windows Security:
+    1. Open *Windows Security → Virus & threat protection*, and under *Virus & threat protection settings* click *Manage settings*
+    2. Scroll down to *Exclusions*, click *Add or remove exclusions* and allow the administrator prompt
+    3. Click *Add an exclusion → Folder*, paste one of these folders into the address bar and click *Select Folder*, once for each folder (a folder has to exist to be picked, so run the setup first):
+       - `%LOCALAPPDATA%\ii-windows`
+       - `%LOCALAPPDATA%\quickshell`
+       - `%LOCALAPPDATA%\illogical-impulse`
+       - `%TEMP%\quickshell`
+    4. If Defender already removed a file, open *Protection history*, pick the item and choose *Actions → Restore*
+
+    Or in PowerShell as administrator, signed in to the Windows user that uses ii:
+
+    ```powershell
+    Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\ii-windows", "$env:LOCALAPPDATA\quickshell", "$env:LOCALAPPDATA\illogical-impulse", "$env:TEMP\quickshell"
+    ```
   - **Keybinds**: the same as on Linux where Windows allows it. Important ones:
     - `Win`+`/` = keybind list
     - `Ctrl`+`Win`+`/` (or the pencil on the keybind list) = keybind editor: turn a shortcut off to give it back to Windows (`Win` alone for the Start menu, `Win`+`V`, `Win`+`Shift`+`S`...) or change its keys. *Open file* there shows the `keybinds.json` behind it
@@ -156,9 +171,9 @@ ii-windows has no telemetry and sends nothing to its developers. A few things go
     <h3></h3>
 </div>
 
-Starting with the final 26.1.1.0 release, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases are signed. Previews such as 26.1.1.0-unstable aren't. Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+ii-windows isn't signed yet. I've applied for free code signing from the [SignPath Foundation](https://signpath.org) and I'm still trying to get it; until then, follow the Microsoft Defender steps under *Installation*. Once it's approved, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases will be signed, with free code signing provided by [SignPath.io](https://about.signpath.io) and a certificate by [SignPath Foundation](https://signpath.org).
 
-They are built from this repository by [GitHub Actions](.github/workflows/build.yml), from the source commits pinned in [sources.lock](sources.lock), and every signing request is approved by hand. The third-party programs in the package (matugen, SongRec, MicroTeX, VirtualDesktopAccessor, Qt) keep their own signatures or none.
+They are built from this repository by [GitHub Actions](.github/workflows/build.yml), from the source commits pinned in [sources.lock](sources.lock), and every signing request will be approved by hand. The third-party programs in the package (matugen, SongRec, MicroTeX, VirtualDesktopAccessor, Qt) keep their own signatures or none.
 
 - Committers and reviewers: [nunreasonable](https://github.com/nunreasonable)
 - Approvers: [nunreasonable](https://github.com/nunreasonable)
