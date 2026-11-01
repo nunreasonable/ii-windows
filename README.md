@@ -19,9 +19,9 @@
     <h3></h3>
 </div>
 
-**Illogical Windows** (formerly ii-windows): **26.1.1.0 unstable “Bureaucratic Hamster”** is available as an unsigned, less-tested preview. **1.0.8 “Jazz-Handed Octopus” remains stable**. The preview adds Scrolling tiling, NabyScape style, automatic light/dark mode, calendar events and experimental native ARM64 support (Windows 11 24H2 build 26100.2605+). Defender may flag or remove it because ii isn't signed yet: see the Microsoft Defender steps under Installation. Return through Settings → About → Go back to 1.0.8 (stable), or choose Stable in the setup.
+**Illogical Windows** (formerly ii-windows): **26.1.1.0 “Bureaucratic Hamster”** is out: Scrolling tiling, NabyScape style, automatic light/dark mode, calendar events, dock reordering and experimental native ARM64 support (Windows 11 24H2 build 26100.2605+). ii isn't signed yet, so Microsoft Defender may flag it: see the Microsoft Defender steps under Installation.
 
-[Preview notes and downloads](https://github.com/nunreasonable/ii-windows/releases/tag/v26.1.1.0-unstable) · [Stable 1.0.8](https://github.com/nunreasonable/ii-windows/releases/tag/v1.0.8)
+[Release notes and downloads](https://github.com/nunreasonable/ii-windows/releases/tag/v26.1.1.0)
 
 > [!WARNING]
 > This is an **unofficial** port. It isn't made or supported by end-4 or by the Quickshell
