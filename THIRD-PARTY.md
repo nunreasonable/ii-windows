@@ -22,11 +22,10 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 | Space Grotesk | `03507d0` | OFL-1.1 | https://github.com/floriankarsten/space-grotesk | `fonts` |
 | JetBrains Mono Nerd Font | 3.4.0 | OFL-1.1 (font), MIT (Nerd Fonts) | https://github.com/ryanoasis/nerd-fonts | `fonts` |
 | Rubik (setup window only) | — | OFL-1.1 | https://github.com/googlefonts/rubik | inside `ii-windows-setup.exe` (`installer/ui/fonts`) |
+| NabyScape (design of the NabyScape visual style) | — | MIT | https://github.com/BillyNabil/nabyscape | nothing: the style recreates its look and behavior with ii's own QML and Material Symbols icons, with the author's permission; no code or images from NabyScape |
 | Adwaita icons (a few) | — | CC-BY-SA-3.0 / LGPL-3.0 | https://gitlab.gnome.org/GNOME/adwaita-icon-theme | `icons/adwaita-*` |
 | Microsoft Visual C++ runtime | 14.x | Microsoft Visual C++ Redistributable (system library) | Visual Studio | `msvcp140*.dll`, `vcruntime140*.dll` |
 
 The setup (`ii-windows-setup.exe`) is built with Tauri 2 and Rust crates under permissive licenses (MIT, Apache-2.0 and similar); `installer/Cargo.lock` lists them. It uses the Microsoft Edge WebView2 Runtime that comes with Windows. `songrec.exe` and `matugen.exe` are also Rust programs, and their crates are listed in their own `Cargo.lock`.
 
 The ARM64 package (`ii-windows-<version>-arm64.zip`) is built from the same sources at the same versions, natively on GitHub's Windows 11 ARM64 runner: Qt's own ARM64 build (`win64_msvc2022_arm64`), Quickshell, matugen, SongRec and MicroTeX compiled for ARM64, and the ARM64 Visual C++ runtime from the runner's Visual Studio (without `vcruntime140_1.dll`, which only x64 code needs). VirtualDesktopAccessor's GitHub release only ships an x64 build, so for ARM64 `VirtualDesktopAccessor.dll` is built from the `dll` crate in its source tree at commit `ceb648849dcc5760a7f4ed223308ffe3de0b51c6` (`tools/vda/build.sh`; the same commit `tools/deps.lock` takes `licenses/VirtualDesktopAccessor/LICENSE.txt` from). The ARM64 package has no `win10` folder, and its `ii-windows-setup.exe` is the same x64 setup as in the x64 package.
-
-The NabyScape visual style recreates the look and behavior of [NabyScape](https://github.com/BillyNabil/nabyscape) by BillyNabil (MIT) with ii's own QML and Material Symbols icons. No code or images from NabyScape are in the package.
