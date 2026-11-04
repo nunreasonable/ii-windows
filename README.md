@@ -111,9 +111,9 @@
   - **Tested on Windows 10 22H2** (in a VM): the shell, virtual desktops, tiling, taskbar on hover, blur, the system tray (icons from apps started before ii included), the wallpaper behind the desktop icons with draggable widgets, the screen translator, the classic console's prompt and colors, software brightness, `Win`+drag to move and resize windows (also across monitors with different scaling, with and without tiling), the bar at 125% and 150% scaling and after changing the scale while ii runs, and the setup with Windows Terminal, the terminal tools and FFmpeg
   - **Settings app**: almost every option is there now, not only in `config.json`, in two layouts (ii's and end4-pC's) with exactly the same options
   - **Startup**: on a VM held to two slow cores at 40% and a disk at 120 IOPS, the bar shows in about 1.6 seconds (about 43 in 0.5.0)
-  - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11
+  - **Also tested on real hardware**: an Intel i3-13100 with its integrated GPU only, on Windows 11, and an old HP Pavilion g6 laptop on Windows 10 22H2 (a user's setup), where the bar shows the battery and that it's charging
   - **Tested on real hardware**: Wi-Fi and Bluetooth
-  - **Built on Windows' own APIs but barely tested**: audio, media controls, battery, laptop brightness and music recognition (the VMs have no battery or laptop screen, and no song was played to recognize), game mode, the Cloudflare WARP toggle (needs Cloudflare's WARP client) and the warning before shutting down while winget is installing
+  - **Built on Windows' own APIs but barely tested**: audio, media controls, laptop brightness and music recognition (the VMs have no laptop screen, and no song was played to recognize), game mode, the Cloudflare WARP toggle (needs Cloudflare's WARP client) and the warning before shutting down while winget is installing
   - **Not on Windows**: ii's lock screen (`Win`+`L` uses Windows' own, which is the right one there) and the EasyEffects toggle
   - **Known limit**: while a window of an app running as administrator (Task Manager, installers) has the focus, Windows doesn't let ii see the keyboard, so ii's shortcuts don't work there and `Win`+`Q` opens Windows' search instead. Close those windows with `Alt`+`F4` or a middle click in the overview
 
