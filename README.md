@@ -50,15 +50,15 @@
 <details>
   <summary>How the port works</summary>
 
-  - **[Quickshell for Windows](https://github.com/nunreasonable/quickshell-windows)**: a fork of Quickshell with a Windows backend, also released on its own for other Quickshell configs. Panels are AppBars, input masks come from a low-level mouse hook, global shortcuts from `RegisterHotKey` plus a keyboard hook (for the lone Windows key), and the `Quickshell.Hyprland` module is backed by a window tracker and Windows' virtual desktops
-  - **Tiling**: an optional dwindle layout in the Windows backend, one per virtual desktop and monitor, driven by the same dispatchers ii's keybinds already use (`togglefloating`, `togglesplit`, `movewindow`, `splitratio`...)
+  - **[Quickshell for Windows](https://github.com/nunreasonable/quickshell-windows)**: a fork of Quickshell with a Windows backend, also released on its own for other Quickshell configs ([latest release](https://github.com/nunreasonable/quickshell-windows/releases/latest), installed with `irm https://raw.githubusercontent.com/nunreasonable/quickshell-windows/main/windows/install.ps1 | iex`). Its modules keep their Linux names, so the same config runs on both systems; its [WINDOWS.md](https://github.com/nunreasonable/quickshell-windows/blob/main/WINDOWS.md) says what each one is on Windows. Panels are AppBars, input masks come from a low-level mouse hook, global shortcuts from `RegisterHotKey` plus a keyboard hook (for the lone Windows key), and the `Quickshell.Hyprland` module is backed by a window tracker and Windows' virtual desktops
+  - **Tiling**: optional dwindle, master and scrolling (like Niri) layouts in the Windows backend, one per virtual desktop and monitor, driven by the same dispatchers ii's keybinds already use (`togglefloating`, `togglesplit`, `movewindow`, `splitratio`...)
   - **Native services**: audio on Core Audio, media on WinRT media controls, notifications from Windows' own toasts, the system tray shared with Explorer's, screen recording on Windows.Graphics.Capture and Media Foundation, the media visualizer on a WASAPI loopback, clipboard history, Wi-Fi on WlanAPI, Bluetooth on WinRT, OCR on `Windows.Media.Ocr`, night light and software brightness as a gamma ramp, and so on, behind the same QML APIs ii already uses
   - **Helpers**: [SongRec](https://github.com/marin-m/SongRec)'s recognizer for music recognition and [MicroTeX](https://github.com/NanoMichael/MicroTeX) for LaTeX in the AI chat, both built for Windows
   - **ii for Windows**: a fork of ii where the services keep their public properties and swap only the implementation, so most modules are untouched
   - **Equalizer**: the curve goes to [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) (free, installed separately) through a file it includes; Realtek Audio Console, MaxxAudio, Dolby, DTS, Nahimic and other sound apps have no public API, so ii only opens them
   - **Live wallpapers**: Media Foundation decodes the video on the GPU in its own thread and hands frames to Qt through a shared D3D11 texture; one decoder per file for all monitors. Without a GPU it plays at up to 720p and 15 fps
   - **Colors**: `matugen.exe` with ii's own template, so the palette from a wallpaper is the same as on Linux. Windows' wallpaper and light/dark mode follow what you pick in ii, and its accent color follows the palette
-  - Quickshell (based on upstream 0.3.1), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM. The ARM64 build is compiled natively on GitHub's Windows 11 ARM64 runner and tested there
+  - Quickshell (based on upstream 0.3.2), matugen, the helpers and the setup are cross-compiled from Linux (clang-cl + xwin, Qt 6.11) and tested in a Windows 11 VM (with and without a passed-through GPU) and a Windows 10 22H2 VM. The ARM64 build is compiled natively on GitHub's Windows 11 ARM64 runner and tested there
 
 </details>
 
@@ -203,7 +203,7 @@ All of the design and nearly all of the shell are other people's work. This repo
 </div>
 
 - This repo (the setup and the packaging scripts) is GPL-3.0, like ii. See [LICENSE](LICENSE)
-- The forks keep their upstream licenses: Quickshell for Windows is LGPL-3.0 and ii for Windows is GPL-3.0
+- The forks keep their upstream licenses: [Quickshell for Windows](https://github.com/nunreasonable/quickshell-windows) is LGPL-3.0 and ii for Windows is GPL-3.0
 - The release package also includes Qt (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT), SongRec's recognizer (GPL-3.0-or-later, source in [tools/songrec](tools/songrec)), MicroTeX (MIT, build in [tools/microtex](tools/microtex)), the Visual C++ runtime and fonts under the SIL Open Font License and Apache-2.0. [THIRD-PARTY.md](THIRD-PARTY.md) lists them all with their versions and sources, and the license texts are in the package's `licenses` folder
 - Copying: go ahead, just follow the licenses, like upstream asks
 - Forks: welcome under the same licenses. This project only lists and promotes forks that are customizations installed on top of Illogical Windows, like end4-pC is for illogical-impulse on Linux, and not an all-new shell or a separate install. See [FORKING.md](FORKING.md)
