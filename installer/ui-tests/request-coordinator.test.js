@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const createRequestCoordinator = require("./request-coordinator.js");
+const createRequestCoordinator = require("../ui/request-coordinator.js");
 
 function deferred() {
 	let resolve, reject;
