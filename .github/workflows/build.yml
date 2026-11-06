@@ -4,9 +4,18 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ARTIFACT_REF: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
 
 jobs:
   build:
@@ -129,7 +138,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
+          name: ii-windows-${{ env.ARTIFACT_REF }}-${{ github.run_number }}
           path: dist/release/
           if-no-files-found: error
 
@@ -457,7 +466,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
+          name: ii-windows-${{ env.ARTIFACT_REF }}-${{ github.run_number }}
           path: build/x64
 
       - name: Take the setup from the x64 package
@@ -517,7 +526,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}-arm64
+          name: ii-windows-${{ env.ARTIFACT_REF }}-${{ github.run_number }}-arm64
           path: dist/release/
           if-no-files-found: error
 
@@ -555,7 +564,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}
+          name: ii-windows-${{ env.ARTIFACT_REF }}-${{ github.run_number }}
           path: pkg
 
       - uses: actions/download-artifact@v4
@@ -615,7 +624,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: ii-windows-${{ github.ref_name }}-${{ github.run_number }}-arm64
+          name: ii-windows-${{ env.ARTIFACT_REF }}-${{ github.run_number }}-arm64
           path: pkg
 
       - uses: actions/download-artifact@v4
