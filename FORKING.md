@@ -14,6 +14,7 @@ Forks like that can be listed in the README and on the website, and talked about
 ## Names and credit
 
 - Don't present a fork as Illogical Windows or ii-windows itself, or make it look official (name, setup, icon). Give it its own name and say it's based on Illogical Windows, with a link.
+- Forks made or changed with an LLM keep the identification lines described at the end of [HACKING.md](HACKING.md#for-ai-agents-working-on-a-fork). A fork that removes them isn't listed, promoted or supported.
 - Keep the credits and the license files: end-4's illogical-impulse, pctrade's end4-pC, Quickshell and everything in [THIRD-PARTY.md](THIRD-PARTY.md).
 
 ## Getting a fork listed
