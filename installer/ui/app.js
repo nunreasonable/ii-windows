@@ -3,6 +3,7 @@
 	const tauri = window.__TAURI__;
 	const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
 	const listen = (ev, cb) => tauri.event.listen(ev, cb);
+	const requests = createRequestCoordinator();
 
 	const ICONS = {
 		install: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/>',
@@ -529,12 +530,16 @@
 	}
 
 	async function loadSource(action) {
+		const generation = requests.nextGeneration("source", action);
+		const stable = S.stable;
 		S.sources[action] = { loading: true };
 		if (S.page === "options") renderOptions();
 		try {
-			const value = await invoke("source", { action, stable: S.stable });
+			const value = await requests.enqueue(action, () => invoke("source", { action, stable }));
+			if (!requests.isCurrent("source", action, generation)) return S.sources[action];
 			S.sources[action] = { value };
 		} catch (error) {
+			if (!requests.isCurrent("source", action, generation)) return S.sources[action];
 			S.sources[action] = { error: typeof error === "object" ? error : { key: "internal", text: String(error), params: { error: String(error) } } };
 		}
 		if (S.page === "options" && S.action === action) renderOptions();
@@ -542,6 +547,7 @@
 	}
 
 	async function loadPreflight(action) {
+		const generation = requests.nextGeneration("preflight", action);
 		S.preflight[action] = { loading: true };
 		const src = S.sources[action];
 		let size = 0;
@@ -551,8 +557,10 @@
 		const ffmpeg = action === "install" ? (S.opts || defaultOpts()).ffmpeg : !!(info.installed && info.installed.options.ffmpeg);
 		try {
 			const value = await invoke("preflight", { action, terminal, ffmpeg, neededMb });
+			if (!requests.isCurrent("preflight", action, generation)) return;
 			S.preflight[action] = { value };
 		} catch (e) {
+			if (!requests.isCurrent("preflight", action, generation)) return;
 			S.preflight[action] = { value: { checks: [{ id: "internal", level: "error", msg: { key: "internal", text: String(e), params: { error: String(e) } } }], blocked: true } };
 		}
 		if (S.page === "options" && S.action === action) renderOptions();
