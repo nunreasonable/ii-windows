@@ -238,12 +238,15 @@ cd installer && cargo xwin build --release --target x86_64-pc-windows-msvc -p ii
 tools/deploy-ii.sh && tools/release.sh   # -> dist/release/ii-windows-<VERSION>.zip, .sha256, ii-windows-setup.exe
 ```
 `VERSION` (repo root) is the release version; `installer/Cargo.toml` must say the same
-(`release.sh` checks). The zip is `dist/ii-windows` minus `testconfigs`, plus `VERSION` and the
-setup exe itself (an update installs the matching setup into the install dir).
+(`release.sh` checks). A tag build rejects a `VERSION` older than its tag, while allowing the same
+version or a newer hotfix such as `-fix1`. The zip is `dist/ii-windows` minus `testconfigs`, plus
+`VERSION` and the setup exe itself (an update installs the matching setup into the install dir).
 
 At run time the package comes from the latest release of `nunreasonable/ii-windows` (assets
 `ii-windows-<version>.zip` + `.zip.sha256`), or offline: `--package <zip>` or an
 `ii-windows-<version>.zip` next to the exe (with its `.sha256` next to it, it's verified too).
+Update offers use the version parsed from the selected zip, including a hotfix suffix, rather than
+assuming that it matches the release tag.
 `IIW_SETUP_RELEASE_JSON=<url>` replaces the GitHub API with a release JSON of the same shape
 (testing hook; used on the VM with a loopback server to test download + checksum rejection).
 
