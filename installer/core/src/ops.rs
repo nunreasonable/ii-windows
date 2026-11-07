@@ -2394,120 +2394,129 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 			ctx.skip("terminal_theme", Msg::new("nothing_to_remove", "nothing there"));
 		}
 
-		if run.restore_look {
+		let restored = if run.restore_look {
 			ctx.begin("restore");
-			restore_look(ctx, &m);
-		}
+			restore_look(ctx, &m)
+		} else {
+			Ok(())
+		};
 
-		ctx.begin("ii_data");
-		let _ = win::delete_tree(win::QUICKSHELL_APPBARS_KEY);
-		let user_state = ctx.paths.user_state();
-		let mut dirs = ctx.paths.quickshell_dirs();
-		if !run.delete_user_data {
-			let state = ctx.paths.quickshell.join("State");
-			dirs.retain(|d| *d != state);
-			if let Ok(rd) = std::fs::read_dir(&state) {
-				dirs.extend(rd.flatten().map(|e| e.path()).filter(|p| *p != user_state));
+		cleanup_after_restore(restored, || {
+			ctx.begin("ii_data");
+			let _ = win::delete_tree(win::QUICKSHELL_APPBARS_KEY);
+			let user_state = ctx.paths.user_state();
+			let mut dirs = ctx.paths.quickshell_dirs();
+			if !run.delete_user_data {
+				let state = ctx.paths.quickshell.join("State");
+				dirs.retain(|d| *d != state);
+				if let Ok(rd) = std::fs::read_dir(&state) {
+					dirs.extend(rd.flatten().map(|e| e.path()).filter(|p| *p != user_state));
+				}
 			}
-		}
-		dirs.push(ctx.paths.ii_temp());
-		dirs.push(ctx.paths.quickshell.join("ii.new"));
-		dirs.push(ctx.paths.quickshell.join("ii.old"));
-		dirs.push(ctx.paths.generic_cache().join("quickshell"));
-		let pre = m.pre_install.clone().unwrap_or_default();
-		if pre.thumbnails_existed == Some(false) {
-			dirs.push(ctx.paths.generic_cache().join("thumbnails"));
-		}
-		if run.delete_user_data {
-			dirs.push(ctx.paths.settings.clone());
-		}
-		let mut failed = false;
-		for d in &dirs {
-			if d.exists() {
-				match fsops::remove_any(d) {
-					Ok(()) => ctx.info(format!("   removed {}", d.display())),
-					Err(e) => {
-						failed = true;
-						ctx.warn("ii_data", io_msg("remove_failed", d.display(), e));
+			dirs.push(ctx.paths.ii_temp());
+			dirs.push(ctx.paths.quickshell.join("ii.new"));
+			dirs.push(ctx.paths.quickshell.join("ii.old"));
+			dirs.push(ctx.paths.generic_cache().join("quickshell"));
+			let pre = m.pre_install.clone().unwrap_or_default();
+			if pre.thumbnails_existed == Some(false) {
+				dirs.push(ctx.paths.generic_cache().join("thumbnails"));
+			}
+			if run.delete_user_data {
+				dirs.push(ctx.paths.settings.clone());
+			}
+			let mut failed = false;
+			for d in &dirs {
+				if d.exists() {
+					match fsops::remove_any(d) {
+						Ok(()) => ctx.info(format!("   removed {}", d.display())),
+						Err(e) => {
+							failed = true;
+							ctx.warn("ii_data", io_msg("remove_failed", d.display(), e));
+						}
 					}
 				}
 			}
-		}
-		if std::fs::read_dir(&ctx.paths.quickshell).is_ok_and(|mut rd| rd.next().is_none()) {
-			let _ = std::fs::remove_dir(&ctx.paths.quickshell);
-		}
-		if pre.generic_cache_existed == Some(false)
-			&& std::fs::read_dir(ctx.paths.generic_cache()).is_ok_and(|mut rd| rd.next().is_none())
-		{
-			let _ = std::fs::remove_dir(ctx.paths.generic_cache());
-		}
-		if run.delete_user_data {
-			match win::delete_generic_credential(crate::CREDENTIAL_TARGET) {
-				Ok(true) => ctx.info(format!("   removed the {} credential", crate::CREDENTIAL_TARGET)),
-				Ok(false) => {}
-				Err(e) => {
-					failed = true;
-					ctx.warn(
-						"ii_data",
-						Msg::new("credential_failed", format!("Couldn't remove the {} credential: {e}", crate::CREDENTIAL_TARGET))
-							.with("name", crate::CREDENTIAL_TARGET)
-							.with("error", e.to_string()),
-					);
+			if std::fs::read_dir(&ctx.paths.quickshell).is_ok_and(|mut rd| rd.next().is_none()) {
+				let _ = std::fs::remove_dir(&ctx.paths.quickshell);
+			}
+			if pre.generic_cache_existed == Some(false)
+				&& std::fs::read_dir(ctx.paths.generic_cache()).is_ok_and(|mut rd| rd.next().is_none())
+			{
+				let _ = std::fs::remove_dir(ctx.paths.generic_cache());
+			}
+			if run.delete_user_data {
+				match win::delete_generic_credential(crate::CREDENTIAL_TARGET) {
+					Ok(true) => ctx.info(format!("   removed the {} credential", crate::CREDENTIAL_TARGET)),
+					Ok(false) => {}
+					Err(e) => {
+						failed = true;
+						ctx.warn(
+							"ii_data",
+							Msg::new("credential_failed", format!("Couldn't remove the {} credential: {e}", crate::CREDENTIAL_TARGET))
+								.with("name", crate::CREDENTIAL_TARGET)
+								.with("error", e.to_string()),
+						);
+					}
 				}
 			}
-		}
-		if !run.delete_user_data && (ctx.paths.settings.exists() || user_state.exists()) {
-			ctx.note(
-				Msg::new(
-					"user_data_kept",
-					format!(
-						"Your settings were kept in {} and your notes, to-dos and AI chats in {}",
-						ctx.paths.settings.display(),
-						user_state.display()
-					),
-				)
-				.with("path", ctx.paths.settings.display().to_string())
-				.with("state", user_state.display().to_string()),
-			);
-		}
-		if !failed {
-			ctx.done("ii_data");
-		}
-
-		ctx.begin("files");
-		let _ = fsops::remove_any(&ctx.paths.staging());
-		let _ = fsops::remove_any(&ctx.paths.previous());
-		if let Err(e) = fsops::remove_any(&ctx.paths.install_dir) {
-			let apps = restartmgr::describe(&restartmgr::locking(&[ctx.paths.install_dir.as_path()]));
-			let m2 = match apps {
-				Some(apps) => Msg::new(
-					"files_locked",
-					format!("Couldn't remove {}: close {apps} and try again", ctx.paths.install_dir.display()),
-				)
-				.with("apps", apps)
-				.with("error", e.to_string()),
-				None => io_msg("files_in_use", ctx.paths.install_dir.display(), e),
-			};
-			ctx.fail("files", &m2);
-			return Err(m2);
-		}
-		if let Some(key) = m.items.uninstall_key.take() {
-			let rel = key.strip_prefix("HKCU\\").unwrap_or(&key).to_string();
-			if let Err(e) = win::delete_tree(&rel) {
-				ctx.warn("files", io_msg("remove_failed", &key, e));
+			if !run.delete_user_data && (ctx.paths.settings.exists() || user_state.exists()) {
+				ctx.note(
+					Msg::new(
+						"user_data_kept",
+						format!(
+							"Your settings were kept in {} and your notes, to-dos and AI chats in {}",
+							ctx.paths.settings.display(),
+							user_state.display()
+						),
+					)
+					.with("path", ctx.paths.settings.display().to_string())
+					.with("state", user_state.display().to_string()),
+				);
 			}
-		}
-		ctx.done("files");
-		ctx.note(
-			Msg::new("uninstall_log", format!("The uninstall log is {}", log_path.display()))
-				.with("path", log_path.display().to_string()),
-		);
-		Ok(())
+			if !failed {
+				ctx.done("ii_data");
+			}
+
+			ctx.begin("files");
+			let _ = fsops::remove_any(&ctx.paths.staging());
+			let _ = fsops::remove_any(&ctx.paths.previous());
+			if let Err(e) = fsops::remove_any(&ctx.paths.install_dir) {
+				let apps = restartmgr::describe(&restartmgr::locking(&[ctx.paths.install_dir.as_path()]));
+				let m2 = match apps {
+					Some(apps) => Msg::new(
+						"files_locked",
+						format!("Couldn't remove {}: close {apps} and try again", ctx.paths.install_dir.display()),
+					)
+					.with("apps", apps)
+					.with("error", e.to_string()),
+					None => io_msg("files_in_use", ctx.paths.install_dir.display(), e),
+				};
+				ctx.fail("files", &m2);
+				return Err(m2);
+			}
+			if let Some(key) = m.items.uninstall_key.take() {
+				let rel = key.strip_prefix("HKCU\\").unwrap_or(&key).to_string();
+				if let Err(e) = win::delete_tree(&rel) {
+					ctx.warn("files", io_msg("remove_failed", &key, e));
+				}
+			}
+			ctx.done("files");
+			ctx.note(
+				Msg::new("uninstall_log", format!("The uninstall log is {}", log_path.display()))
+					.with("path", log_path.display().to_string()),
+			);
+			Ok(())
+		})
 	})();
 	ctx.finish(result, false)
 }
 
-fn restore_look(ctx: &mut Ctx, m: &Manifest) {
+fn cleanup_after_restore(restored: R<()>, cleanup: impl FnOnce() -> R<()>) -> R<()> {
+	restored?;
+	cleanup()
+}
+
+fn restore_look(ctx: &mut Ctx, m: &Manifest) -> R<()> {
 	let autohide_owned = win::get_dword(win::QUICKSHELL_KEY, win::AUTOHIDE_OWNED) == Some(1);
 	let _ = win::delete_value(win::QUICKSHELL_KEY, win::AUTOHIDE_OWNED);
 	let Some(pre) = m.pre_install.clone() else {
@@ -2517,7 +2526,7 @@ fn restore_look(ctx: &mut Ctx, m: &Manifest) {
 			ctx.info("   taskbar auto-hide off (ii had turned it on)".to_string());
 		}
 		ctx.skip("restore", Msg::new("nothing_recorded", "nothing was recorded at install time"));
-		return;
+		return Ok(());
 	};
 	win::show_taskbars();
 	if let Some(autohide) = pre.taskbar_autohide {
@@ -2559,18 +2568,20 @@ fn restore_look(ctx: &mut Ctx, m: &Manifest) {
 			Err(e) => problems.push(format!("wallpaper: {e}")),
 		}
 	}
-	if problems.is_empty() {
+	let result = if problems.is_empty() {
 		ctx.done("restore");
+		Ok(())
 	} else {
 		let text = problems.join("; ");
-		ctx.warn(
-			"restore",
-			Msg::new("restore_partial", format!("Some of the look couldn't be restored: {text}")).with("error", text),
-		);
-	}
+		let msg = Msg::new("restore_partial", format!("Some of the look couldn't be restored: {text}"))
+			.with("error", text);
+		ctx.warn("restore", msg.clone());
+		Err(msg)
+	};
 	if pre.other_instance_running {
 		ctx.note(Msg::new("restore_uncertain", "Another copy of ii was running when the installer recorded your taskbar settings, so they may not be exactly yours"));
 	}
+	result
 }
 
 pub fn schedule_cleanup(scratch: &Path, extra_dirs: &[PathBuf]) {
@@ -2587,4 +2598,68 @@ pub fn schedule_cleanup(scratch: &Path, extra_dirs: &[PathBuf]) {
 	let check = format!("if not exist \"{}\" exit", scratch.display());
 	let line = format!("for /l %i in (1,1,10) do (ping -n 3 127.0.0.1 >nul & {body} & {check})");
 	let _ = win::spawn_cmd_raw(&line);
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn cleanup(path: &Path) -> R<()> {
+		fsops::remove_any(path).map_err(|e| io_msg("remove_failed", path.display(), e))
+	}
+
+	#[test]
+	fn failed_wallpaper_restore_preserves_backup_and_success_cleans_up() {
+		let d = std::env::temp_dir().join(format!("iiw-uninstall-restore-{}", std::process::id()));
+		let _ = fsops::remove_any(&d);
+		let install = d.join("install");
+		let backup = install.join("restore").join("wallpaper-0.jpg");
+		std::fs::create_dir_all(backup.parent().unwrap()).unwrap();
+		std::fs::write(&backup, b"only copy").unwrap();
+		let scratch_root = d.join("scratch");
+		std::fs::create_dir_all(&scratch_root).unwrap();
+		let scratch = scratch_root.join("wallpaper");
+		std::fs::write(&scratch, b"not a directory").unwrap();
+		let monitor = crate::manifest::MonitorWallpaper {
+			monitor: "monitor".into(),
+			path: d.join("missing.jpg").display().to_string(),
+			backup: Some("restore/wallpaper-0.jpg".into()),
+		};
+		let restore = || {
+			win::wallpaper_source(&monitor, 0, &install, &d.join("roaming"), &scratch)
+				.map(|_| ())
+				.map_err(|e| io_msg("restore_failed", backup.display(), e))
+		};
+
+		let result = cleanup_after_restore(restore(), || cleanup(&install));
+		assert!(result.is_err());
+		assert_eq!(std::fs::read(&backup).unwrap(), b"only copy");
+
+		std::fs::remove_file(&scratch).unwrap();
+		let result = cleanup_after_restore(restore(), || cleanup(&install));
+		assert!(result.is_ok());
+		assert!(!install.exists());
+		assert!(scratch.join("restore-0-wallpaper-0.jpg").exists());
+		fsops::remove_any(&d).unwrap();
+	}
+
+	#[test]
+	fn missing_monitor_preserves_backup() {
+		let d = std::env::temp_dir().join(format!("iiw-uninstall-monitor-{}", std::process::id()));
+		let _ = fsops::remove_any(&d);
+		let install = d.join("install");
+		let backup = install.join("restore").join("wallpaper-0.jpg");
+		std::fs::create_dir_all(backup.parent().unwrap()).unwrap();
+		std::fs::write(&backup, b"only copy").unwrap();
+		let current = vec!["remaining".to_string()];
+
+		let restored = win::wallpaper_monitor("disconnected", &current, 2)
+			.map(|_| ())
+			.ok_or_else(|| Msg::new("restore_partial", "monitor unavailable"));
+		let result = cleanup_after_restore(restored, || cleanup(&install));
+		assert!(result.is_err());
+		assert_eq!(std::fs::read(&backup).unwrap(), b"only copy");
+		assert_eq!(win::wallpaper_monitor("disconnected", &current, 1), Some("remaining".into()));
+		fsops::remove_any(&d).unwrap();
+	}
 }

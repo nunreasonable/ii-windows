@@ -838,6 +838,36 @@ fn in_themes_cache(path: &str, roaming: &Path) -> bool {
 	path_in(Path::new(path), &roaming.join(r"Microsoft\Windows\Themes"))
 }
 
+pub(crate) fn wallpaper_source(
+	m: &MonitorWallpaper,
+	i: usize,
+	install_dir: &Path,
+	roaming: &Path,
+	scratch: &Path,
+) -> std::io::Result<PathBuf> {
+	let original = PathBuf::from(&m.path);
+	if original.is_file() && !in_themes_cache(&m.path, roaming) {
+		return Ok(original);
+	}
+	let Some(b) = &m.backup else {
+		return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "wallpaper backup unavailable"));
+	};
+	let from = install_dir.join(b);
+	std::fs::create_dir_all(scratch)?;
+	let to = scratch.join(format!("restore-{i}-{}", from.file_name().unwrap_or_default().to_string_lossy()));
+	std::fs::copy(&from, &to)?;
+	Ok(to)
+}
+
+pub(crate) fn wallpaper_monitor(monitor: &str, current: &[String], recorded_count: usize) -> Option<String> {
+	let target = current.iter().find(|c| c.eq_ignore_ascii_case(monitor)).cloned();
+	match (target, current.len()) {
+		(Some(target), _) => Some(target),
+		(None, 1) if recorded_count == 1 => current.first().cloned(),
+		_ => None,
+	}
+}
+
 pub fn restore_wallpaper(
 	state: &WallpaperState,
 	install_dir: &Path,
@@ -867,30 +897,18 @@ pub fn restore_wallpaper(
 			if m.path.is_empty() {
 				continue;
 			}
-			let original = PathBuf::from(&m.path);
-			let source = if original.is_file() && !in_themes_cache(&m.path, roaming) {
-				original
-			} else if let Some(b) = &m.backup {
-				let from = install_dir.join(b);
-				let _ = std::fs::create_dir_all(scratch);
-				let to =
-					scratch.join(format!("restore-{i}-{}", from.file_name().unwrap_or_default().to_string_lossy()));
-				if std::fs::copy(&from, &to).is_err() {
+			let source = match wallpaper_source(m, i, install_dir, roaming, scratch) {
+				Ok(source) => source,
+				Err(_) => {
 					failures += 1;
 					continue;
 				}
-				to
-			} else {
+			};
+			let Some(monitor) = wallpaper_monitor(&m.monitor, &current, state.monitors.len()) else {
 				failures += 1;
 				continue;
 			};
-			let target = current.iter().find(|c| c.eq_ignore_ascii_case(&m.monitor)).cloned();
-			let monitor = match (&target, current.len()) {
-				(Some(t), _) => HSTRING::from(t.as_str()),
-				(None, 1) if state.monitors.len() == 1 => HSTRING::from(current[0].as_str()),
-				_ => continue,
-			};
-			if wp.SetWallpaper(&monitor, &HSTRING::from(source.as_os_str())).is_err() {
+			if wp.SetWallpaper(&HSTRING::from(monitor), &HSTRING::from(source.as_os_str())).is_err() {
 				failures += 1;
 			}
 		}
