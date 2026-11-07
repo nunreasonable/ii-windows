@@ -11,6 +11,7 @@ DEPS="${DEPS_DIR:-$IIW/build/deps}"
 FONTTOOLS="${FONTTOOLS:-uv run -q --with fonttools fonttools}"
 "$IIW/tools/fetch-deps.sh" >/dev/null
 
+rm -rf "$D"
 "$IIW/tools/deploy.sh" "$D" "$QS_BUILD/qs.exe" "$QS_BUILD/qsw.exe" >/dev/null
 
 native_path() {
