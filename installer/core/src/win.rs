@@ -1079,7 +1079,31 @@ pub fn winget_installed(exe: &Path, id: &str) -> Option<bool> {
 	}
 }
 
-pub fn winget_install(exe: &Path, id: &str, user_scope: bool) -> Result<Output, Output> {
+#[derive(Debug)]
+pub enum WingetInstallOutcome {
+	Installed(Output),
+	NoUpdateApplicable(Output),
+}
+
+impl WingetInstallOutcome {
+	pub fn output(&self) -> &Output {
+		match self {
+			WingetInstallOutcome::Installed(out) | WingetInstallOutcome::NoUpdateApplicable(out) => out,
+		}
+	}
+}
+
+fn classify_winget_install(out: Output) -> Result<WingetInstallOutcome, Output> {
+	if out.success() {
+		Ok(WingetInstallOutcome::Installed(out))
+	} else if out.code.map(|c| c as u32) == Some(0x8A15_002B) {
+		Ok(WingetInstallOutcome::NoUpdateApplicable(out))
+	} else {
+		Err(out)
+	}
+}
+
+pub fn winget_install(exe: &Path, id: &str, user_scope: bool) -> Result<WingetInstallOutcome, Output> {
 	let mut args = vec!["install", "--id", id, "--exact", "--source", "winget", "--silent"];
 	if user_scope {
 		args.extend(["--scope", "user"]);
@@ -1091,11 +1115,7 @@ pub fn winget_install(exe: &Path, id: &str, user_scope: bool) -> Result<Output, 
 		stderr: e.to_string(),
 		timed_out: false,
 	})?;
-	if out.success() || out.code.map(|c| c as u32) == Some(0x8A15_002B) {
-		Ok(out)
-	} else {
-		Err(out)
-	}
+	classify_winget_install(out)
 }
 
 pub fn winget_uninstall(exe: &Path, id: &str) -> Result<Output, Output> {
@@ -1143,6 +1163,21 @@ mod tests {
 	fn ps_quoting() {
 		assert_eq!(super::ps_quote(r"C:\Users\test\file.exe"), r"'C:\Users\test\file.exe'");
 		assert_eq!(super::ps_quote("C:\\Users\\O'Brien\\file.exe"), "'C:\\Users\\O''Brien\\file.exe'");
+	}
+
+	fn output(code: i32) -> super::Output {
+		super::Output { code: Some(code), stdout: String::new(), stderr: String::new(), timed_out: false }
+	}
+
+	#[test]
+	fn winget_install_distinguishes_install_from_no_update() {
+		let installed = super::classify_winget_install(output(0)).unwrap();
+		assert!(matches!(&installed, super::WingetInstallOutcome::Installed(_)));
+		assert_eq!(installed.output().code, Some(0));
+
+		let no_update = super::classify_winget_install(output(0x8A15_002B_u32 as i32)).unwrap();
+		assert!(matches!(&no_update, super::WingetInstallOutcome::NoUpdateApplicable(_)));
+		assert_eq!(no_update.output().code.map(|c| c as u32), Some(0x8A15_002B));
 	}
 }
 

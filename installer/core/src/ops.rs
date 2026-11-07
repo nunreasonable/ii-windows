@@ -1413,6 +1413,13 @@ fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 }
 
+fn record_winget_install(m: &mut Manifest, id: &str, outcome: &win::WingetInstallOutcome) {
+	if !matches!(outcome, win::WingetInstallOutcome::Installed(_)) || m.has_winget(id) {
+		return;
+	}
+	m.items.winget.push(WingetPackage { id: id.into(), installed_at: log::timestamp() });
+}
+
 fn install_tools(ctx: &mut Ctx, m: &mut Manifest) {
 	ctx.begin("tools");
 	let Some(winget) = win::winget_exe() else {
@@ -1440,11 +1447,9 @@ fn install_tools(ctx: &mut Ctx, m: &mut Manifest) {
 		}
 		ctx.info(format!("   winget install --scope user {id}"));
 		match win::winget_install(&winget, id, true) {
-			Ok(out) => {
-				ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
-				if !m.has_winget(id) {
-					m.items.winget.push(WingetPackage { id: (*id).into(), installed_at: log::timestamp() });
-				}
+			Ok(outcome) => {
+				ctx.info(format!("   {}", outcome.output().text().replace('\n', "\n   ")));
+				record_winget_install(m, id, &outcome);
 				save(ctx, m);
 			}
 			Err(out) => {
@@ -1498,11 +1503,9 @@ fn install_pwsh7(ctx: &mut Ctx, m: &mut Manifest) {
 	};
 	ctx.info("   winget install Microsoft.PowerShell (asks for administrator permission)");
 	match win::winget_install(&winget, crate::PWSH_WINGET_ID, false) {
-		Ok(out) => {
-			ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
-			if !m.has_winget(crate::PWSH_WINGET_ID) {
-				m.items.winget.push(WingetPackage { id: crate::PWSH_WINGET_ID.into(), installed_at: log::timestamp() });
-			}
+		Ok(outcome) => {
+			ctx.info(format!("   {}", outcome.output().text().replace('\n', "\n   ")));
+			record_winget_install(m, crate::PWSH_WINGET_ID, &outcome);
 			save(ctx, m);
 			ctx.done("pwsh7");
 		}
@@ -1548,11 +1551,9 @@ fn install_ffmpeg(ctx: &mut Ctx, m: &mut Manifest) {
 	}
 	ctx.info(format!("   winget install --scope user {}", crate::FFMPEG_WINGET_ID));
 	match win::winget_install(&winget, crate::FFMPEG_WINGET_ID, true) {
-		Ok(out) => {
-			ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
-			if !m.has_winget(crate::FFMPEG_WINGET_ID) {
-				m.items.winget.push(WingetPackage { id: crate::FFMPEG_WINGET_ID.into(), installed_at: log::timestamp() });
-			}
+		Ok(outcome) => {
+			ctx.info(format!("   {}", outcome.output().text().replace('\n', "\n   ")));
+			record_winget_install(m, crate::FFMPEG_WINGET_ID, &outcome);
 			save(ctx, m);
 			ctx.done("ffmpeg");
 		}
@@ -2587,4 +2588,49 @@ pub fn schedule_cleanup(scratch: &Path, extra_dirs: &[PathBuf]) {
 	let check = format!("if not exist \"{}\" exit", scratch.display());
 	let line = format!("for /l %i in (1,1,10) do (ping -n 3 127.0.0.1 >nul & {body} & {check})");
 	let _ = win::spawn_cmd_raw(&line);
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn outcome_installed() -> win::WingetInstallOutcome {
+		win::WingetInstallOutcome::Installed(win::Output {
+			code: Some(0),
+			stdout: String::new(),
+			stderr: String::new(),
+			timed_out: false,
+		})
+	}
+
+	fn outcome_no_update() -> win::WingetInstallOutcome {
+		win::WingetInstallOutcome::NoUpdateApplicable(win::Output {
+			code: Some(0x8A15_002B_u32 as i32),
+			stdout: String::new(),
+			stderr: String::new(),
+			timed_out: false,
+		})
+	}
+
+	#[test]
+	fn winget_ownership_requires_an_effective_install() {
+		let mut m = Manifest::default();
+		record_winget_install(&mut m, "Contoso.Tool", &outcome_no_update());
+		assert!(m.items.winget.is_empty());
+
+		record_winget_install(&mut m, "Contoso.Tool", &outcome_installed());
+		assert_eq!(m.items.winget.len(), 1);
+		assert_eq!(m.items.winget[0].id, "Contoso.Tool");
+	}
+
+	#[test]
+	fn winget_ownership_preserves_existing_records() {
+		let original = WingetPackage { id: "Contoso.Tool".into(), installed_at: "original".into() };
+		let mut m = Manifest::default();
+		m.items.winget.push(original.clone());
+
+		record_winget_install(&mut m, "contoso.tool", &outcome_no_update());
+		record_winget_install(&mut m, "CONTOSO.TOOL", &outcome_installed());
+		assert_eq!(m.items.winget, vec![original]);
+	}
 }
