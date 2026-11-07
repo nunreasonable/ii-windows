@@ -16,6 +16,15 @@ if [ "$CARGO_VERSION" != "$VERSION" ] && [ "$CARGO_VERSION" != "$CARGO_EXPECTED"
 	exit 1
 fi
 
+if [ "${GITHUB_EVENT_NAME:-}" = push ] && [ "${GITHUB_REF_TYPE:-}" = tag ]; then
+	TAG_VERSION="${GITHUB_REF_NAME#v}"
+	OLDEST="$(printf '%s\n' "$TAG_VERSION" "$VERSION" | sort -V | head -n1)"
+	if [ "$VERSION" != "$TAG_VERSION" ] && [ "$OLDEST" = "$VERSION" ]; then
+		echo "VERSION says $VERSION, older than release tag $GITHUB_REF_NAME" >&2
+		exit 1
+	fi
+fi
+
 if [ "${SKIP_SETUP_BUILD:-}" != 1 ]; then
 	(cd "$IIW/installer" && cargo xwin build --release --target x86_64-pc-windows-msvc -p ii-windows-setup)
 fi

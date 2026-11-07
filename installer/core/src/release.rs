@@ -113,7 +113,7 @@ pub fn parse_release(json: &serde_json::Value, wanted_arch: Arch) -> Result<Rele
 	let zip_name = name_of(zip);
 	let url =
 		|a: &serde_json::Value| a.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-	let version = version::from_package_name(&zip_name).filter(|_| ver.is_empty()).unwrap_or(ver);
+	let version = version::from_package_name(&zip_name).unwrap_or(ver);
 	let setup = find(crate::SETUP_EXE);
 	let setup_sha256 = setup
 		.and_then(|a| a.get("digest"))
@@ -398,6 +398,27 @@ mod tests {
 			"ii-windows-26.1.2.0-fix1-arm64.zip.sha256",
 		]);
 		assert_eq!(parse_release(&renamed, Arch::Arm64).unwrap().zip_name, "ii-windows-26.1.2.0-fix1-arm64.zip");
+	}
+
+	#[test]
+	fn selected_zip_version_drives_updates() {
+		let hotfix = parse_release(
+			&release(&["ii-windows-26.1.2.0-fix1.zip", "ii-windows-26.1.2.0-fix1.zip.sha256"]),
+			Arch::X64,
+		)
+		.unwrap();
+		assert_eq!(hotfix.tag, "v26.1.2.0");
+		assert_eq!(hotfix.version, "26.1.2.0-fix1");
+		assert!(version::is_newer(&hotfix.version, "26.1.2.0"));
+
+		let stale = parse_release(
+			&release(&["ii-windows-26.1.1.0.zip", "ii-windows-26.1.1.0.zip.sha256"]),
+			Arch::X64,
+		)
+		.unwrap();
+		assert_eq!(stale.tag, "v26.1.2.0");
+		assert_eq!(stale.version, "26.1.1.0");
+		assert!(!version::is_newer(&stale.version, "26.1.1.0"));
 	}
 
 	#[test]
