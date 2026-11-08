@@ -113,6 +113,13 @@ pub fn mirror_dir(src: &Path, dst: &Path, keep: &[&str]) -> io::Result<()> {
 	Ok(())
 }
 
+pub fn missing_or_empty(dir: &Path) -> bool {
+	match std::fs::read_dir(dir) {
+		Ok(mut rd) => rd.next().is_none(),
+		Err(e) => e.kind() == io::ErrorKind::NotFound,
+	}
+}
+
 pub fn dir_size(path: &Path) -> u64 {
 	let mut total = 0;
 	if let Ok(rd) = std::fs::read_dir(path) {
@@ -312,6 +319,17 @@ mod tests {
 		drop(lock);
 		assert!(problems.iter().any(|p| p.contains(&previous.display().to_string())), "{problems:?}");
 		assert_eq!(std::fs::read_to_string(previous.join("z").join("locked.dll")).unwrap(), "old z");
+		remove_any(&d).unwrap();
+	}
+
+	#[test]
+	fn missing_or_empty_only_for_folders_without_files() {
+		let d = tmp("missing-or-empty");
+		assert!(missing_or_empty(&d.join("nothing")));
+		std::fs::create_dir_all(d.join("empty")).unwrap();
+		assert!(missing_or_empty(&d.join("empty")));
+		write(&d.join("used").join("restore").join("wall.jpg"), "x");
+		assert!(!missing_or_empty(&d.join("used")));
 		remove_any(&d).unwrap();
 	}
 

@@ -277,6 +277,16 @@ fn io_msg(key: &str, what: impl std::fmt::Display, e: impl std::fmt::Display) ->
 	Msg::new(key, format!("{what}: {e}")).with("error", e.to_string()).with("path", what.to_string())
 }
 
+fn manifest_unreadable(paths: &Paths, e: &std::io::Error) -> Msg {
+	let path = paths.manifest().display().to_string();
+	Msg::new(
+		"manifest_unreadable",
+		format!("Couldn't read {path} ({e}); the setup stopped so it doesn't treat the existing install as a new one"),
+	)
+	.with("path", path)
+	.with("error", e.to_string())
+}
+
 fn known_folder_checks() -> Vec<Check> {
 	let mut out = Vec::new();
 	for folder in KnownFolder::ALL {
@@ -421,32 +431,34 @@ pub fn preflight(paths: &Paths, action: Action, needed: u64, terminal: bool, ffm
 		}
 	}
 
-	let manifest = Manifest::load(&paths.manifest()).ok().flatten();
-	match (&manifest, action) {
-		(Some(m), _) => checks.push(check(
-			"existing",
-			"info",
-			Msg::new("installed_version", format!("ii-windows {} is installed", m.version))
-				.with("version", m.version.clone()),
-		)),
-		(None, Action::Install) if paths.install_dir.join("qsw.exe").exists() => checks.push(check(
-			"existing",
-			"warn",
-			Msg::new(
-				"unmanaged_install",
-				format!(
-					"{} has files from an install this setup didn't make; they will be replaced",
-					paths.install_dir.display()
-				),
-			)
-			.with("path", paths.install_dir.display().to_string()),
-		)),
-		(None, Action::Uninstall | Action::Repair | Action::Update) => checks.push(check(
-			"existing",
-			"error",
-			Msg::new("not_installed", "ii-windows isn't installed by this setup (no install manifest)"),
-		)),
-		_ => {}
+	match Manifest::load(&paths.manifest()) {
+		Err(e) => checks.push(check("existing", "error", manifest_unreadable(paths, &e))),
+		Ok(manifest) => match (&manifest, action) {
+			(Some(m), _) => checks.push(check(
+				"existing",
+				"info",
+				Msg::new("installed_version", format!("ii-windows {} is installed", m.version))
+					.with("version", m.version.clone()),
+			)),
+			(None, Action::Install) if paths.install_dir.join("qsw.exe").exists() => checks.push(check(
+				"existing",
+				"warn",
+				Msg::new(
+					"unmanaged_install",
+					format!(
+						"{} has files from an install this setup didn't make; they will be replaced",
+						paths.install_dir.display()
+					),
+				)
+				.with("path", paths.install_dir.display().to_string()),
+			)),
+			(None, Action::Uninstall | Action::Repair | Action::Update) => checks.push(check(
+				"existing",
+				"error",
+				Msg::new("not_installed", "ii-windows isn't installed by this setup (no install manifest)"),
+			)),
+			_ => {}
+		},
 	}
 
 	let (mine, others) = ii_processes(paths);
@@ -1853,11 +1865,11 @@ pub fn launch_ii_checked(paths: &Paths) -> Result<u32, Msg> {
 	if ii_shell_running(paths) { Ok(pid) } else { Err(launch_exited_msg(paths)) }
 }
 
-fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
+fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, wipe_on_failure: bool) -> R<()> {
 	let mut swap = match install_files(ctx, pkg) {
 		Ok(s) => s,
 		Err(e) => {
-			if fresh {
+			if wipe_on_failure {
 				let _ = fsops::remove_any(&ctx.paths.install_dir);
 			}
 			return Err(e);
@@ -1888,7 +1900,7 @@ fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
 					.with("error", text),
 				);
 			}
-			if fresh {
+			if wipe_on_failure {
 				let _ = fsops::remove_any(&ctx.paths.install_dir);
 			}
 			Err(e)
@@ -1990,8 +2002,15 @@ fn source_steps(source: &Source) -> Vec<&'static str> {
 }
 
 pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
-	let existing = Manifest::load(&ctx.paths.manifest()).ok().flatten();
+	let existing = match Manifest::load(&ctx.paths.manifest()) {
+		Ok(m) => m,
+		Err(e) => {
+			let m = manifest_unreadable(&ctx.paths, &e);
+			return ctx.finish(Err(m), false);
+		}
+	};
 	let fresh = existing.is_none();
+	let wipe_on_failure = fsops::missing_or_empty(&ctx.paths.install_dir);
 	let previous_opts = existing.as_ref().map(|m| m.options.clone()).unwrap_or_default();
 	let had_policy = existing.as_ref().and_then(|m| m.items.exec_policy.as_ref()).is_some_and(|c| c.changed);
 	let opts = run.options.clone();
@@ -2018,7 +2037,7 @@ pub fn install(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		if m.pre_install.is_none() {
 			m.pre_install = Some(record_pre_install(ctx));
 		}
-		swap_in(ctx, &pkg, fresh)?;
+		swap_in(ctx, &pkg, wipe_on_failure)?;
 		ctx.log.open(&ctx.paths.log());
 		m.version = pkg.version.clone();
 		m.setup_version = ctx.setup_version.clone();
@@ -2645,5 +2664,65 @@ mod tests {
 		record_winget_install(&mut m, "contoso.tool", &outcome_no_update());
 		record_winget_install(&mut m, "CONTOSO.TOOL", &outcome_installed());
 		assert_eq!(m.items.winget, vec![original]);
+	}
+
+	struct CancelledReporter;
+
+	impl Reporter for CancelledReporter {
+		fn emit(&self, _: Event) {}
+		fn cancelled(&self) -> bool {
+			true
+		}
+	}
+
+	fn tmp(name: &str) -> PathBuf {
+		let d = std::env::temp_dir().join(format!("iiw-ops-{}-{name}", std::process::id()));
+		let _ = fsops::remove_any(&d);
+		std::fs::create_dir_all(&d).unwrap();
+		d
+	}
+
+	fn write(p: &Path, s: &str) {
+		std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+		std::fs::write(p, s).unwrap();
+	}
+
+	fn package(root: &Path) -> PackageInfo {
+		use std::io::Write;
+		let path = root.join("package.zip");
+		let mut w = zip::ZipWriter::new(std::fs::File::create(&path).unwrap());
+		w.start_file("qsw.exe", zip::write::SimpleFileOptions::default()).unwrap();
+		w.write_all(b"new").unwrap();
+		w.finish().unwrap();
+		PackageInfo {
+			path,
+			version: "0.0.0".into(),
+			file_size: 0,
+			unpacked_size: 3,
+			files: 1,
+			prefix: String::new(),
+			has_setup_exe: false,
+			arch: Arch::X64,
+		}
+	}
+
+	#[test]
+	fn failed_install_keeps_a_folder_that_had_files() {
+		let root = tmp("keep-existing");
+		let paths =
+			Paths::from_roots(&root.join("local"), &root.join("roaming"), &root.join("temp"), &root.join("start"));
+		write(&paths.install_dir.join("qsw.exe"), "old");
+		write(&paths.restore_dir().join("wallpaper-0.jpg"), "backup");
+		let pkg = package(&root);
+		let log = Log::new(Box::new(|_| {}));
+		let reporter = CancelledReporter;
+		let mut ctx = Ctx::new(paths.clone(), &reporter, &log, root.join("scratch"), root.join("setup.exe"), "test");
+
+		let wipe = fsops::missing_or_empty(&paths.install_dir);
+		assert!(!wipe);
+		assert!(swap_in(&mut ctx, &pkg, wipe).is_err());
+		assert_eq!(std::fs::read_to_string(paths.install_dir.join("qsw.exe")).unwrap(), "old");
+		assert_eq!(std::fs::read_to_string(paths.restore_dir().join("wallpaper-0.jpg")).unwrap(), "backup");
+		fsops::remove_any(&root).unwrap();
 	}
 }
