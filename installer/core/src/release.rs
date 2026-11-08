@@ -62,6 +62,7 @@ fn agent() -> ureq::Agent {
 	ureq::Agent::config_builder()
 		.timeout_connect(Some(Duration::from_secs(15)))
 		.timeout_recv_response(Some(Duration::from_secs(30)))
+		.timeout_recv_body(Some(Duration::from_secs(120)))
 		.user_agent(concat!("ii-windows-setup/", env!("CARGO_PKG_VERSION")))
 		.http_status_as_error(false)
 		.build()
@@ -241,6 +242,11 @@ pub fn sha256_file(path: &Path) -> std::io::Result<String> {
 	Ok(hex(&h.finalize()))
 }
 
+fn body_budget(expected_size: u64) -> Duration {
+	let size = if expected_size > 0 { expected_size } else { 1 << 30 };
+	Duration::from_secs(10 * 60 + size / (16 << 10))
+}
+
 fn hex(bytes: &[u8]) -> String {
 	bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -261,7 +267,13 @@ pub fn download(
 	progress: &mut dyn FnMut(u64, u64),
 	cancel: &dyn Fn() -> bool,
 ) -> Result<String, Error> {
-	let mut resp = agent().get(url).call().map_err(|e| Error::Network(e.to_string()))?;
+	let mut resp = agent()
+		.get(url)
+		.config()
+		.timeout_recv_body(Some(body_budget(expected_size)))
+		.build()
+		.call()
+		.map_err(|e| Error::Network(e.to_string()))?;
 	let status = resp.status().as_u16();
 	if status != 200 {
 		return Err(Error::Network(format!("HTTP {status} downloading {url}")));
@@ -485,5 +497,14 @@ mod tests {
 		std::fs::write(&p, b"abc").unwrap();
 		assert_eq!(sha256_file(&p).unwrap(), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 		std::fs::remove_file(&p).unwrap();
+	}
+
+	#[test]
+	fn body_budget_allows_slow_downloads() {
+		let package = 79 << 20;
+		assert!(body_budget(package) >= Duration::from_secs(package / (16 << 10)));
+		assert!(body_budget(package) > Duration::from_secs(90 * 60));
+		assert!(body_budget(250 << 20) > body_budget(package));
+		assert_eq!(body_budget(0), body_budget(1 << 30));
 	}
 }
