@@ -1448,8 +1448,8 @@ fn install_tools(ctx: &mut Ctx, m: &mut Manifest) {
 	let total = crate::TERMINAL_TOOLS.len();
 	for (i, (id, cmd)) in crate::TERMINAL_TOOLS.iter().enumerate() {
 		ctx.progress("tools", i as f64 / total as f64, Some((*id).to_string()));
-		let listed = win::winget_installed(&winget, id);
 		let on_path = win::find_on_path(&format!("{cmd}.exe"));
+		let listed = if on_path.is_some() { None } else { win::winget_installed(&winget, id) };
 		if listed == Some(true) || on_path.is_some() {
 			ctx.info(format!(
 				"   {id}: already installed ({})",
@@ -1546,8 +1546,8 @@ fn install_ffmpeg(ctx: &mut Ctx, m: &mut Manifest) {
 		);
 		return;
 	};
-	let listed = win::winget_installed(&winget, crate::FFMPEG_WINGET_ID);
 	let on_path = win::find_on_path(&format!("{}.exe", crate::FFMPEG_CMD));
+	let listed = if on_path.is_some() { None } else { win::winget_installed(&winget, crate::FFMPEG_WINGET_ID) };
 	if listed == Some(true) || on_path.is_some() {
 		ctx.skip(
 			"ffmpeg",
