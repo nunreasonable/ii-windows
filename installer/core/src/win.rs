@@ -266,18 +266,8 @@ pub fn run(exe: &Path, args: &[&str], timeout: Duration) -> std::io::Result<Outp
 		.stderr(Stdio::piped())
 		.creation_flags(CREATE_NO_WINDOW)
 		.spawn()?;
-	let mut so = child.stdout.take().unwrap();
-	let mut se = child.stderr.take().unwrap();
-	let t1 = std::thread::spawn(move || {
-		let mut v = Vec::new();
-		let _ = so.read_to_end(&mut v);
-		v
-	});
-	let t2 = std::thread::spawn(move || {
-		let mut v = Vec::new();
-		let _ = se.read_to_end(&mut v);
-		v
-	});
+	let stdout_rx = read_in_background(child.stdout.take().unwrap());
+	let stderr_rx = read_in_background(child.stderr.take().unwrap());
 	let start = Instant::now();
 	let mut timed_out = false;
 	let status = loop {
@@ -291,9 +281,21 @@ pub fn run(exe: &Path, args: &[&str], timeout: Duration) -> std::io::Result<Outp
 		}
 		std::thread::sleep(Duration::from_millis(100));
 	};
-	let stdout = decode_output(&t1.join().unwrap_or_default());
-	let stderr = decode_output(&t2.join().unwrap_or_default());
+	let stdout = decode_output(&stdout_rx.recv_timeout(PIPE_GRACE).unwrap_or_default());
+	let stderr = decode_output(&stderr_rx.recv_timeout(PIPE_GRACE).unwrap_or_default());
 	Ok(Output { code: status.and_then(|s| s.code()), stdout, stderr, timed_out })
+}
+
+const PIPE_GRACE: Duration = Duration::from_secs(3);
+
+fn read_in_background(mut pipe: impl Read + Send + 'static) -> std::sync::mpsc::Receiver<Vec<u8>> {
+	let (tx, rx) = std::sync::mpsc::channel();
+	std::thread::spawn(move || {
+		let mut v = Vec::new();
+		let _ = pipe.read_to_end(&mut v);
+		let _ = tx.send(v);
+	});
+	rx
 }
 
 pub fn fresh_path_dirs() -> Vec<PathBuf> {
@@ -1163,6 +1165,22 @@ mod tests {
 	fn ps_quoting() {
 		assert_eq!(super::ps_quote(r"C:\Users\test\file.exe"), r"'C:\Users\test\file.exe'");
 		assert_eq!(super::ps_quote("C:\\Users\\O'Brien\\file.exe"), "'C:\\Users\\O''Brien\\file.exe'");
+	}
+
+	#[test]
+	fn run_returns_when_a_grandchild_keeps_the_pipe_open() {
+		let cmd = std::path::PathBuf::from(
+			std::env::var("ComSpec").unwrap_or_else(|_| r"C:\Windows\System32\cmd.exe".into()),
+		);
+		let start = std::time::Instant::now();
+		let out = super::run(
+			&cmd,
+			&["/c", "echo", "ready", "&", "start", "/b", "ping", "-n", "30", "127.0.0.1"],
+			std::time::Duration::from_secs(10),
+		)
+		.unwrap();
+		assert!(start.elapsed() < std::time::Duration::from_secs(15), "took {:?}", start.elapsed());
+		assert!(!out.timed_out);
 	}
 
 	fn output(code: i32) -> super::Output {
