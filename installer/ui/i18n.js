@@ -281,6 +281,7 @@ window.I18N = {
 		m_cancelled: "Cancelled. Nothing was changed.",
 		m_files_in_use: "Some program files are in use: {error}",
 		m_files_locked: "Close {apps} and try again.",
+		m_rollback_kept: "Some of the previous program files couldn't be put back. They're in {path}; copy them back by hand before running the setup again. Details: {error}",
 		m_internal: "Internal error: {error}"
 	},
 	pt: {
@@ -565,6 +566,7 @@ window.I18N = {
 		m_cancelled: "Cancelado. Nada foi mudado.",
 		m_files_in_use: "Alguns arquivos do programa estão em uso: {error}",
 		m_files_locked: "Feche {apps} e tente de novo.",
+		m_rollback_kept: "Alguns arquivos anteriores do programa não voltaram para o lugar. Eles estão em {path}; copie de volta à mão antes de rodar o instalador de novo. Detalhes: {error}",
 		m_internal: "Erro interno: {error}"
 	}
 };
