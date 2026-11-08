@@ -213,7 +213,7 @@ jobs:
         env:
           IIW_EXPECT_NATIVE_ARCH: x64
         run: |
-          build/setup-tests/iiw-setup-core-tests.exe arch:: release:: package:: manifest:: version:: appinstaller::
+          build/setup-tests/iiw-setup-core-tests.exe arch:: release:: package:: manifest:: version:: appinstaller:: ops::
 
       - name: Setup UI tests
         run: node --test installer/ui-tests/request-coordinator.test.js
