@@ -1872,8 +1872,21 @@ fn swap_in(ctx: &mut Ctx, pkg: &PackageInfo, fresh: bool) -> R<()> {
 			Ok(())
 		}
 		Err(e) => {
-			for p in swap.rollback() {
-				ctx.info(format!("   rollback problem: {p}"));
+			let problems = swap.rollback();
+			if !problems.is_empty() {
+				let text = problems.join("; ");
+				ctx.info(format!("   rollback problems: {text}"));
+				let previous = ctx.paths.previous().display().to_string();
+				ctx.note(
+					Msg::new(
+						"rollback_kept",
+						format!(
+							"Some of the previous program files couldn't be put back; they're in {previous} ({text})"
+						),
+					)
+					.with("path", previous)
+					.with("error", text),
+				);
 			}
 			if fresh {
 				let _ = fsops::remove_any(&ctx.paths.install_dir);

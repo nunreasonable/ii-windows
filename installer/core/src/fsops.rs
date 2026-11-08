@@ -170,8 +170,12 @@ impl Swap {
 		match result {
 			Ok(()) => Ok(swap),
 			Err(e) => {
-				swap.rollback();
-				Err(e)
+				let problems = swap.rollback();
+				if problems.is_empty() {
+					Err(e)
+				} else {
+					Err(io::Error::new(e.kind(), format!("{e}; undoing it failed: {}", problems.join("; "))))
+				}
 			}
 		}
 	}
@@ -191,7 +195,11 @@ impl Swap {
 				problems.push(format!("{}: {e}", self.target.join(&name).display()));
 			}
 		}
-		let _ = remove_any(&self.previous);
+		if problems.is_empty() {
+			let _ = remove_any(&self.previous);
+		} else {
+			problems.push(format!("the old files that didn't go back are in {}", self.previous.display()));
+		}
 		problems
 	}
 
@@ -252,6 +260,58 @@ mod tests {
 		assert!(!staging.exists());
 		assert_eq!(std::fs::read_to_string(target.join("qsw.exe")).unwrap(), "new");
 		assert!(target.join("install-manifest.json").exists());
+		remove_any(&d).unwrap();
+	}
+
+	#[test]
+	fn rollback_keeps_previous_when_a_file_cant_go_back() {
+		let d = tmp("rollback-kept");
+		let target = d.join("ii-windows");
+		let previous = d.join("previous");
+		write(&target.join("qsw.exe"), "old");
+		write(&target.join("stale").join("old.dll"), "old");
+		let staging = d.join("staging");
+		write(&staging.join("qsw.exe"), "new");
+
+		let mut swap = Swap::run(&staging, &target, &previous, &[]).unwrap();
+		write(&target.join("stale").join("in-the-way.txt"), "occupied");
+		let problems = swap.rollback();
+		assert!(problems.iter().any(|p| p.contains(&previous.display().to_string())), "{problems:?}");
+		assert_eq!(std::fs::read_to_string(previous.join("stale").join("old.dll")).unwrap(), "old");
+		assert_eq!(std::fs::read_to_string(target.join("qsw.exe")).unwrap(), "old");
+		remove_any(&d).unwrap();
+	}
+
+	#[cfg(windows)]
+	#[test]
+	fn locked_file_during_swap_keeps_everything() {
+		use std::os::windows::fs::OpenOptionsExt;
+		let d = tmp("swap-locked");
+		let target = d.join("ii-windows");
+		let previous = d.join("previous");
+		write(&target.join("a.txt"), "old a");
+		write(&target.join("qsw.exe"), "old");
+		write(&target.join("z").join("locked.dll"), "old z");
+		let staging = d.join("staging");
+		write(&staging.join("a.txt"), "new a");
+		write(&staging.join("qsw.exe"), "new");
+		write(&staging.join("z").join("locked.dll"), "new z");
+
+		let lock =
+			std::fs::OpenOptions::new().read(true).share_mode(0).open(target.join("z").join("locked.dll")).unwrap();
+		assert!(Swap::run(&staging, &target, &previous, &[]).is_err());
+		drop(lock);
+		assert_eq!(std::fs::read_to_string(target.join("a.txt")).unwrap(), "old a");
+		assert_eq!(std::fs::read_to_string(target.join("qsw.exe")).unwrap(), "old");
+		assert_eq!(std::fs::read_to_string(target.join("z").join("locked.dll")).unwrap(), "old z");
+
+		let mut swap = Swap::run(&staging, &target, &previous, &[]).unwrap();
+		let lock =
+			std::fs::OpenOptions::new().read(true).share_mode(0).open(target.join("z").join("locked.dll")).unwrap();
+		let problems = swap.rollback();
+		drop(lock);
+		assert!(problems.iter().any(|p| p.contains(&previous.display().to_string())), "{problems:?}");
+		assert_eq!(std::fs::read_to_string(previous.join("z").join("locked.dll")).unwrap(), "old z");
 		remove_any(&d).unwrap();
 	}
 
