@@ -2151,37 +2151,22 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 
 		ctx.begin("settings");
 		let backup = ctx.paths.settings.join("backups").join(format!("repair-{}", log::stamp()));
-		let mut moved = 0;
-		if let Ok(rd) = std::fs::read_dir(&ctx.paths.settings) {
-			for e in rd.flatten() {
-				let p = e.path();
-				let is_json = p.is_file() && p.extension().is_some_and(|x| x.eq_ignore_ascii_case("json"));
-				if !is_json {
-					continue;
-				}
-				let r = std::fs::create_dir_all(&backup)
-					.and_then(|_| std::fs::copy(&p, backup.join(e.file_name())))
-					.and_then(|_| std::fs::remove_file(&p));
-				match r {
-					Ok(()) => moved += 1,
-					Err(err) => {
-						let m = io_msg("settings_failed", p.display(), err);
-						ctx.fail("settings", &m);
-						return Err(m);
-					}
-				}
-			}
+		let mut moved = Vec::new();
+		if let Err((p, err)) = fsops::move_json_files(&ctx.paths.settings, &backup, &mut moved) {
+			let m = io_msg("settings_failed", p.display(), err);
+			put_settings_back(ctx, &backup, &moved);
+			ctx.fail("settings", &m);
+			return Err(m);
 		}
-		if moved > 0 {
+		if !moved.is_empty() {
 			ctx.done_with(
 				"settings",
-				Msg::new("settings_backed_up", format!("{moved} settings file(s) moved to {}", backup.display()))
-					.with("count", moved.to_string())
-					.with("path", backup.display().to_string()),
-			);
-			ctx.note(
-				Msg::new("repair_backup", format!("Your previous settings are in {}", backup.display()))
-					.with("path", backup.display().to_string()),
+				Msg::new(
+					"settings_backed_up",
+					format!("{} settings file(s) moved to {}", moved.len(), backup.display()),
+				)
+				.with("count", moved.len().to_string())
+				.with("path", backup.display().to_string()),
 			);
 		} else {
 			ctx.skip("settings", Msg::new("no_settings", "no settings files to reset"));
@@ -2192,7 +2177,16 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		ctx.log.close();
 		let r = swap_in(ctx, &pkg, false);
 		ctx.log.open(&ctx.paths.log());
-		r?;
+		if let Err(e) = r {
+			put_settings_back(ctx, &backup, &moved);
+			return Err(e);
+		}
+		if !moved.is_empty() {
+			ctx.note(
+				Msg::new("repair_backup", format!("Your previous settings are in {}", backup.display()))
+					.with("path", backup.display().to_string()),
+			);
+		}
 		m.version = pkg.version.clone();
 		m.setup_version = ctx.setup_version.clone();
 		m.arch = Some(pkg.arch);
@@ -2215,6 +2209,23 @@ pub fn repair(ctx: &mut Ctx, source: &Source, run: &RunOptions) -> bool {
 		Ok(())
 	})();
 	ctx.finish(result, !run.launch)
+}
+
+fn put_settings_back(ctx: &mut Ctx, backup: &Path, names: &[std::ffi::OsString]) {
+	if names.is_empty() {
+		return;
+	}
+	match fsops::copy_back(backup, &ctx.paths.settings, names) {
+		Ok(()) => ctx.info(format!("   settings put back from {}", backup.display())),
+		Err(e) => ctx.note(
+			Msg::new(
+				"settings_not_restored",
+				format!("Couldn't put your settings back ({e}); they're in {}", backup.display()),
+			)
+			.with("path", backup.display().to_string())
+			.with("error", e.to_string()),
+		),
+	}
 }
 
 fn schedule_leftovers(ctx: &mut Ctx, files: &[PathBuf]) {

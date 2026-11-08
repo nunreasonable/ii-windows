@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -111,6 +112,34 @@ pub fn mirror_dir(src: &Path, dst: &Path, keep: &[&str]) -> io::Result<()> {
 		remove_any(&e.path())?;
 	}
 	Ok(())
+}
+
+pub fn move_json_files(from: &Path, to: &Path, moved: &mut Vec<OsString>) -> Result<(), (PathBuf, io::Error)> {
+	let Ok(rd) = std::fs::read_dir(from) else {
+		return Ok(());
+	};
+	for e in rd.flatten() {
+		let p = e.path();
+		if !p.is_file() || !p.extension().is_some_and(|x| x.eq_ignore_ascii_case("json")) {
+			continue;
+		}
+		std::fs::create_dir_all(to)
+			.and_then(|_| std::fs::copy(&p, to.join(e.file_name())))
+			.and_then(|_| std::fs::remove_file(&p))
+			.map_err(|err| (p.clone(), err))?;
+		moved.push(e.file_name());
+	}
+	Ok(())
+}
+
+pub fn copy_back(from: &Path, to: &Path, names: &[OsString]) -> io::Result<()> {
+	let mut first = None;
+	for name in names {
+		if let Err(e) = std::fs::copy(from.join(name), to.join(name)) {
+			first.get_or_insert(e);
+		}
+	}
+	first.map_or(Ok(()), Err)
 }
 
 pub fn missing_or_empty(dir: &Path) -> bool {
@@ -319,6 +348,62 @@ mod tests {
 		drop(lock);
 		assert!(problems.iter().any(|p| p.contains(&previous.display().to_string())), "{problems:?}");
 		assert_eq!(std::fs::read_to_string(previous.join("z").join("locked.dll")).unwrap(), "old z");
+		remove_any(&d).unwrap();
+	}
+
+	fn read(p: &Path) -> String {
+		std::fs::read_to_string(p).unwrap()
+	}
+
+	#[test]
+	fn settings_move_out_and_come_back() {
+		let d = tmp("settings-back");
+		let settings = d.join("illogical-impulse");
+		let backup = settings.join("backups").join("repair-1");
+		write(&settings.join("config.json"), "config");
+		write(&settings.join("todo.json"), "todo");
+		write(&settings.join("notes.txt"), "notes");
+		let mut moved = Vec::new();
+		move_json_files(&settings, &backup, &mut moved).unwrap();
+		assert_eq!(moved.len(), 2);
+		assert!(!settings.join("config.json").exists());
+		assert_eq!(read(&settings.join("notes.txt")), "notes");
+		copy_back(&backup, &settings, &moved).unwrap();
+		assert_eq!(read(&settings.join("config.json")), "config");
+		assert_eq!(read(&settings.join("todo.json")), "todo");
+		remove_any(&d).unwrap();
+	}
+
+	#[test]
+	fn settings_failure_in_the_middle_puts_back_what_moved() {
+		let d = tmp("settings-middle");
+		let settings = d.join("illogical-impulse");
+		let backup = settings.join("backups").join("repair-1");
+		for name in ["a.json", "b.json", "c.json"] {
+			write(&settings.join(name), name);
+		}
+		std::fs::create_dir_all(backup.join("b.json")).unwrap();
+		let mut moved = Vec::new();
+		let (failed, _) = move_json_files(&settings, &backup, &mut moved).unwrap_err();
+		assert_eq!(failed, settings.join("b.json"));
+		copy_back(&backup, &settings, &moved).unwrap();
+		for name in ["a.json", "b.json", "c.json"] {
+			assert_eq!(read(&settings.join(name)), name);
+		}
+		remove_any(&d).unwrap();
+	}
+
+	#[test]
+	fn settings_copy_back_reports_a_failure() {
+		let d = tmp("settings-stuck");
+		let settings = d.join("illogical-impulse");
+		let backup = settings.join("backups").join("repair-1");
+		write(&settings.join("config.json"), "config");
+		let mut moved = Vec::new();
+		move_json_files(&settings, &backup, &mut moved).unwrap();
+		std::fs::create_dir_all(settings.join("config.json")).unwrap();
+		assert!(copy_back(&backup, &settings, &moved).is_err());
+		assert_eq!(read(&backup.join("config.json")), "config");
 		remove_any(&d).unwrap();
 	}
 
