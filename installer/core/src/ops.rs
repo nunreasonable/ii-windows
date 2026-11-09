@@ -1402,17 +1402,12 @@ fn install_app_installer(ctx: &mut Ctx, m: &mut Manifest) {
 		if reporter.cancelled() {
 			return Err(Msg::new("cancelled", "cancelled"));
 		}
-		ctx.info("   Add-AppxPackage (per user)");
-		let out = win::install_appx_bundle(&msixbundle_path, &dep_paths).map_err(|e| io_msg("io", "Add-AppxPackage", e))?;
-		ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
-		if !out.success() {
-			return Err(Msg::new(
-				"winget_install_failed",
-				format!("Add-AppxPackage couldn't install winget (exit {:?})", out.code),
-			)
-			.with("code", format!("{:?}", out.code.map(|c| c as u32))));
-		}
-		Ok(())
+		ctx.info("   installing the package for this user");
+		win::install_appx_bundle(&msixbundle_path, &dep_paths).map_err(|e| {
+			let code = format!("0x{:08X}", e.code().0 as u32);
+			Msg::new("winget_install_failed", format!("Windows couldn't install winget ({code}): {}", e.message()))
+				.with("code", code)
+		})
 	})();
 	let _ = fsops::remove_any(&dir);
 	match result {
@@ -2374,28 +2369,24 @@ pub fn uninstall(ctx: &mut Ctx, run: &RunOptions) -> bool {
 				}
 			}
 			if run.remove_tools && app_installer_ours {
-				ctx.info(format!("   Get-AppxPackage -Name {} | Remove-AppxPackage", crate::APP_INSTALLER_NAME));
+				ctx.info(format!("   removing the {} package for this user", crate::APP_INSTALLER_NAME));
 				match win::remove_appx_package(crate::APP_INSTALLER_NAME) {
-					Ok(out) if out.success() => {
-						ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+					Ok(removed) => {
+						ctx.info(format!("   {removed} package(s) removed"));
 						m.items.app_installer = None;
 						save(ctx, &m);
 					}
-					Ok(out) => {
+					Err(e) => {
 						failed = true;
-						ctx.info(format!("   {}", out.text().replace('\n', "\n   ")));
+						let code = format!("0x{:08X}", e.code().0 as u32);
 						ctx.warn(
 							"tools",
 							Msg::new(
 								"winget_uninstall_failed",
-								format!("Couldn't remove App Installer (exit {:?})", out.code),
+								format!("Couldn't remove App Installer ({code}): {}", e.message()),
 							)
-							.with("code", format!("{:?}", out.code.map(|c| c as u32))),
+							.with("code", code),
 						);
-					}
-					Err(e) => {
-						failed = true;
-						ctx.warn("tools", io_msg("winget_uninstall_failed", "Remove-AppxPackage", e));
 					}
 				}
 			}

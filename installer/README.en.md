@@ -107,8 +107,8 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   package with no declared install scope, so winget installs it per user, same as Oh My Posh,
   Starship and eza above (with the same `--accept-package-agreements`/`--accept-source-agreements`).
   Uninstall removes it only if this setup installed it, the same as PowerShell 7.
-- **Allow Windows PowerShell 5.1 to run profile scripts** (off by default): runs
-  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. This is a **security setting**: it lets
+- **Allow Windows PowerShell 5.1 to run profile scripts** (off by default): sets
+  the same registry value as `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. This is a **security setting**: it lets
   Windows PowerShell 5.1 run scripts stored on this computer, while scripts downloaded from the
   internet still need a signature. Without it, Windows PowerShell 5.1 doesn't load your profile,
   so ii's terminal look only appears in PowerShell 7, which allows this already. Nothing is
@@ -211,7 +211,8 @@ Uninstall reads `install-manifest.json` and undoes what it lists:
 - puts the PowerShell execution policy back, if this setup changed it;
 - uninstalls with winget the terminal tools this setup installed (an option, on by default;
   PowerShell 7 and FFmpeg too, each as its own option, if this setup installed them), then
-  removes winget itself (`Remove-AppxPackage`) if this setup installed it on Windows 10, and
+  removes winget itself (through Windows' `PackageManager`, like `Remove-AppxPackage`) if this
+  setup installed it on Windows 10, and
   removes the fonts it installed;
 - deletes the Windows Terminal fragment folder, `%LOCALAPPDATA%\ii-windows`, ii's folders in
   `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`, but not `State\user`),
@@ -289,12 +290,13 @@ recommended), next to Windows 11. A few things work differently there:
   update never adds winget you didn't ask for) downloads the App Installer package and its dependencies
   (about 300 MB together) from the latest release of
   [microsoft/winget-cli](https://github.com/microsoft/winget-cli) on GitHub, and installs it for
-  your user with `Add-AppxPackage` - no administrator permission. Some winget-cli releases
+  your user through Windows' `PackageManager` (the API behind `Add-AppxPackage`, called directly,
+  without PowerShell) - no administrator permission. Some winget-cli releases
   publish the msixbundle's SHA-256 next to it; when that's there, it's checked before installing,
   and this setup says so; when it isn't, this setup doesn't invent a check of its own, since
   Windows checks the package's own Microsoft signature on install anyway. Turning the toggle off
   skips this (same as before: the terminal tools and FFmpeg are skipped too). Uninstall removes
-  it with `Remove-AppxPackage`, only if this setup installed it. A failed download or install
+  it the same way, only if this setup installed it. A failed download or install
   here is a warning, not a failed setup: the terminal tools and FFmpeg are then skipped exactly
   as they are when winget was never found.
 - **Windows Terminal** isn't built into Windows 10. If the *Terminal setup* option is on and

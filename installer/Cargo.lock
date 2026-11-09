@@ -1491,6 +1491,8 @@ dependencies = [
  "sha2",
  "ureq",
  "windows",
+ "windows-collections",
+ "windows-future",
  "winreg",
  "zip",
 ]

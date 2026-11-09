@@ -7,6 +7,8 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use windows::core::{Interface, GUID, HSTRING, PCWSTR, PWSTR};
+use windows::Foundation::Uri;
+use windows::Management::Deployment::{DeploymentOptions, DeploymentProgress, DeploymentResult, PackageManager};
 use windows::Win32::Foundation::{CloseHandle, COLORREF, HWND, LPARAM, WPARAM};
 use windows::Win32::Graphics::Gdi::{AddFontResourceW, RemoveFontResourceW};
 use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
@@ -25,13 +27,15 @@ use windows::Win32::System::Threading::{
 use windows::Win32::UI::Shell::{
 	DesktopWallpaper, FOLDERID_Desktop, FOLDERID_Documents, FOLDERID_LocalAppData, FOLDERID_Pictures,
 	FOLDERID_Programs, FOLDERID_RoamingAppData, FOLDERID_Videos, IDesktopWallpaper, IShellLinkW, SHAppBarMessage,
-	SHGetKnownFolderPath, ShellExecuteW, ShellLink, ABM_GETSTATE, ABM_SETSTATE, APPBARDATA,
+	SHGetKnownFolderPath, ShellExecuteW, ShellLink, UrlCreateFromPathW, ABM_GETSTATE, ABM_SETSTATE, APPBARDATA,
 	DESKTOP_WALLPAPER_POSITION, KF_FLAG_DEFAULT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
 	EnumWindows, FindWindowW, GetClassNameW, SendMessageTimeoutW, ShowWindow, HWND_BROADCAST, SMTO_ABORTIFHUNG,
 	SW_SHOWNA, SW_SHOWNORMAL, WM_FONTCHANGE, WM_SETTINGCHANGE,
 };
+use windows_collections::IIterable;
+use windows_future::{AsyncStatus, IAsyncOperationWithProgress};
 use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WRITE};
 use winreg::types::FromRegValue;
 use winreg::RegKey;
@@ -1002,24 +1006,49 @@ pub fn profile_path(exe: &Path) -> Result<PathBuf, String> {
 	Ok(PathBuf::from(line))
 }
 
-pub fn exec_policy(scope: Option<&str>) -> Option<String> {
-	let script = "Get-ExecutionPolicy -List | ForEach-Object { '{0}={1}' -f $_.Scope, $_.ExecutionPolicy }";
-	let out = ps(&powershell_exe(), script, Duration::from_secs(60)).ok()?;
-	if !out.success() {
-		return None;
+const PS_SHELL_KEY: &str = r"Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell";
+const PS_GROUP_POLICY_KEY: &str = r"Software\Policies\Microsoft\Windows\PowerShell";
+const EXEC_POLICIES: [&str; 6] = ["Undefined", "Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
+
+fn canonical_policy(value: &str) -> &'static str {
+	EXEC_POLICIES.iter().find(|p| p.eq_ignore_ascii_case(value)).copied().unwrap_or("Restricted")
+}
+
+fn group_policy(enable_scripts: Option<u32>, policy: Option<String>) -> Option<&'static str> {
+	match enable_scripts? {
+		0 => Some("Restricted"),
+		1 => policy.map(|p| canonical_policy(&p)),
+		_ => None,
 	}
-	let list: Vec<(String, String)> = out
-		.stdout
-		.lines()
-		.filter_map(|l| l.trim().split_once('=').map(|(a, b)| (a.to_string(), b.to_string())))
-		.collect();
-	let get = |name: &str| list.iter().find(|(s, _)| s.eq_ignore_ascii_case(name)).map(|(_, v)| v.clone());
+}
+
+fn scope_policy(scope: &str) -> Option<&'static str> {
+	let (root, group) = match scope {
+		"MachinePolicy" => (HKEY_LOCAL_MACHINE, true),
+		"UserPolicy" => (HKEY_CURRENT_USER, true),
+		"CurrentUser" => (HKEY_CURRENT_USER, false),
+		"LocalMachine" => (HKEY_LOCAL_MACHINE, false),
+		_ => return None,
+	};
+	let key = RegKey::predef(root)
+		.open_subkey_with_flags(if group { PS_GROUP_POLICY_KEY } else { PS_SHELL_KEY }, KEY_READ)
+		.ok();
+	let policy = key.as_ref().and_then(|k| k.get_value::<String, _>("ExecutionPolicy").ok()).filter(|p| !p.is_empty());
+	let policy = if group {
+		group_policy(key.as_ref().and_then(|k| k.get_value::<u32, _>("EnableScripts").ok()), policy)
+	} else {
+		policy.map(|p| canonical_policy(&p))
+	};
+	Some(policy.unwrap_or("Undefined"))
+}
+
+pub fn exec_policy(scope: Option<&str>) -> Option<String> {
 	match scope {
-		Some(s) => get(s),
+		Some(s) => scope_policy(s).map(String::from),
 		None => {
 			for s in ["MachinePolicy", "UserPolicy", "CurrentUser", "LocalMachine"] {
-				if let Some(v) = get(s).filter(|v| !v.eq_ignore_ascii_case("Undefined")) {
-					return Some(v);
+				if let Some(v) = scope_policy(s).filter(|v| *v != "Undefined") {
+					return Some(v.into());
 				}
 			}
 			Some("Restricted".into())
@@ -1028,20 +1057,16 @@ pub fn exec_policy(scope: Option<&str>) -> Option<String> {
 }
 
 pub fn set_exec_policy_current_user(value: &str) -> Result<(), String> {
-	let allowed = ["Undefined", "Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass", "Default"];
-	if !allowed.iter().any(|a| a.eq_ignore_ascii_case(value)) {
-		return Err(format!("unexpected execution policy {value}"));
-	}
-	let script = format!(
-		"try {{ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy {value} -Force }} catch {{ Write-Output \"note: $($_.Exception.Message)\" }}"
-	);
-	let out = ps(&powershell_exe(), &script, Duration::from_secs(60)).map_err(|e| e.to_string())?;
-	let now = exec_policy(Some("CurrentUser")).unwrap_or_default();
-	if now.eq_ignore_ascii_case(value) {
-		Ok(())
+	let policy = EXEC_POLICIES
+		.iter()
+		.find(|p| p.eq_ignore_ascii_case(value))
+		.ok_or_else(|| format!("unexpected execution policy {value}"))?;
+	let written = if *policy == "Undefined" {
+		delete_value(PS_SHELL_KEY, "ExecutionPolicy")
 	} else {
-		Err(format!("CurrentUser execution policy is {now} after setting {value}: {}", out.text()))
-	}
+		set_string(PS_SHELL_KEY, "ExecutionPolicy", policy)
+	};
+	written.map_err(|e| format!("couldn't write the CurrentUser execution policy: {e}"))
 }
 
 pub fn policy_allows_profiles(policy: &str) -> bool {
@@ -1136,20 +1161,40 @@ pub fn winget_uninstall(exe: &Path, id: &str) -> Result<Output, Output> {
 	}
 }
 
-fn ps_quote(s: &str) -> String {
-	format!("'{}'", s.replace('\'', "''"))
+pub fn install_appx_bundle(msixbundle: &Path, dependency_paths: &[PathBuf]) -> windows::core::Result<()> {
+	let deps = dependency_paths.iter().map(|p| file_uri(p).map(Some)).collect::<windows::core::Result<Vec<_>>>()?;
+	let manager = PackageManager::new()?;
+	deployment_done(manager.AddPackageAsync(&file_uri(msixbundle)?, &IIterable::from(deps), DeploymentOptions::None)?)
 }
 
-pub fn install_appx_bundle(msixbundle: &Path, dependency_paths: &[PathBuf]) -> std::io::Result<Output> {
-	let deps = dependency_paths.iter().map(|p| ps_quote(&p.display().to_string())).collect::<Vec<_>>().join(",");
-	let script =
-		format!("Add-AppxPackage -Path {} -DependencyPath @({deps})", ps_quote(&msixbundle.display().to_string()));
-	ps(&powershell_exe(), &script, Duration::from_secs(600))
+pub fn remove_appx_package(name: &str) -> windows::core::Result<usize> {
+	let manager = PackageManager::new()?;
+	let mut full_names = Vec::new();
+	for package in manager.FindPackagesByUserSecurityId(&HSTRING::new())? {
+		let id = package.Id()?;
+		if id.Name()?.to_string().eq_ignore_ascii_case(name) {
+			full_names.push(id.FullName()?);
+		}
+	}
+	for full_name in &full_names {
+		deployment_done(manager.RemovePackageAsync(full_name)?)?;
+	}
+	Ok(full_names.len())
 }
 
-pub fn remove_appx_package(name: &str) -> std::io::Result<Output> {
-	let script = format!("Get-AppxPackage -Name {} | Remove-AppxPackage", ps_quote(name));
-	ps(&powershell_exe(), &script, Duration::from_secs(120))
+fn deployment_done(op: IAsyncOperationWithProgress<DeploymentResult, DeploymentProgress>) -> windows::core::Result<()> {
+	let result = op.join()?;
+	if op.Status()? == AsyncStatus::Completed {
+		return Ok(());
+	}
+	Err(windows::core::Error::new(op.ErrorCode()?, result.ErrorText()?.to_string()))
+}
+
+fn file_uri(path: &Path) -> windows::core::Result<Uri> {
+	let mut buf = [0u16; 4096];
+	let mut len = buf.len() as u32;
+	unsafe { UrlCreateFromPathW(&HSTRING::from(path), PWSTR(buf.as_mut_ptr()), &mut len, 0)? };
+	Uri::CreateUri(&HSTRING::from_wide(&buf[..len as usize]))
 }
 
 #[cfg(test)]
@@ -1162,9 +1207,49 @@ mod tests {
 	}
 
 	#[test]
-	fn ps_quoting() {
-		assert_eq!(super::ps_quote(r"C:\Users\test\file.exe"), r"'C:\Users\test\file.exe'");
-		assert_eq!(super::ps_quote("C:\\Users\\O'Brien\\file.exe"), "'C:\\Users\\O''Brien\\file.exe'");
+	fn group_policy_follows_enable_scripts() {
+		assert_eq!(super::group_policy(None, Some("Bypass".into())), None);
+		assert_eq!(super::group_policy(Some(0), Some("Bypass".into())), Some("Restricted"));
+		assert_eq!(super::group_policy(Some(1), Some("allsigned".into())), Some("AllSigned"));
+		assert_eq!(super::group_policy(Some(1), None), None);
+		assert_eq!(super::canonical_policy("Default"), "Restricted");
+	}
+
+	fn powershell_policies(script: &str) -> String {
+		let out = super::ps(&super::powershell_exe(), script, std::time::Duration::from_secs(120)).unwrap();
+		assert!(out.success(), "{}", out.text());
+		out.stdout.trim().to_string()
+	}
+
+	#[test]
+	fn exec_policy_agrees_with_powershell() {
+		let list = powershell_policies(
+			"Get-ExecutionPolicy -List | ForEach-Object { '{0}={1}' -f $_.Scope, $_.ExecutionPolicy }",
+		);
+		for (scope, policy) in list.lines().filter_map(|l| l.trim().split_once('=')).filter(|(s, _)| *s != "Process") {
+			assert_eq!(super::exec_policy(Some(scope)).as_deref(), Some(policy), "{scope}");
+		}
+
+		let before = super::exec_policy(Some("CurrentUser")).unwrap();
+		let target = if before == "AllSigned" { "RemoteSigned" } else { "AllSigned" };
+		let set = super::set_exec_policy_current_user(target);
+		let seen = powershell_policies("Get-ExecutionPolicy -Scope CurrentUser");
+		let restored = super::set_exec_policy_current_user(&before);
+		let seen_after = powershell_policies("Get-ExecutionPolicy -Scope CurrentUser");
+		set.unwrap();
+		restored.unwrap();
+		assert_eq!(seen, target);
+		assert_eq!(seen_after, before);
+	}
+
+	#[test]
+	fn appx_calls_report_errors_instead_of_panicking() {
+		let missing = std::env::temp_dir().join("iiw test #1").join("missing.msixbundle");
+		let uri = super::file_uri(&missing).unwrap();
+		assert_eq!(uri.SchemeName().unwrap(), "file");
+		assert!(uri.Path().unwrap().to_string().ends_with("/missing.msixbundle"), "{}", uri.AbsoluteUri().unwrap());
+		assert!(super::install_appx_bundle(&missing, std::slice::from_ref(&missing)).unwrap_err().code().is_err());
+		assert_eq!(super::remove_appx_package("IIW.Test.Missing").unwrap(), 0);
 	}
 
 	#[test]

@@ -116,8 +116,8 @@ tarefas se oculta automaticamente.
   de instalação declarado, então o winget o instala por usuário, do mesmo jeito que o Oh My Posh,
   o Starship e o eza acima (com os mesmos `--accept-package-agreements`/`--accept-source-agreements`).
   A desinstalação o remove só se foi este instalador que o instalou, assim como o PowerShell 7.
-- **Permitir que o Windows PowerShell 5.1 rode scripts de perfil** (desligada por padrão): roda
-  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. É uma **configuração de segurança**:
+- **Permitir que o Windows PowerShell 5.1 rode scripts de perfil** (desligada por padrão): grava
+  o mesmo valor no registro que o `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. É uma **configuração de segurança**:
   deixa o Windows PowerShell 5.1 rodar scripts guardados neste computador, enquanto scripts
   baixados da internet continuam precisando de assinatura. Sem ela, o Windows PowerShell 5.1 não
   carrega o seu perfil, e o visual de terminal do ii só aparece no PowerShell 7, que já permite
@@ -226,8 +226,9 @@ A desinstalação lê o `install-manifest.json` e desfaz o que está nele:
 - volta a política de execução do PowerShell, se este instalador a mudou;
 - desinstala com o winget as ferramentas de terminal que este instalador instalou (uma opção,
   ligada por padrão; o PowerShell 7 e o FFmpeg também, cada um como sua própria opção, se foi
-  este instalador que os instalou), depois remove o próprio winget (`Remove-AppxPackage`) se foi
-  este instalador que o instalou no Windows 10, e remove as fontes que ele instalou;
+  este instalador que os instalou), depois remove o próprio winget (pelo `PackageManager` do
+  Windows, como o `Remove-AppxPackage`) se foi este instalador que o instalou no Windows 10, e
+  remove as fontes que ele instalou;
 - apaga a pasta do fragmento do Windows Terminal, `%LOCALAPPDATA%\ii-windows`, as pastas do ii em
   `%LOCALAPPDATA%\quickshell` (`ii`, `State`, `cache`, `run`, mas não `State\user`),
   `%LOCALAPPDATA%\cache\quickshell` e `%TEMP%\quickshell`, e também
@@ -308,13 +309,14 @@ O ii-windows também instala no Windows 10 versão 2004 ou mais nova (build 1904
   por padrão na instalação; desligada na atualização e no reparo, para uma atualização nunca
   trazer um winget que você não pediu) baixa o pacote do Instalador de Aplicativo e as dependências dele (cerca de 300 MB
   juntos) da versão mais nova do [microsoft/winget-cli](https://github.com/microsoft/winget-cli)
-  no GitHub, e o instala para o seu usuário com `Add-AppxPackage` - sem precisar de permissão de
+  no GitHub, e o instala para o seu usuário pelo `PackageManager` do Windows (a API por trás do
+  `Add-AppxPackage`, chamada direto, sem PowerShell) - sem precisar de permissão de
   administrador. Algumas versões do winget-cli publicam o SHA-256 do msixbundle ao lado dele;
   quando isso existe, é conferido antes de instalar, e este instalador avisa; quando não existe,
   este instalador não inventa uma verificação própria, já que o Windows confere a assinatura da
   Microsoft do pacote ao instalar, de qualquer jeito. Desligar essa opção pula essa etapa (como
-  antes: as ferramentas de terminal e o FFmpeg também são pulados). A desinstalação o remove com
-  `Remove-AppxPackage`, só se foi este instalador que o instalou. Um download ou instalação que
+  antes: as ferramentas de terminal e o FFmpeg também são pulados). A desinstalação o remove do
+  mesmo jeito, só se foi este instalador que o instalou. Um download ou instalação que
   falhe aqui é um aviso, não um instalador que falhou: as ferramentas de terminal e o FFmpeg são
   então pulados, exatamente como quando o winget nunca foi encontrado.
 - O **Windows Terminal** não vem com o Windows 10. Se a opção *Configuração do terminal* estiver
