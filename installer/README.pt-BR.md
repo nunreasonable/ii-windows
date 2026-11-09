@@ -48,9 +48,10 @@ tarefas se oculta automaticamente.
 ## As opções
 
 - **Estilo visual**: *illogical-impulse* (o visual original do ii), *end4-pC* (o visual do fork
-  do pctrade) ou *NabyScape* (uma ilha preta no topo com a hora e o que está tocando, com a barra
+  do pctrade), *NabyScape* (uma ilha preta no topo com a hora e o que está tocando, com a barra
   de tarefas do Windows no lugar da barra do ii; trocar para outro estilo traz de volta a barra que
-  você tinha). Todos têm as mesmas funções e opções; a escolha define alguns padrões da barra e
+  você tinha) ou *SekaiPop* (cada pílula e cartão um bloco contornado com sombra dura que afunda
+  quando apertado, em um de oito temas de cor). Todos têm as mesmas funções e opções; a escolha define alguns padrões da barra e
   da barra lateral (números ou ícones dos apps nas áreas de trabalho, quais botões a barra mostra,
   os controles rápidos) e qual layout da janela de configurações abre. Cada cartão tem uma imagem
   de como fica. O instalador só grava `appearance.visualStyle` em
@@ -355,7 +356,10 @@ O próprio ii também muda um pouco no Windows 10:
   ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), também GPL-3.0. O estilo
   NabyScape recria o visual do NabyScape do BillyNabil
   ([github.com/BillyNabil/nabyscape](https://github.com/BillyNabil/nabyscape), MIT) com o código do
-  próprio ii; nenhum código ou imagem dele vem junto.
+  próprio ii; nenhum código ou imagem dele vem junto. O estilo SekaiPop recria o desenho em blocos do
+  SekaiPop do Blapples ([github.com/Blapples/SekaiPop](https://github.com/Blapples/SekaiPop), GPL-3.0)
+  com o código do próprio ii, com autorização do autor, e os temas usam as cores das paletas dele;
+  nenhum código ou imagem dele vem junto.
 - Também incluídos, entre outros: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor
   (MIT), o runtime do Microsoft Visual C++ (arquivos redistribuíveis, sob os termos de licença da
   Microsoft), as fontes JetBrainsMono Nerd Font, Readex Pro, Space Grotesk e Google Sans Flex

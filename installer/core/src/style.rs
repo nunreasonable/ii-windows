@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 use std::io;
 use std::path::Path;
 
-pub const STYLES: [&str; 3] = ["ii", "end4pc", "nabyscape"];
+pub const STYLES: [&str; 4] = ["ii", "end4pc", "nabyscape", "sekaipop"];
 pub const DEFAULT: &str = "ii";
 pub const CONFIG_FILE: &str = "config.json";
 
@@ -159,6 +159,15 @@ mod tests {
 		std::fs::write(&p, "{\"appearance\": {\"visualStyle\": \"end4pc\"}}").unwrap();
 		assert_eq!(write(&p, "ii").unwrap(), Outcome::Updated);
 		assert_eq!(read(&p).as_deref(), Some("ii"));
+	}
+
+	#[test]
+	fn sekaipop_is_a_known_style() {
+		let p = tmp("sekai");
+		assert!(is_known("sekaipop"));
+		std::fs::write(&p, "{\"appearance\": {\"visualStyle\": \"ii\"}}").unwrap();
+		assert_eq!(write(&p, "sekaipop").unwrap(), Outcome::Updated);
+		assert_eq!(read(&p).as_deref(), Some("sekaipop"));
 	}
 
 	#[test]

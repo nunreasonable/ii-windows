@@ -229,6 +229,7 @@
 		{ id: "ii", img: "img/style-ii.webp" },
 		{ id: "end4pc", img: "img/style-end4pc.webp" },
 		{ id: "nabyscape", img: "img/style-nabyscape.webp" },
+		{ id: "sekaipop", img: "img/style-sekaipop.webp" },
 	];
 
 	function defaultOpts() {

@@ -44,8 +44,10 @@ light or dark mode, the accent color and whether the taskbar hides automatically
 ## The options
 
 - **Visual style**: *illogical-impulse* (ii's original look), *end4-pC* (the look of pctrade's
-  fork) or *NabyScape* (a black island at the top with the time and what's playing, with the
-  Windows taskbar instead of ii's bar; switching to another style brings back the bar you had).
+  fork), *NabyScape* (a black island at the top with the time and what's playing, with the
+  Windows taskbar instead of ii's bar; switching to another style brings back the bar you had) or
+  *SekaiPop* (every pill and card an outlined block with a hard shadow that sinks when pressed, in
+  one of eight color themes).
   They all have the same features and options; the choice sets a few bar and sidebar defaults
   (workspace numbers or app icons, which buttons the bar shows, the quick sliders) and which
   settings window layout opens. Each card has a picture of how it looks. The setup only writes
@@ -332,7 +334,10 @@ ii itself also differs a little on Windows 10:
   ([github.com/pctrade/end4-pC](https://github.com/pctrade/end4-pC)), also GPL-3.0. The NabyScape
   style recreates the look of BillyNabil's NabyScape
   ([github.com/BillyNabil/nabyscape](https://github.com/BillyNabil/nabyscape), MIT) in ii's own
-  code; none of its code or images are included.
+  code; none of its code or images are included. The SekaiPop style recreates the block design of
+  Blapples' SekaiPop ([github.com/Blapples/SekaiPop](https://github.com/Blapples/SekaiPop), GPL-3.0)
+  in ii's own code, with the author's permission, and its themes use SekaiPop's palette colors;
+  none of its code or images are included.
 - Also included, among others: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT),
   the Microsoft Visual C++ runtime (redistributable files under Microsoft's license terms), the
   fonts JetBrainsMono Nerd Font, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open Font

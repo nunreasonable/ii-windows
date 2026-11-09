@@ -24,6 +24,7 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 | JetBrains Mono Nerd Font | 3.4.0 | OFL-1.1 (font), MIT (Nerd Fonts) | https://github.com/ryanoasis/nerd-fonts | `fonts` |
 | Rubik (setup window only) | — | OFL-1.1 | https://github.com/googlefonts/rubik | inside `ii-windows-setup.exe` (`installer/ui/fonts`) |
 | NabyScape (design of the NabyScape visual style) | — | MIT | https://github.com/BillyNabil/nabyscape | nothing: the style recreates its look and behavior with ii's own QML and Material Symbols icons, with the author's permission; no code or images from NabyScape |
+| SekaiPop (design of the SekaiPop visual style) | — | GPL-3.0 | https://github.com/Blapples/SekaiPop | nothing: the style recreates its block design with ii's own QML, with the author's permission, and the themes use SekaiPop's palette colors; no code or images from SekaiPop |
 | Adwaita icons (a few) | — | CC-BY-SA-3.0 / LGPL-3.0 | https://gitlab.gnome.org/GNOME/adwaita-icon-theme | `icons/adwaita-*` |
 | Microsoft Visual C++ runtime | 14.x | Microsoft Visual C++ Redistributable (system library) | Visual Studio | `msvcp140*.dll`, `vcruntime140*.dll` |
 
