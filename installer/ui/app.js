@@ -483,10 +483,11 @@
 			html += checksCard(a);
 		} else if (a === "uninstall") {
 			const inst = info.installed;
-			if (!S.uopts) S.uopts = { remove_tools: inst.tools.length > 0, remove_pwsh7: inst.pwsh7_ours, remove_ffmpeg: inst.ffmpeg_ours, delete_user_data: false, restore_look: inst.has_pre_install };
+			const tools = inst.app_installer_ours ? [...inst.tools, t("u_tools_winget")] : inst.tools;
+			if (!S.uopts) S.uopts = { remove_tools: tools.length > 0, remove_pwsh7: inst.pwsh7_ours, remove_ffmpeg: inst.ffmpeg_ours, delete_user_data: false, restore_look: inst.has_pre_install };
 			const u = S.uopts;
 			html += `<div class="card"><div class="card-title">${esc(t("card_options"))}</div>
-				${switchRow("remove_tools", "terminal", t("u_tools"), esc(inst.tools.length ? inst.tools.join(", ") : t("u_tools_none")), u.remove_tools, { disabled: !inst.tools.length })}
+				${switchRow("remove_tools", "terminal", t("u_tools"), esc(tools.length ? tools.join(", ") : t("u_tools_none")), u.remove_tools, { disabled: !tools.length })}
 				${inst.pwsh7_ours ? switchRow("remove_pwsh7", "pwsh", t("u_pwsh7"), esc(t("u_pwsh7_desc")), u.remove_pwsh7) : ""}
 				${inst.ffmpeg_ours ? switchRow("remove_ffmpeg", "box", t("u_ffmpeg"), esc(t("u_ffmpeg_desc")), u.remove_ffmpeg) : ""}
 				${switchRow("restore_look", "palette", t("u_restore"), esc(inst.has_pre_install ? t("u_restore_desc") : t("u_restore_none")), u.restore_look, { disabled: !inst.has_pre_install })}
