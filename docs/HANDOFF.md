@@ -213,6 +213,8 @@ A 26.1.1.0 vai sair assinada pela SignPath Foundation e com claro/escuro automá
 - **Estilo SekaiPop** (4º estilo, ii `fa94c004e`..`b0357beaf`): blocos com contorno, anel e sombra dura; barra, painel direito como celular que sobe com quique, toggles e sliders em bloco, popups, busca e Spotlight, dock, relógio do desktop em teclas, pôster de calendário no bloqueio, quatro transições de wallpaper (anel, íris, estrela, blocos) e o popup de notificação como o topo do celular saindo de baixo. Temas com nomes de cor (mint, indigo, lime, rose, amber, violet, mono, wallpaper). Setup: cartão e opção do estilo; créditos ao SekaiPop de Blapples no README e no THIRD-PARTY.
 - **Transição Colônias** (ii `b7f1fa141`), escrita do zero.
 - **Setup sem PowerShell** (PR #57): o pacote do winget (App Installer) é instalado e removido pelo `PackageManager` do WinRT e a política de execução é lida e gravada direto no registro. A desinstalação também remove o winget quando o setup não instalou ferramentas de terminal.
+- Presets (dots-hyprland #1, rubenmarcus, + `3a3dd4f99`): salvar espera a config ser relida e cada preset é gravado mesmo com texto igual ao anterior.
+- Cartão do SekaiPop no setup: print real da win10 com um wallpaper gerado (gradiente com listras), no lugar do render provisório.
 - Cargo em 26.1.2.
 
 ## 1.0.0 "Jazz-Handed Octopus" (2026-10-12)
