@@ -46,7 +46,7 @@ These happen without you opening a feature.
 
 ## Report a problem
 
-Settings → About → "Report a problem" only creates a zip on your Desktop and opens a new GitHub issue in your browser. Nothing is uploaded: you decide whether to attach the zip. Your Windows user name is removed from the paths in it.
+Settings → About → "Report a problem" only creates a zip in `Documents\ii-windows\reports` and opens a new GitHub issue in your browser. Nothing is uploaded: you decide whether to attach the zip. Your Windows user name is removed from the paths in it.
 
 ## Questions
 

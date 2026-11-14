@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for taking the time to report this. A few things make it much faster to fix:
 
-        - **Attach the problem report.** In ii, open **Settings → About → Report a problem**. It saves a zip with ii's logs and some system info (Windows build, GPU, screens, fonts) on your Desktop and opens this page. Drag the zip into the **Logs** box below.
+        - **Attach the problem report.** In ii, open **Settings → About → Report a problem**. It saves a zip with ii's logs and some system info (Windows build, GPU, screens, fonts) in `Documents\ii-windows\reports`, copies the version, architecture, style and Windows fields to the clipboard, and opens this page. Drag the zip into the **Logs** box below.
         - **Crashes:** turn on **Include the latest crash dump** before clicking Report a problem. A dump shows exactly where it crashed, but it can hold bits of what ii had in memory (clipboard text, chats), so look at it before sending if that matters to you.
         - **One bug per issue**, and search the [existing issues](https://github.com/nunreasonable/ii-windows/issues?q=is%3Aissue) first.
         - Questions and help go to the [ii-windows thread](https://discord.com/channels/1393080422245863506/1560371137123188738) on Discord.
@@ -42,6 +42,7 @@ body:
         - illogical-impulse (ii)
         - end4-pC
         - NabyScape
+        - SekaiPop
     validations:
       required: true
 

@@ -111,7 +111,8 @@ $shotDir = Join-Path $env:TEMP 'quickshell\media\screenshot'
 IpcT region screenshot; Start-Sleep 4
 $shot = Get-ChildItem $shotDir -Filter 'image-*' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $shell.StartTime -and $_.Name -notlike '*.tmp-*' } | Select-Object -First 1
 Check 'region screenshot captured (async)' ($null -ne $shot)
-PressEscape; Start-Sleep 2
+PressEscape; Start-Sleep 1
+IpcT region close; Start-Sleep 2
 $left = @(Get-ChildItem $shotDir -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $shell.StartTime -and ($_.Name -like 'image-*' -or $_.Name -like '*.tmp-*') })
 Check 'region screenshot cleaned up after closing' ($left.Count -eq 0) "$($left.Count) files"
 Start-Sleep 10
