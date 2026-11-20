@@ -171,7 +171,7 @@ ii-windows has no telemetry and sends nothing to its developers. A few things go
     <h3></h3>
 </div>
 
-ii-windows isn't signed yet. I've applied for free code signing from the [SignPath Foundation](https://signpath.org) and I'm still trying to get it; until then, follow the Microsoft Defender steps under *Installation*. Once it's approved, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases will be signed, with free code signing provided by [SignPath.io](https://about.signpath.io) and a certificate by [SignPath Foundation](https://signpath.org).
+ii-windows isn't signed yet. I applied for free code signing from the [SignPath Foundation](https://signpath.org), and they asked for the project to be better known first, so I'll apply again once it has grown; until then, follow the Microsoft Defender steps under *Installation*. Once it's approved, `qs.exe`, `qsw.exe` and `ii-windows-setup.exe` in the releases will be signed, with free code signing provided by [SignPath.io](https://about.signpath.io) and a certificate by [SignPath Foundation](https://signpath.org).
 
 They are built from this repository by [GitHub Actions](.github/workflows/build.yml), from the source commits pinned in [sources.lock](sources.lock), and every signing request will be approved by hand. The third-party programs in the package (matugen, SongRec, MicroTeX, VirtualDesktopAccessor, Qt) keep their own signatures or none.
 
