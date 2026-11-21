@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for taking the time to report this. A few things make it much faster to fix:
 
-        - **Attach the problem report.** In ii, open **Settings → About → Report a problem**. It saves a zip with ii's logs and some system info (Windows build, GPU, screens, fonts) in `Documents\ii-windows\reports`, copies the version, architecture, style and Windows fields to the clipboard, and opens this page. Drag the zip into the **Logs** box below.
+        - **Attach the problem report.** In ii, open **Settings → About → Report a problem**. It saves a zip with ii's logs and some system info (Windows build, GPU, screens, fonts) in `Documents\ii-windows\reports`, and opens this page with the version, architecture, style, panel family and Windows fields already filled in, so you only drag the zip into the **Logs** box below. It also copies those fields to the clipboard, in case the page opens without them.
         - **Crashes:** turn on **Include the latest crash dump** before clicking Report a problem. A dump shows exactly where it crashed, but it can hold bits of what ii had in memory (clipboard text, chats), so look at it before sending if that matters to you.
         - **One bug per issue**, and search the [existing issues](https://github.com/nunreasonable/ii-windows/issues?q=is%3Aissue) first.
         - Questions and help go to the [ii-windows thread](https://discord.com/channels/1393080422245863506/1560371137123188738) on Discord.
