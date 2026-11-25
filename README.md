@@ -1,7 +1,7 @@
 <div align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/illogical-impulse-for-windows-transparent.png">
-        <img src="assets/illogical-impulse-for-windows.png" alt="illogical-impulse for Windows" width="560">
+        <source media="(prefers-color-scheme: dark)" srcset="assets/illogical-windows-transparent.png">
+        <img src="assets/illogical-windows.png" alt="Illogical Windows" width="560">
     </picture>
     <h3>【 end_4's illogical-impulse, ported to Windows 10 and 11 】</h3>
 </div>
