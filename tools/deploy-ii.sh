@@ -7,6 +7,7 @@ SHIMS="${SHIMS:-$IIW/quickshell/shims}"
 [ -d "$SHIMS" ] || SHIMS="$IIW/quickshell-shims/shims"
 
 QS_BUILD="${QS_BUILD:-$IIW/build/qs}"
+II_SRC="${II_SRC:-$IIW/ii}"
 DEPS="${DEPS_DIR:-$IIW/build/deps}"
 FONTTOOLS="${FONTTOOLS:-uv run -q --with fonttools fonttools}"
 "$IIW/tools/fetch-deps.sh" >/dev/null
@@ -65,8 +66,8 @@ done
 
 rm -rf "$D/icons"
 mkdir -p "$D/icons"
-cp -f "$IIW"/ii/defaults/windows/icons/*.svg "$D/icons/"
-cp -f "$IIW"/ii/assets/icons/*.svg "$D/icons/"
+cp -f "$II_SRC"/defaults/windows/icons/*.svg "$D/icons/"
+cp -f "$II_SRC"/assets/icons/*.svg "$D/icons/"
 for f in "$IIW"/tools/icons/adwaita/*; do
 	case "$f" in
 	*.svg) cp -f "$f" "$D/icons/" ;;
@@ -133,9 +134,9 @@ fi
 
 rm -rf "$D/config/ii"
 mkdir -p "$D/config"
-(cd "$IIW/ii" && git ls-files -z --recurse-submodules) | while IFS= read -r -d '' f; do
+(cd "$II_SRC" && git ls-files -z --recurse-submodules) | while IFS= read -r -d '' f; do
 	mkdir -p "$D/config/ii/$(dirname "$f")"
-	cp -fp "$IIW/ii/$f" "$D/config/ii/$f"
+	cp -fp "$II_SRC/$f" "$D/config/ii/$f"
 done
 
 QMLCACHE_GEN="${QMLCACHE_GEN:-$IIW/quickshell/tools/qmlcache-bundle.py}"
