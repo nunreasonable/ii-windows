@@ -25,7 +25,7 @@ if [ "$(seen)" -ge 10 ]; then
 fi
 
 "$IIW/tools/deploy-ii.sh" >/dev/null
-untracked=$(git -C "$IIW/ii" ls-files --others --exclude-standard | grep -E '\.(qml|js|ps1|json)$' || true)
+untracked=$(git -C "${II_SRC:-$IIW/ii}" ls-files --others --exclude-standard | grep -E '\.(qml|js|ps1|json)$' || true)
 if [ -n "$untracked" ]; then
 	echo "WARN: untracked files in ii are not packaged by deploy-ii.sh:" >&2
 	sed 's/^/  /' <<<"$untracked" >&2
@@ -34,7 +34,7 @@ STAGE="$IIW/dist/smoketest"
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp "$IIW/tools/smoke/smoke.ps1" "$IIW/tools/smoke/fonttest.qml" "$IIW/tools/smoke/inherit.qml" "$STAGE/"
-python3 "$IIW/tools/qml-compile-check.py" "$IIW/ii" > "$STAGE/compilecheck.qml"
+python3 "$IIW/tools/qml-compile-check.py" "${II_SRC:-$IIW/ii}" > "$STAGE/compilecheck.qml"
 SETUP="$IIW/installer/target/x86_64-pc-windows-msvc/release/ii-windows-setup.exe"
 [ -f "$SETUP" ] && cp "$SETUP" "$STAGE/"
 
