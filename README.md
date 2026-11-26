@@ -191,6 +191,7 @@ All of the design and nearly all of the shell are other people's work. This repo
  - [@pctrade](https://github.com/pctrade) for [end4-pC](https://github.com/pctrade/end4-pC), the fork of ii whose look and settings window are the second visual style here
  - [@BillyNabil](https://github.com/BillyNabil) for [NabyScape](https://github.com/BillyNabil/nabyscape), the Windows 11 dynamic island that the third visual style recreates, with their permission
  - [@Blapples](https://github.com/Blapples) for [SekaiPop](https://github.com/Blapples/SekaiPop), the Quickshell rice whose block design the fourth visual style recreates, with their permission
+ - [@lukpednoi](https://github.com/lukpednoi) for [Anserin](https://github.com/lukpednoi/Anserin), whose Claude panel inspired the Claude Code panel
  - [@outfoxxed](https://github.com/outfoxxed) and the contributors of [Quickshell](https://quickshell.outfoxxed.me), the toolkit underneath it all
  - [minimal-05/quickshell-macos](https://github.com/minimal-05/quickshell-macos), whose macOS port of Quickshell and ii showed this could be done
  - [InioX](https://github.com/InioX) for [matugen](https://github.com/InioX/matugen), [Ciantic](https://github.com/Ciantic) for [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor), and Google's [material-color-utilities](https://github.com/material-foundation/material-color-utilities), ported for the terminal colors
