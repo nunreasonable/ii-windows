@@ -340,10 +340,16 @@ ii itself also differs a little on Windows 10:
   none of its code or images are included.
 - Also included, among others: Qt 6 (LGPL-3.0), matugen (GPL-2.0), VirtualDesktopAccessor (MIT),
   the Microsoft Visual C++ runtime (redistributable files under Microsoft's license terms), the
-  fonts JetBrainsMono Nerd Font, Readex Pro, Space Grotesk and Google Sans Flex (SIL Open Font
-  License), Material Symbols (Apache-2.0) and Adwaita icons (CC-BY-SA 3.0 / LGPL-3.0).
-  Material Symbols and Google Sans Flex ship modified: their GRAD axis, which ii doesn't use, is
-  pinned to its default with fontTools to make the files smaller.
+  fonts JetBrainsMono Nerd Font, Readex Pro, Space Grotesk, Google Sans Flex, Literata, Atkinson
+  Hyperlegible Next, Bricolage Grotesque, Dela Gothic One, Zen Kaku Gothic New, M PLUS Rounded 1c
+  and Archivo (SIL Open Font License), Material Symbols (Apache-2.0) and Adwaita icons (CC-BY-SA
+  3.0 / LGPL-3.0). Departure Mono
+  ([github.com/rektdeckard/departure-mono](https://github.com/rektdeckard/departure-mono)) and
+  DSEG7/DSEG14 Classic ([github.com/keshikan/DSEG](https://github.com/keshikan/DSEG)) are SIL Open
+  Font License too, from their own projects rather than Google Fonts. Material Symbols, Google
+  Sans Flex, Dela Gothic One, Zen Kaku Gothic New and M PLUS Rounded 1c ship modified: the first
+  two have their unused GRAD axis pinned to its default, and the three CJK fonts are subset to
+  Latin, kana and CJK punctuation; both done with fontTools to make the files smaller.
 - `songrec.exe`: SongRec's recognizer (GPL-3.0-or-later). Its source is SongRec 0.7.5
   ([github.com/marin-m/SongRec](https://github.com/marin-m/SongRec)) plus the Windows front end
   in this project's `tools/songrec`.

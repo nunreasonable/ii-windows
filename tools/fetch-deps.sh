@@ -34,4 +34,35 @@ with zipfile.ZipFile(sys.argv[1]) as z:
         with z.open(name) as src, open(target, "wb") as dst:
             dst.write(src.read())
 PY
+
+"${PYTHON:-python3}" - "$DEPS/archives/DepartureMono-1.500.zip" "$DEPS/fonts/DepartureMono-Regular.otf" "$DEPS/licenses/fonts/DepartureMono-OFL.txt" <<'PY'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as z:
+    for name in z.namelist():
+        base = name.rsplit("/", 1)[-1]
+        if base == "DepartureMono-Regular.otf":
+            target = sys.argv[2]
+        elif base == "LICENSE":
+            target = sys.argv[3]
+        else:
+            continue
+        with z.open(name) as src, open(target, "wb") as dst:
+            dst.write(src.read())
+PY
+
+"${PYTHON:-python3}" - "$DEPS/archives/DSEG-0.46.zip" "$DEPS/fonts" "$DEPS/licenses/fonts/DSEG-OFL.txt" <<'PY'
+import os, sys, zipfile
+wanted = {"DSEG7Classic-Regular.ttf", "DSEG7Classic-Bold.ttf", "DSEG14Classic-Regular.ttf", "DSEG14Classic-Bold.ttf"}
+with zipfile.ZipFile(sys.argv[1]) as z:
+    for name in z.namelist():
+        base = os.path.basename(name)
+        if base in wanted:
+            target = os.path.join(sys.argv[2], base)
+        elif base == "DSEG-LICENSE.txt":
+            target = sys.argv[3]
+        else:
+            continue
+        with z.open(name) as src, open(target, "wb") as dst:
+            dst.write(src.read())
+PY
 echo "deps ready in $DEPS"

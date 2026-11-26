@@ -36,11 +36,29 @@ pin_unused_axes() {
 	cp -f "$cache" "$D/fonts/$(basename "$src")"
 }
 
+subset_cjk() {
+	local src="$1" key cache
+	key=$(sha256sum "$src" | cut -c1-16)
+	cache="$IIW/build/fonts/$key-$(basename "$src")"
+	if [ ! -f "$cache" ]; then
+		mkdir -p "$IIW/build/fonts"
+		if ! $FONTTOOLS subset "$(native_path "$src")" --unicodes='U+0000-017F,U+2000-206F,U+3000-30FF' --layout-features='*' --name-IDs='*' --output-file="$(native_path "$cache.tmp")" >/dev/null 2>&1; then
+			echo "warning: could not subset $(basename "$src"), shipping it as is" >&2
+			rm -f "$cache.tmp"
+			cp -f "$src" "$D/fonts/"
+			return
+		fi
+		mv "$cache.tmp" "$cache"
+	fi
+	cp -f "$cache" "$D/fonts/$(basename "$src")"
+}
+
 rm -rf "$D/fonts"
 mkdir -p "$D/fonts"
 for f in "$DEPS"/fonts/*; do
 	case "$f" in
 	*GoogleSansFlex* | *MaterialSymbolsRounded*) pin_unused_axes "$f" "GRAD=0" ;;
+	*DelaGothicOne* | *ZenKakuGothicNew* | *MPLUSRounded1c*) subset_cjk "$f" ;;
 	*) cp -f "$f" "$D/fonts/" ;;
 	esac
 done

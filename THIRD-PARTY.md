@@ -22,6 +22,15 @@ Everything in the ii-windows package is open source, except the Microsoft Visual
 | Readex Pro | `563dfbb` | OFL-1.1 | https://github.com/ThomasJockin/readexpro | `fonts` |
 | Space Grotesk | `03507d0` | OFL-1.1 | https://github.com/floriankarsten/space-grotesk | `fonts` |
 | JetBrains Mono Nerd Font | 3.4.0 | OFL-1.1 (font), MIT (Nerd Fonts) | https://github.com/ryanoasis/nerd-fonts | `fonts` |
+| Literata | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Atkinson Hyperlegible Next | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Bricolage Grotesque | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Dela Gothic One | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Zen Kaku Gothic New | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| M PLUS Rounded 1c | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Archivo | `5026800` (google/fonts) | OFL-1.1 | https://github.com/google/fonts | `fonts` |
+| Departure Mono | `v1.500` | OFL-1.1 | https://github.com/rektdeckard/departure-mono | `fonts` |
+| DSEG7 Classic and DSEG14 Classic | `v0.46` | OFL-1.1 | https://github.com/keshikan/DSEG | `fonts` |
 | Rubik (setup window only) | — | OFL-1.1 | https://github.com/googlefonts/rubik | inside `ii-windows-setup.exe` (`installer/ui/fonts`) |
 | NabyScape (design of the NabyScape visual style) | — | MIT | https://github.com/BillyNabil/nabyscape | nothing: the style recreates its look and behavior with ii's own QML and Material Symbols icons, with the author's permission; no code or images from NabyScape |
 | SekaiPop (design of the SekaiPop visual style) | — | GPL-3.0 | https://github.com/Blapples/SekaiPop | nothing: the style recreates its block design with ii's own QML, with the author's permission, and the themes use SekaiPop's palette colors; no code or images from SekaiPop |

@@ -197,7 +197,7 @@ All of the design and nearly all of the shell are other people's work. This repo
  - [InioX](https://github.com/InioX) for [matugen](https://github.com/InioX/matugen), [Ciantic](https://github.com/Ciantic) for [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor), and Google's [material-color-utilities](https://github.com/material-foundation/material-color-utilities), ported for the terminal colors
  - [marin-m](https://github.com/marin-m) for [SongRec](https://github.com/marin-m/SongRec) and [NanoMichael](https://github.com/NanoMichael) for [MicroTeX](https://github.com/NanoMichael/MicroTeX)
  - [RetroBar](https://github.com/dremin/RetroBar) and [ManagedShell](https://github.com/cairoshell/ManagedShell), whose way of sharing the tray with Explorer the Windows tray follows
- - The Qt Project, and the fonts and icons ii ships with: JetBrains Mono and Nerd Fonts, Readex Pro, Space Grotesk, Google Sans Flex, Material Symbols and GNOME's Adwaita icons (the setup itself uses Rubik)
+ - The Qt Project, and the fonts and icons ii ships with: JetBrains Mono and Nerd Fonts, Readex Pro, Space Grotesk, Google Sans Flex, Literata, Atkinson Hyperlegible Next, Departure Mono, Bricolage Grotesque, Dela Gothic One, Zen Kaku Gothic New, M PLUS Rounded 1c, Archivo, DSEG7 Classic and DSEG14 Classic, Material Symbols and GNOME's Adwaita icons (the setup itself uses Rubik)
 
 <div align="center">
     <h2>• license •</h2>
