@@ -230,6 +230,13 @@
 		{ id: "end4pc", img: "img/style-end4pc.webp" },
 		{ id: "nabyscape", img: "img/style-nabyscape.webp" },
 		{ id: "sekaipop", img: "img/style-sekaipop.webp" },
+		{ id: "mainel", img: "img/style-mainel.webp" },
+		{ id: "tinta", img: "img/style-tinta.webp" },
+		{ id: "caractere", img: "img/style-caractere.webp" },
+		{ id: "riso", img: "img/style-riso.webp" },
+		{ id: "quadrinho", img: "img/style-quadrinho.webp" },
+		{ id: "aquario", img: "img/style-aquario.webp" },
+		{ id: "aparelho", img: "img/style-aparelho.webp" },
 	];
 
 	function defaultOpts() {

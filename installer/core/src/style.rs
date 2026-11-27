@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 use std::io;
 use std::path::Path;
 
-pub const STYLES: [&str; 4] = ["ii", "end4pc", "nabyscape", "sekaipop"];
+pub const STYLES: [&str; 11] = ["ii", "end4pc", "nabyscape", "sekaipop", "mainel", "tinta", "caractere", "riso", "quadrinho", "aquario", "aparelho"];
 pub const DEFAULT: &str = "ii";
 pub const CONFIG_FILE: &str = "config.json";
 

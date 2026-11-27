@@ -47,10 +47,14 @@ light or dark mode, the accent color and whether the taskbar hides automatically
   fork), *NabyScape* (a black island at the top with the time and what's playing, with the
   Windows taskbar instead of ii's bar; switching to another style brings back the bar you had) or
   *SekaiPop* (every pill and card an outlined block with a hard shadow that sinks when pressed, in
-  one of eight color themes).
+  one of eight color themes), *Mainel* (the logo as a system: panes with jade trim), *Tinta* (an
+  e-reader screen with no animations, the lightest one), *Caractere* (a terminal character grid),
+  *Riso* (two risograph inks out of register), *Quadrinho* (a manga page with speech balloons),
+  *Aquário* (liquid glass where levels fill like water) or *Aparelho* (aluminium, keys and an LCD
+  clock).
   They all have the same features and options; the choice sets a few bar and sidebar defaults
   (workspace numbers or app icons, which buttons the bar shows, the quick sliders) and which
-  settings window layout opens. Each card has a picture of how it looks. The setup only writes
+  settings window layout opens. ii remembers what you change in each style and brings it back when you switch back. Each card has a picture of how it looks. The setup only writes
   `appearance.visualStyle` into `%LOCALAPPDATA%\illogical-impulse\config.json` (creating the file
   if it doesn't exist yet and the choice isn't the default); ii applies the rest the next time it
   starts. You can switch any time in Settings > Quick > Style. Update shows the same choice,

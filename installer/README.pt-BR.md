@@ -50,10 +50,14 @@ tarefas se oculta automaticamente.
 - **Estilo visual**: *illogical-impulse* (o visual original do ii), *end4-pC* (o visual do fork
   do pctrade), *NabyScape* (uma ilha preta no topo com a hora e o que está tocando, com a barra
   de tarefas do Windows no lugar da barra do ii; trocar para outro estilo traz de volta a barra que
-  você tinha) ou *SekaiPop* (cada pílula e cartão um bloco contornado com sombra dura que afunda
-  quando apertado, em um de oito temas de cor). Todos têm as mesmas funções e opções; a escolha define alguns padrões da barra e
+  você tinha), *SekaiPop* (cada pílula e cartão um bloco contornado com sombra dura que afunda
+  quando apertado, em um de oito temas de cor), *Mainel* (o logo como sistema: vidraças com
+  acabamento jade), *Tinta* (tela de leitor de livros, sem animações, o mais leve), *Caractere*
+  (grade de caracteres de terminal), *Riso* (duas tintas de risografia fora de registro),
+  *Quadrinho* (página de mangá com balões de fala), *Aquário* (vidro líquido em que os níveis
+  enchem como água) ou *Aparelho* (alumínio, teclas e relógio de LCD). Todos têm as mesmas funções e opções; a escolha define alguns padrões da barra e
   da barra lateral (números ou ícones dos apps nas áreas de trabalho, quais botões a barra mostra,
-  os controles rápidos) e qual layout da janela de configurações abre. Cada cartão tem uma imagem
+  os controles rápidos) e qual layout da janela de configurações abre. O ii lembra o que você mudou em cada estilo e devolve quando você volta pra ele. Cada cartão tem uma imagem
   de como fica. O instalador só grava `appearance.visualStyle` em
   `%LOCALAPPDATA%\illogical-impulse\config.json` (criando o arquivo se ele ainda não existir e a
   escolha não for a padrão); o ii aplica o resto na próxima vez que abrir. Dá para trocar quando

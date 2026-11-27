@@ -43,6 +43,13 @@ body:
         - end4-pC
         - NabyScape
         - SekaiPop
+        - Mainel
+        - Tinta
+        - Caractere
+        - Riso
+        - Quadrinho
+        - Aquário
+        - Aparelho
     validations:
       required: true
 
